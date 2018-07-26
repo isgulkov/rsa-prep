@@ -1,9 +1,8 @@
-
 #include "longint.h"
 
 #include <iostream>
 
-void hello()
+std::string hello()
 {
-    std::cout << "Hello!" << std::endl;
+    return "Hello, world!";
 }
