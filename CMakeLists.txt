@@ -7,14 +7,14 @@ set(CMAKE_CXX_STANDARD 11)
 ### ---------
 include_directories(include)
 
-### longint: a long integer implementation
-add_library(longint src/longint.cpp)
+# - uint_long: an unsigned long integer implementation
+add_library(uint_long src/uint_long.cpp)
 
 ### CLI executable, perhaps?
 ### ------------------------
 add_executable(rsa_prep src/main.cpp)
 
-target_link_libraries(rsa_prep longint)
+target_link_libraries(rsa_prep uint_long)
 
 ### Unit tests
 ### ----------
@@ -25,20 +25,20 @@ if (BUILD_TESTS)
 
   enable_testing()
 
-  # - longint
-  add_executable(test_longint test/test_longint.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_longint.cpp")
-  target_link_libraries(test_longint
+  # - uint_long
+  add_executable(test_uint_long test/test_uint_long.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_uint_long.cpp")
+  target_link_libraries(test_uint_long
           gtest gtest_main
-          longint
+          uint_long
   )
-  add_test(longint test_longint)
+  add_test(test_uint_long test_uint_long)
 
   # all tests
   # TODO: a more concise way?
   add_executable(test_all test/main.cpp "${TEST_SRCS}")
   target_link_libraries(test_all
           gtest gtest_main
-          longint
+          uint_long
   )
 endif()
