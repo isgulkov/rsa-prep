@@ -67,7 +67,7 @@ public:
     void operator-=(const uint_long& other);
 
     // REMOVE: temporary, until other conversions are implemented
-    operator std::string()
+    std::string to_string()
     {
         InfInt x;
 

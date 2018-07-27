@@ -190,7 +190,7 @@ TEST_F(UIntLongComparisons, GtGreaterReturnsTrue) {
 }
 
 // operator+=
-TEST(UIntLongInPlace, PlusEqPosOneChunk) {
+TEST(UIntLongInPlace, AddAssignPositiveOneChunk) {
     uint_long x(10);
     x += uint_long(12);
 
@@ -207,7 +207,7 @@ TEST(UIntLongInPlace, PlusEqPosOneChunk) {
     EXPECT_TRUE(z == uint_long(100000));
 }
 
-TEST(UIntLongInPlace, PlusEqPosOneChunkMany) {
+TEST(UIntLongInPlace, AddAssignPositiveOneChunkMany) {
     std::mt19937 rnd(1337);
 
     uint_long test;
@@ -223,6 +223,30 @@ TEST(UIntLongInPlace, PlusEqPosOneChunkMany) {
         control += x;
         test += uint_long(x);
 
-        ASSERT_EQ(control.toString(), (std::string)test) << "+" << x << " = " << control << " " << (std::string)test;
+        ASSERT_EQ(control.toString(), test.to_string())
+                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
     }
+}
+
+TEST(UIntLongInPlace, AddAssignPositiveGrowth) {
+    std::mt19937 rnd(1337);
+    std::exponential_distribution<double> exp(1.0 / 10000000);
+
+    uint_long test;
+    InfInt control;
+
+    for(int i = 0; i < 1000; i++) {
+        auto x = (uint32_t)exp(rnd);
+
+        if(x % 10 == 0) {
+            x = 0;
+        }
+
+        control += x;
+        test += uint_long(x);
+
+        ASSERT_EQ(control.toString(), test.to_string())
+                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
+    }
+
 }
