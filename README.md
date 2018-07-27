@@ -121,7 +121,7 @@ Operators and other functions until `uint_long` considered ready:
 - [x] `uint_long()` *(zero)*;
 - [x] `uint_long(uint64_t, bool)`, `uint_long(int64_t)`;
 - [x] `==`, `!=`;
-- [ ] `<`, `<=`, `>=`, `>`;
+- [x] `<`, `<=`, `>=`, `>`;
 - [ ] `-` *(unary)*;
 - [ ] `++`, `--` *(prefix)*;
 - [ ] `+=`, `-=`;

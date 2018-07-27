@@ -107,3 +107,13 @@ bool uint_long::operator<=(const uint_long& other) const
 
     return false;
 }
+
+bool uint_long::operator>=(const uint_long& other) const
+{
+    return !operator<(other);
+}
+
+bool uint_long::operator>(const uint_long& other) const
+{
+    return !operator<=(other);
+}

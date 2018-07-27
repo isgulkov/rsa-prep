@@ -148,3 +148,41 @@ TEST_F(UIntLongComparisons, GtLessEqReturnsFalse) {
         EXPECT_FALSE(pair.second <= pair.first);
     }
 }
+
+// operator>=
+TEST_F(UIntLongComparisons, LtGreaterEqReturnsFalse) {
+    for(auto& pair : lt_pairs) {
+        EXPECT_FALSE(pair.first >= pair.second);
+    }
+}
+
+TEST_F(UIntLongComparisons, EqGreaterEqReturnsTrue) {
+    for(auto& pair : eq_pairs) {
+        EXPECT_TRUE(pair.first >= pair.second);
+    }
+}
+
+TEST_F(UIntLongComparisons, GtGreaterEqReturnsTrue) {
+    for(auto& pair : lt_pairs) {
+        EXPECT_TRUE(pair.second >= pair.first);
+    }
+}
+
+// operator>
+TEST_F(UIntLongComparisons, LtGreaterReturnsFalse) {
+    for(auto& pair : lt_pairs) {
+        EXPECT_FALSE(pair.first > pair.second);
+    }
+}
+
+TEST_F(UIntLongComparisons, EqGreaterReturnsFalse) {
+    for(auto& pair : eq_pairs) {
+        EXPECT_FALSE(pair.first > pair.second);
+    }
+}
+
+TEST_F(UIntLongComparisons, GtGreaterReturnsTrue) {
+    for(auto& pair : lt_pairs) {
+        EXPECT_TRUE(pair.second > pair.first);
+    }
+}
