@@ -62,8 +62,11 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 #### Beyond scope
 
-1. Key fingerprints and metadata;
-2. signature implementation.
+1. Signature algorithm: *sign* and *verify*
+
+   *(need a special hash or something?)*;
+
+2. GPG-like keys with fingerprints and self-signed metadata.
 
 Might still eventually go for these, though.
 
@@ -92,6 +95,8 @@ TODO
 > **TODO**: what the fuck? rename into `int_long` 🌝
 >
 > **TODO**: wait, `long` is something else; let's make it  `intmp` or something
+>
+> **TODO**: `intbig_t` is good — sounds both silly and smart
 
 The number is stored in a dynamically-allocated array of 32-bit unsigned chunks, with the sign byte as a separate boolean:
 
@@ -144,46 +149,41 @@ The only catch is that sometimes `data` has to be grown.
 
 ##### Subtraction
 
-There are a couple of different cases here concerning carry and whatnot; but, using the corresponding addition opeartor and a unary minus, it is possible to handle all of them in the most pleasant one:
+Compared to addition, there are a couple of different cases here concerning carry and whatnot; but, using the corresponding addition opeartor and a unary minus, it is possible to handle all of them in the most pleasant one:
 
 -  $a - b$ where both $a, b$ are positive and $a \ge b$.
 
-| constraints on $a - b$ | what it transforms into                                      |
-| ---------------------- | ------------------------------------------------------------ |
-| $a < 0, b\ge 0$        | $-(a + b)$                                                   |
-| $a, b < 0$             | $b - a$ *(there's a further transform here I'm too lazy to show)* |
-| $a \ge 0, b < 0 $      | $a + b$                                                      |
-| $a, b \ge 0, a < b$    | $-(b - a)$                                                   |
+| constraints on $a - b$ | what it transforms into    |
+| ---------------------- | -------------------------- |
+| $a < 0, b\ge 0$        | $-(a + b)$                 |
+| $a, b < 0$             | $b - a$  **or** $-(a - b)$ |
+| $a \ge 0, b < 0 $      | $a + b$                    |
+| $a, b \ge 0, a < b$    | $-(b - a)$                 |
 
 All of these transformations are essentially free; except the case of `a -= b`, where `b` is (for a good reason) `const&`, so you can't swap the objects' contents, so it's either a copy or a second case.
 
 > **TODO**: second case
+>
+> **TODO**: well, initially, it's OK to do every `-=` into a temporary and then move that into the result
 
 ##### Multiplication
 
-It's getting more complicated here. There's the $O(log^2 N)$ algorithm where you double the $a$ as go through $b$'s bits, but that's not nearly the optimum:
+It's getting more complicated here. The $O(n^2)$ algorithm where you double the $a$ as go through $b$'s bits is not nearly the optimum; you have to implement either [Karatsuba](https://en.wikipedia.org/wiki/Karatsuba_algorithm) or [Toom–Cook](https://en.wikipedia.org/wiki/Toom%E2%80%93Cook_multiplication), which are on par asymptotically.
 
-- [Karatsuba algorithm](https://en.wikipedia.org/wiki/Karatsuba_algorithm);
-
-- [Toom–Cook multiplication](https://en.wikipedia.org/wiki/Toom%E2%80%93Cook_multiplication);
-
-- [Fast Multiplication by FFT](http://www.pi314.net/eng/multipli_fft.php);
-
-  [FFT based multiplication of large numbers](http://numbers.computation.free.fr/Constants/Algorithms/fft.html);
-
-  [Introduction to multiplying huge integers](https://www.aimath.org/news/congruentnumbers/howtomultiply.html) *(also FFT)*;
-
-- and who knows what other shit there is.
-
-I'm sticking with the old algorithm for now, though.
+There are also FFT-based algorithms that are always mentioned, but their big-O isn't felt tens of thousand bytes, so in our case they are no use (except, of course, an opportunity to implement the famous FFT that everyone has heard the name of but no one has ever wrote).
 
 > **TODO**: implement some fast multiplication shit
 
+[Montgomery mod. multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — как раз для RSA советуют!
+
 ##### Division, modulo
 
-Not a clue.
+[Fast Division of Large Integers](http://bioinfo.ict.ac.cn/~dbu/AlgorithmCourses/Lectures/Hasselstrom2003.pdf):
 
+- Newton Inversion;
+- Barrett's Algorithm.
 
+The modulo is generally a subproduct of division.
 
 ##### Power
 
@@ -215,9 +215,11 @@ Operators and other functions until `uint_long` considered ready:
 
 - [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
 
-- [ ] `*=`;
+- [ ] `size_t size()` — the number's magnitude, i.e. the position of its MSB plus $1$;
 
-- [ ] `%=`, `/=`;
+- [ ] `<<`, `>>`;
+
+- [ ] `*=`;
 
 - [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`;
 
@@ -229,7 +231,9 @@ Operators and other functions until `uint_long` considered ready:
 
 - [ ] `++`, `--` *(post)*;
 
-- [ ] `+`, `-`, `*`, `%`, `/`.
+- [ ] `+`, `-`, `*`.
+
+`%`, `/`, `%=` and `/=` will be skipped for now, as general implementations may turn out of no use modulo $p$.
 
 #### Possible optimizations
 
@@ -304,22 +308,24 @@ Planning to benchmark agains the following:
 
 - [some other, much less awful GitHub repo](https://github.com/calccrypto/integer), though a number is represented as a `std::deque` of bytes — only a step above the previous one;
 
-- [`boost::multiprecision`](https://www.boost.org/doc/libs/1_67_0/libs/multiprecision/doc/html/index.html)'s at the latest tag `v1.67.0` (their own provider, not GMP);
+- [`boost::multiprecision`](https://www.boost.org/doc/libs/1_67_0/libs/multiprecision/doc/html/index.html)'s at the latest tag `v1.67.0` (the builds are a pain, though).
 
+|                                                         | representation                      | ex. Tx. |                             |                                                              |
+| ------------------------------------------------------- | ----------------------------------- | ------- | --------------------------- | ------------------------------------------------------------ |
+| `GMP `                                                  | `uint64_t[]`                        | ✔️       | About the fastest it gets   | `.tar.lz`                                                    |
+| `boost::mp`                                             | *varying?*                          | ✔️       | *On its own backend*        | ?                                                            |
+| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>2</sup>              | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
+| [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                                   | —       |                             | ?                                                            |
+| `uint_long`                                             | `uint32_t[]`(&rarr; `std::vector`?) | —       | —                           | —                                                            |
+| `InfInt`                                                | `std::vector<int32_t>`              | —       | The boy's really big        | [GitHub](https://github.com/sercantutar/infint)              |
+| `integer`                                               | `std::deque<uint8_t>`               | —       | Not as bad as the one below | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
+| `BigInteger`                                            | `std::string` (`'0'-'9'`)           | —       | Absolutely hideous          | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
 
-
-|                                                         | representation                      |                                 |                                                              |
-| ------------------------------------------------------- | ----------------------------------- | ------------------------------- | ------------------------------------------------------------ |
-| `GMP ` (`tuneup`?)                                      | `uint64_t[]`                        | Widely regearded as the fastest | `.tar.lz`                                                    |
-| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | attempt at `uint8_t`<sup>2</sup>    | More for moudlars (`ring.h`)    | [git]( git://www.ginac.de/cln.git)                           |
-| [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                                   |                                 |                                                              |
-| `uint_long`                                             | `uint32_t[]`(&rarr; `std::vector`?) | —                               | —                                                            |
-| `integer`                                               | `std::deque<uint8_t>`               | Not as bad as the one below     | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
-| `BigInteger`                                            | `std::string` (`0-9`)               | Absolutely hideous              | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
+Also, [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) seems to have modulars (`ring.h`).
 
 <sup>1</sup> — because in English you're supposed to say "multiple precision", got it.
 
-<sup>2</sup> — this guy has done something new completely: number represented as bytes, which are in turn represented as 8-byte structs, with half of each of them allocated for some "`position`":
+<sup>2</sup> — I'm completely lost on why are these called "bytes" or wtf is "`position`":
 
 ```cpp
 // BYTE-Operationen auf Integers
@@ -354,6 +360,10 @@ struct cl_byte {
 
       [Chapter 4: Public-Key Parameters](http://cacr.uwaterloo.ca/hac/about/chap4.pdf) *(it's totally somewhere up there with more precise references)*;
 
+   5. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) *(the dates aren't too good on this, but the presentation is promising)*;
+
+   6. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
+
 4. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 
    [Source File Organization for C++ Projects Part 2: Directories and Namespaces](https://arne-mertz.de/2016/06/organizing-directories-namespaces/);
@@ -372,5 +382,7 @@ struct cl_byte {
 
    1. [Styling plots for publication with matplotlib](http://jonchar.net/notebooks/matplotlib-styling/);
    2. [Visualizing Errors](https://jakevdp.github.io/PythonDataScienceHandbook/04.03-errorbars.html) *(uses some "styles" to make it look good)*;
-   3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*.
+   3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*;
+
+7. [Вот тут дядя заморочился](https://github.com/davidcastells/BigInteger), настрочил 10 имплементаций одного и того же и против `NTL` тестирует.
 

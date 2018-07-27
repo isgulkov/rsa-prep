@@ -44,6 +44,14 @@ public:
     bool operator==(const uint_long& other) const;
     bool operator!=(const uint_long& other) const;
 
+private:
+    /**
+     * Three-way comparison that provides common implementation for operators <code>&lt;</code>, <code>&lt;=</code>,
+     * <code>></code> and <code>>=</code>.
+     */
+    int compare(const uint_long& other) const;
+
+public:
     bool operator <(const uint_long& other) const;
     bool operator<=(const uint_long& other) const;
     bool operator>=(const uint_long& other) const;

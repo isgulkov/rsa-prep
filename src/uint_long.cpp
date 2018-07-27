@@ -59,63 +59,51 @@ bool uint_long::operator!=(const uint_long& other) const
     return !operator==(other);
 }
 
-bool uint_long::operator<(const uint_long& other) const
+/**
+ * @return - If the number is less than \p other, a negative number;
+ *         - if they are equal, zero;
+ *         - otherwise, a positive number.
+ */
+int uint_long::compare(const uint_long& other) const
 {
     if(len < other.len) {
-        return true;
+        return -1;
     }
-    else if(len == other.len) {
-        for(int i = std::abs(len) - 1; i >= 0; i--) {
-            if(data[i] == other.data[i]) {
-                continue;
-            }
+    else if(len > other.len) {
+        return 1;
+    }
 
-            if(len > 0) {
-                return data[i] < other.data[i];
-            }
-            else {
-                return data[i] > other.data[i];
-            }
+    // From most to least significant
+    for(int i = std::abs(len) - 1; i >= 0; i--) {
+        if(data[i] < other.data[i]) {
+            return -len;
+        }
+        else if(data[i] > other.data[i]) {
+            return len;
         }
     }
 
-    return false;
+    return 0;
+}
+
+bool uint_long::operator<(const uint_long& other) const
+{
+    return compare(other) < 0;
 }
 
 bool uint_long::operator<=(const uint_long& other) const
 {
-    if(len < other.len) {
-        return true;
-    }
-    else if(len == other.len) {
-        for(int i = std::abs(len) - 1; i >= 0; i--) {
-            if(data[i] == other.data[i]) {
-                continue;
-            }
-
-
-            if(len > 0) {
-                return data[i] < other.data[i];
-            }
-            else {
-                return data[i] > other.data[i];
-            }
-        }
-
-        return true;
-    }
-
-    return false;
+    return compare(other) <= 0;
 }
 
 bool uint_long::operator>=(const uint_long& other) const
 {
-    return !operator<(other);
+    return compare(other) >= 0;
 }
 
 bool uint_long::operator>(const uint_long& other) const
 {
-    return !operator<=(other);
+    return compare(other) > 0;
 }
 
 void uint_long::resize_data(size_t new_size)
