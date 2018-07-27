@@ -12,11 +12,6 @@ class uint_long
     size_t len = 0;
     uint32_t* data = nullptr;
 
-    // TODO: benchmark against fixed-length stack-located one:
-    // TODO: uint_long<size_t Length> { /*...*/ uint32_t data[Length]; /*...*/ }
-    // TODO: (Length would be 32 to 128 for RSA keys which are 1024 to 4096 bits)
-    // TODO: (that seems kinda large for the stack, and anything less wouldn't really matter, right?)
-
 public:
     /**
      * Construct a zero.
@@ -41,8 +36,6 @@ public:
     bool operator==(const uint_long& other) const;
     bool operator!=(const uint_long& other) const;
 
-    // TODO: +=
-    // TODO: to_string
 };
 
 #endif //RSA_PREP_LONGINT_H

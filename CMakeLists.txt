@@ -35,7 +35,6 @@ if (BUILD_TESTS)
   add_test(test_uint_long test_uint_long)
 
   # all tests
-  # TODO: a more concise way?
   add_executable(test_all test/main.cpp "${TEST_SRCS}")
   target_link_libraries(test_all
           gtest gtest_main
