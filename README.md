@@ -53,9 +53,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 1. Three data formats — for cyphertexts, public and private keys:
    1. text form, all printable, easily selectable, e.g. Bitcoin's base58;
    2. whitespace insignificant;
-   3. have "telomeres" — can lose or gain some characters at the ends in case of a sloppy selection;
-   4. include insignificant labels (just like `--------BEGIN PGP PUBLIC KEY----------`);
-   5. perhaps a degree of interoperability with one or some of the existing cryptography apps (perhaps even `gpg`?);
+   3. include insignificant labels (just like `--------BEGIN PGP PUBLIC KEY----------`) that will act as "telomeres" — would be able lose or gain a couple characters at the ends for the case of a sloppy selection.
 2. CLI application:
    1. facilities for import & export of the above;
    2. *keygen*, *encrypt* and *decrypt* commands.
@@ -64,7 +62,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 1. Signature algorithm: *sign* and *verify*
 
-   *(need a special hash or something?)*;
+   *(need a cryptographic hash, though)*;
 
 2. GPG-like keys with fingerprints and self-signed metadata.
 
@@ -78,17 +76,13 @@ TODO
 
 TODO
 
-> **TODO**: when `unit_long` is finished, remove this compiled header shit at `vendor/gmp` and just rely on a `FindGMP.cmake` ([this](https://github.com/dune-project/dune-common/blob/master/cmake/modules/FindGMP.cmake) one is good after you delete most of it)
-
-TODO
-
 ## Usage
 
 TODO
 
 <hr />
 
-## Module description
+## Module descriptions
 
 ### `uint_long` — long integer
 
@@ -160,21 +154,15 @@ Compared to addition, there are a couple of different cases here concerning carr
 | $a \ge 0, b < 0 $      | $a + b$                    |
 | $a, b \ge 0, a < b$    | $-(b - a)$                 |
 
-All of these transformations are essentially free; except the case of `a -= b`, where `b` is (for a good reason) `const&`, so you can't swap the objects' contents, so it's either a copy or a second case.
-
-> **TODO**: second case
->
-> **TODO**: well, initially, it's OK to do every `-=` into a temporary and then move that into the result
+All of these transformations are essentially free; except the case of `a -= b`, where `b` is (for a good reason) `const&`. The comparisons, though, are far from it.
 
 ##### Multiplication
 
 It's getting more complicated here. The $O(n^2)$ algorithm where you double the $a$ as go through $b$'s bits is not nearly the optimum; you have to implement either [Karatsuba](https://en.wikipedia.org/wiki/Karatsuba_algorithm) or [Toom–Cook](https://en.wikipedia.org/wiki/Toom%E2%80%93Cook_multiplication), which are on par asymptotically.
 
-There are also FFT-based algorithms that are always mentioned, but their big-O isn't felt tens of thousand bytes, so in our case they are no use (except, of course, an opportunity to implement the famous FFT that everyone has heard the name of but no one has ever wrote).
+There are also FFT-based algorithms that apparently have to be mentioned in every discussion of this topic, but their big-O isn't felt before tens of thousand bytes, so it's doubtful that in our case there are any benefits to them (except, of course, an opportunity to implement the famous FFT that everyone has heard the name of but no one has ever wrote).
 
 > **TODO**: implement some fast multiplication shit
-
-[Montgomery mod. multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — как раз для RSA советуют!
 
 ##### Division, modulo
 
@@ -203,20 +191,35 @@ Operators and other functions until `uint_long` considered ready:
 - [x] `<`, `<=`, `>=`, `>`;
 
 - [x] implement temporary string dump through ~~`gmpxx`~~ some bigint for the tests;
-- [ ] `+=`, `-=`;
+- [ ] `+=` *(for positives)*;
+- [ ]  `-=` and `+=` *(for negatives)*;
 - [ ] `++`, `--` *(prefix)*;
 - [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
 - [ ] `size_t size()` — the number's magnitude, i.e. the position of its MSB plus $1$;
 - [ ] `<<`, `>>`;
 - [ ] `*=`;
-- [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`;
+- [ ] `%`, `/`, `%=` and `/=` — **for string coversions only**: don't waste time putting any efficient algorithms there — for modulo $p$ the game will most likely be completely different *(don't forget to warn in the doc comments!)*;
+- [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`<sup>1</sup>;
+  - well, certainly not `std::to_string` — this would be an undefined behavior, as it turns out;
+  - `operator std::string()` is not pretty as well — neither implicit nor explicit;
+  - guess the way to go is `std::string to_string() const` and the `operator<<`;
 - [ ] *convert from string:* `uint_long(s)`;
 - [ ] replace `uint32_t*` member with `std::unique_ptr<uint32_t[]>` *(move constructor needed)*;
 - [ ] `-` *(unary)*;
 - [ ] `++`, `--` *(post)*;
 - [ ] `+`, `-`, `*`.
 
-`%`, `/`, `%=` and `/=` will be skipped for now, as general implementations may turn out of no use modulo $p$.
+On next iteration: `+=`, `*=`, `=`, etc. that accept strings, ints and everything — most likely, by defining implicit conversions from them (keep the "to" exclusively explicit, though, or it will all be pain).
+
+<sup>1</sup> — when will I finally start getting this overload right without StackOverflow?
+
+```cpp
+std::ostream& operator<<(std::ostream& os, const MyClass& value)
+{
+	os << /* ... */ value /* ... */;
+	return os;
+}
+```
 
 #### Possible optimizations
 
@@ -224,15 +227,16 @@ Operators and other functions until `uint_long` considered ready:
 
 Not only if that's faster (could be — the `vector` probably won't have to do much `new[]`/`delete[]` at all), but even if "not too much slower", certainly switch to that. The mainenability improvement would be dramatic, and I don't really see any performance benefits now compared to that.
 
+Unfortunately, the elegant `int32_t len` would have to step down to boring old `bool is_negative`.
+
 ##### 64-bit chunks instead of 32
 
 I've heard about there being no cycle difference neither for add nor multiply; though not sure to which Intel architechtures does that apply.
 
-Anyway, with 64 you'll need fewer of both additions and multiplications, *but* then carry will be a separate calculation for add or three for multiply... Anyway, this needs investigation.
+Anyway, with 64 the multiplication will basically be done the same way, but addition speeds up easily by a factor of two.
 
-> **TODO:** benchmark 32-bit chunks agains 64-bit chunks
-> 
-> **TODO:** if that doesn't work out, try calculating in clang's 128-bit ints *(that's only good on x86-64, right?)*
+> **TODO:** benchmark 32-bit chunks agains 64-bit chunks?
+>
 
 ##### Stack allocation instead of heap
 
@@ -293,16 +297,16 @@ Planning to benchmark agains the following:
 
 - [`boost::multiprecision`](https://www.boost.org/doc/libs/1_67_0/libs/multiprecision/doc/html/index.html)'s at the latest tag `v1.67.0` (the builds are a pain, though).
 
-|                                                         | representation                      | ex. Tx. |                             |                                                              |
-| ------------------------------------------------------- | ----------------------------------- | ------- | --------------------------- | ------------------------------------------------------------ |
-| `GMP `                                                  | `uint64_t[]`                        | ✔️       | About the fastest it gets   | `.tar.lz`                                                    |
-| `boost::mp`                                             | *varying?*                          | ✔️       | *On its own backend*        | ?                                                            |
-| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>2</sup>              | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
-| [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                                   | —       |                             | ?                                                            |
-| `uint_long`                                             | `uint32_t[]`(&rarr; `std::vector`?) | —       | —                           | —                                                            |
-| `InfInt`                                                | `std::vector<int32_t>`              | —       | The boy's really big        | [GitHub](https://github.com/sercantutar/infint)              |
-| `integer`                                               | `std::deque<uint8_t>`               | —       | Not as bad as the one below | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
-| `BigInteger`                                            | `std::string` (`'0'-'9'`)           | —       | Absolutely hideous          | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
+|                                                         | representation                 | ex. Tx. |                             |                                                              |
+| ------------------------------------------------------- | ------------------------------ | ------- | --------------------------- | ------------------------------------------------------------ |
+| `GMP `                                                  | `uint64_t[]`                   | ✔️       | About the fastest it gets   | `.tar.lz`                                                    |
+| `boost::mp`                                             | *varying?*                     | ✔️       | *On its own backend*        | ?                                                            |
+| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>2</sup>         | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
+| [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                              | —       |                             | ?                                                            |
+| `uint_long`                                             | `uint32_t[]`(&rarr; `vector`?) | —       | —                           | —                                                            |
+| `InfInt`                                                | `vector<int32_t>` base $10^9$  | —       | The boy's really big        | [GitHub](https://github.com/sercantutar/infint)              |
+| `integer`                                               | `deque<uint8_t>`               | —       | Not as bad as the one below | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
+| `BigInteger`                                            | `std::string` (`'0'-'9'`)      | —       | Absolutely hideous          | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
 
 Also, [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) seems to have modulars (`ring.h`).
 
@@ -347,13 +351,15 @@ struct cl_byte {
 
    6. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
 
+   7. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
+
 4. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 
    [Source File Organization for C++ Projects Part 2: Directories and Namespaces](https://arne-mertz.de/2016/06/organizing-directories-namespaces/);
 
 5. GMP user manual:
 
-   1. [Build Options ](https://gmplib.org/manual/Build-Options.html) — сука, надо было ключ прописывать `--enable-cxx`! Вот ты ж епта!
+   1. [Build Options ](https://gmplib.org/manual/Build-Options.html) — all I had to do was to pass  `--enable-cxx` to `./configure`, it turns out!
    2. [3.1 Headers and Libraries](https://gmplib.org/manual/Headers-and-Libraries.html#Headers-and-Libraries);
    3. [3.4 Conversions](https://ginac.de/CLN/cln.html#Conversions);
    4. [5 Integer functions](https://gmplib.org/manual/Integer-Functions.html#Integer-Functions);
@@ -367,5 +373,5 @@ struct cl_byte {
    2. [Visualizing Errors](https://jakevdp.github.io/PythonDataScienceHandbook/04.03-errorbars.html) *(uses some "styles" to make it look good)*;
    3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*;
 
-7. [Вот тут дядя заморочился](https://github.com/davidcastells/BigInteger), настрочил 10 имплементаций одного и того же и против `NTL` тестирует.
+7. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, and he's even some benchmarks against `NTL`.
 
