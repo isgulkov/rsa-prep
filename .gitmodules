@@ -1,3 +1,6 @@
 [submodule "vendor/gtest"]
 	path = vendor/gtest
 	url = https://github.com/google/googletest
+[submodule "vendor/infint"]
+	path = vendor/infint
+	url = https://github.com/sercantutar/infint.git

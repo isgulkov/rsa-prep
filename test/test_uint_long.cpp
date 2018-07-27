@@ -2,7 +2,7 @@
 #include <random>
 
 #include "gtest/gtest.h"
-#include "gmpxx.h"
+#include "InfInt.h"
 
 #include "uint_long.h"
 
@@ -211,7 +211,7 @@ TEST(UIntLongInPlace, PlusEqPosOneChunkMany) {
     std::mt19937 rnd(1337);
 
     uint_long test;
-    mpz_class control;
+    InfInt control;
 
     for(int i = 0; i < 25; i++) {
         uint32_t x = rnd() % 10000;
@@ -223,6 +223,6 @@ TEST(UIntLongInPlace, PlusEqPosOneChunkMany) {
         control += x;
         test += uint_long(x);
 
-        ASSERT_EQ(cmp(control, (int32_t)test), 0) << "+" << x << " = " << control << " " << (int32_t)test;
+        ASSERT_EQ(control.toString(), (std::string)test) << "+" << x << " = " << control << " " << (std::string)test;
     }
 }

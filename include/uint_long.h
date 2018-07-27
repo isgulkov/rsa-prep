@@ -4,6 +4,8 @@
 
 #include <string>
 
+#include "InfInt.h"
+
 class uint_long
 {
     /**
@@ -65,16 +67,16 @@ public:
     void operator-=(const uint_long& other);
 
     // REMOVE: temporary, until other conversions are implemented
-    explicit operator int32_t()
+    operator std::string()
     {
-        if(len == 0) {
-            return 0U;
-        }
-        else if(len == 1 || len == -1) {
-            return len * data[0];
+        InfInt x;
+
+        for(size_t i = 0; i < std::abs(len); i++) {
+            x *= std::to_string((uint64_t)UINT32_MAX + 1);
+            x += data[i];
         }
 
-        throw std::logic_error("Can't convert to int -- too big");
+        return x.toString();
     }
 };
 

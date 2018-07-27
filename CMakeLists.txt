@@ -10,11 +10,12 @@ include_directories(include)
 # - uint_long: an unsigned long integer implementation
 add_library(uint_long src/uint_long.cpp)
 
+# REMOVE: for converting to std::string during development
+target_include_directories(uint_long PRIVATE vendor/infint)
+
 ### CLI executable, perhaps?
 ### ------------------------
 add_executable(rsa_prep src/main.cpp)
-
-target_link_libraries(rsa_prep uint_long)
 
 ### Unit tests
 ### ----------
@@ -32,11 +33,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           uint_long
   )
-  target_include_directories(test_uint_long PUBLIC ./vendor/gmp)
-  target_link_libraries(test_uint_long
-          ${CMAKE_SOURCE_DIR}/vendor/gmp/libgmp.a
-          ${CMAKE_SOURCE_DIR}/vendor/gmp/libgmpxx.a
-  )
+  target_include_directories(test_uint_long PRIVATE vendor/infint)
   add_test(test_uint_long test_uint_long)
 
   # all tests

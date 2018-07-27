@@ -198,39 +198,22 @@ My current standing on this is the same as on multiplication — repeated squari
 Operators and other functions until `uint_long` considered ready:
 
 - [x] `uint_long()` *(zero)*;
-
 - [x] `uint_long(uint64_t, bool)`, `uint_long(int64_t)`;
-
 - [x] `==`, `!=`;
-
 - [x] `<`, `<=`, `>=`, `>`;
 
-  **TODO:** implement all comparison through a classic `cmp(other) -> {-1, 0, 1}`;
-
-- [ ] implement temporary string dump through `gmpxx` for the tests;
-
+- [x] implement temporary string dump through ~~`gmpxx`~~ some bigint for the tests;
 - [ ] `+=`, `-=`;
-
 - [ ] `++`, `--` *(prefix)*;
-
 - [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
-
 - [ ] `size_t size()` — the number's magnitude, i.e. the position of its MSB plus $1$;
-
 - [ ] `<<`, `>>`;
-
 - [ ] `*=`;
-
 - [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`;
-
 - [ ] *convert from string:* `uint_long(s)`;
-
 - [ ] replace `uint32_t*` member with `std::unique_ptr<uint32_t[]>` *(move constructor needed)*;
-
 - [ ] `-` *(unary)*;
-
 - [ ] `++`, `--` *(post)*;
-
 - [ ] `+`, `-`, `*`.
 
 `%`, `/`, `%=` and `/=` will be skipped for now, as general implementations may turn out of no use modulo $p$.
