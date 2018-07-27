@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-project(rsa_prep)
+project(rsa_prep
+        VERSION 0.1
+        DESCRIPTION "Crypto of the own-rolled kind"
+        LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 
