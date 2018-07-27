@@ -1,8 +1,10 @@
+#include <vector>
+#include <random>
+
 #include "gtest/gtest.h"
+#include "gmpxx.h"
 
 #include "uint_long.h"
-
-#include <vector>
 
 // TODO: might wanna separate the test case into several and fixtures in some of them
 // TODO: https://github.com/google/googletest/blob/master/googletest/docs/primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests
@@ -184,5 +186,43 @@ TEST_F(UIntLongComparisons, EqGreaterReturnsFalse) {
 TEST_F(UIntLongComparisons, GtGreaterReturnsTrue) {
     for(auto& pair : lt_pairs) {
         EXPECT_TRUE(pair.second > pair.first);
+    }
+}
+
+// operator+=
+TEST(UIntLongInPlace, PlusEqPosOneChunk) {
+    uint_long x(10);
+    x += uint_long(12);
+
+    EXPECT_TRUE(x == uint_long(22));
+
+    uint_long y;
+    y += uint_long(233);
+
+    EXPECT_TRUE(y == uint_long(233));
+
+    uint_long z(100000, false);
+    z += uint_long();
+
+    EXPECT_TRUE(z == uint_long(100000));
+}
+
+TEST(UIntLongInPlace, PlusEqPosOneChunkMany) {
+    std::mt19937 rnd(1337);
+
+    uint_long test;
+    mpz_class control;
+
+    for(int i = 0; i < 25; i++) {
+        uint32_t x = rnd() % 10000;
+
+        if(x % 10 == 0) {
+            x = 0;
+        }
+
+        control += x;
+        test += uint_long(x);
+
+        ASSERT_EQ(cmp(control, (int32_t)test), 0) << "+" << x << " = " << control << " " << (int32_t)test;
     }
 }

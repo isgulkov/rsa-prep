@@ -3,7 +3,7 @@
 
 ## Motivation
 
-I'm enrolled for a course starting this September where the old man will make us do precisely that, as a year-long project.
+I'm enrolled for course at the uni starting this September where the old man will make us do precisely that, as a year-long project.
 
 Better start early, right? Nothing better to do, anyway — it's not like a have a job.
 
@@ -43,7 +43,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 ##### The RSA itself
 
-1. the algorithm itself: *keygen*, *encrypt* and *decrypt* functions;
+1. the actual algorithms: *keygen*, *encrypt* and *decrypt* functions;
 2. padding schemes compatible with some existing implementations;
 3. compatibility with the [two ways of private exponent calculation](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2);
 4. [Chinese remainder-based](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Using_the_Chinese_remainder_algorithm) decryption optimization.
@@ -55,20 +55,27 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
    2. whitespace insignificant;
    3. have "telomeres" — can lose or gain some characters at the ends in case of a sloppy selection;
    4. include insignificant labels (just like `--------BEGIN PGP PUBLIC KEY----------`);
+   5. perhaps a degree of interoperability with one or some of the existing cryptography apps (perhaps even `gpg`?);
 2. CLI application:
    1. facilities for import & export of the above;
    2. *keygen*, *encrypt* and *decrypt* commands.
 
 #### Beyond scope
 
-1. Key fingerprints;
-2. message and metadata authentication.
+1. Key fingerprints and metadata;
+2. signature implementation.
+
+Might still eventually go for these, though.
 
 ### Goals
 
 TODO
 
 ## Building
+
+TODO
+
+> **TODO**: when `unit_long` is finished, remove this compiled header shit at `vendor/gmp` and just rely on a `FindGMP.cmake` ([this](https://github.com/dune-project/dune-common/blob/master/cmake/modules/FindGMP.cmake) one is good after you delete most of it)
 
 TODO
 
@@ -83,6 +90,8 @@ TODO
 ### `uint_long` — long integer
 
 > **TODO**: what the fuck? rename into `int_long` 🌝
+>
+> **TODO**: wait, `long` is something else; let's make it  `intmp` or something
 
 The number is stored in a dynamically-allocated array of 32-bit unsigned chunks, with the sign byte as a separate boolean:
 
@@ -99,7 +108,7 @@ Here, only the $abs$ of  `len` represents the size of `data`; the sign of `len` 
 | $n = 0$ *(zero)* | $0$ | `nullptr` |
 | $n < 0$ *(negative)* | $-\lceil log_{32} |n| \rceil $ | ` new uint32_t[-len]` |
 
-This clever idea has been stolen directly out of [GMP's `mp_z` integer struct](https://gmplib.org/manual/Integer-Internals.html#Integer-Internals):
+This clever idea (of reusing `len` for sign, not of maximizing the chunks) has been stolen directly out of [GMP's `mp_z` integer struct](https://gmplib.org/manual/Integer-Internals.html#Integer-Internals):
 
 > **_mp_size**
 >
@@ -114,27 +123,119 @@ This clever idea has been stolen directly out of [GMP's `mp_z` integer struct](h
 >   With sizes up to some limit?
 >
 
+##### Addition
+
+So, addition turned out to be piece of cake, as you can only ever overflow by one bit, and always have somewhere to put it in the next chunk:
+
+$$
+{\begin{array}{r}
+\quad11111111\\
++11111111\\
++\underline{\quad\quad\quad\,\,\,1}\\
+\fbox{1}11111111\\
+  \end{array} } \hspace{2em} \longleftarrow  \hspace{2em} {\begin{array}{c}
+   \ \ \ \ 11111111\\
++\underline{11111111}\\
+\fbox{1}11111110\\
+  \end{array} }
+$$
+
+The only catch is that sometimes `data` has to be grown.
+
+##### Subtraction
+
+There are a couple of different cases here concerning carry and whatnot; but, using the corresponding addition opeartor and a unary minus, it is possible to handle all of them in the most pleasant one:
+
+-  $a - b$ where both $a, b$ are positive and $a \ge b$.
+
+| constraints on $a - b$ | what it transforms into                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| $a < 0, b\ge 0$        | $-(a + b)$                                                   |
+| $a, b < 0$             | $b - a$ *(there's a further transform here I'm too lazy to show)* |
+| $a \ge 0, b < 0 $      | $a + b$                                                      |
+| $a, b \ge 0, a < b$    | $-(b - a)$                                                   |
+
+All of these transformations are essentially free; except the case of `a -= b`, where `b` is (for a good reason) `const&`, so you can't swap the objects' contents, so it's either a copy or a second case.
+
+> **TODO**: second case
+
+##### Multiplication
+
+It's getting more complicated here. There's the $O(log^2 N)$ algorithm where you double the $a$ as go through $b$'s bits, but that's not nearly the optimum:
+
+- [Karatsuba algorithm](https://en.wikipedia.org/wiki/Karatsuba_algorithm);
+
+- [Toom–Cook multiplication](https://en.wikipedia.org/wiki/Toom%E2%80%93Cook_multiplication);
+
+- [Fast Multiplication by FFT](http://www.pi314.net/eng/multipli_fft.php);
+
+  [FFT based multiplication of large numbers](http://numbers.computation.free.fr/Constants/Algorithms/fft.html);
+
+  [Introduction to multiplying huge integers](https://www.aimath.org/news/congruentnumbers/howtomultiply.html) *(also FFT)*;
+
+- and who knows what other shit there is.
+
+I'm sticking with the old algorithm for now, though.
+
+> **TODO**: implement some fast multiplication shit
+
+##### Division, modulo
+
+Not a clue.
+
+
+
+##### Power
+
+My current standing on this is the same as on multiplication — repeated squaring is the extent of my knowledge here.
+
+
+
+
+
 #### Todo
 
 Operators and other functions until `uint_long` considered ready:
 
 - [x] `uint_long()` *(zero)*;
+
 - [x] `uint_long(uint64_t, bool)`, `uint_long(int64_t)`;
+
 - [x] `==`, `!=`;
+
 - [x] `<`, `<=`, `>=`, `>`;
-- [ ] `-` *(unary)*;
-- [ ] `++`, `--` *(prefix)*;
+
+  **TODO:** implement all comparison through a classic `cmp(other) -> {-1, 0, 1}`;
+
+- [ ] implement temporary string dump through `gmpxx` for the tests;
+
 - [ ] `+=`, `-=`;
-- [ ] `*=`;
-- [ ] `%=`, `/=`;
-- [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`;
-- [ ] *convert from string:* `uint_long(s)`;
+
+- [ ] `++`, `--` *(prefix)*;
+
 - [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
+
+- [ ] `*=`;
+
+- [ ] `%=`, `/=`;
+
+- [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`;
+
+- [ ] *convert from string:* `uint_long(s)`;
+
 - [ ] replace `uint32_t*` member with `std::unique_ptr<uint32_t[]>` *(move constructor needed)*;
+
+- [ ] `-` *(unary)*;
+
 - [ ] `++`, `--` *(post)*;
+
 - [ ] `+`, `-`, `*`, `%`, `/`.
 
 #### Possible optimizations
+
+##### Use `std::vector<uint32_t>` for `data` instead of hand-`malloc`ed array?
+
+Not only if that's faster (could be — the `vector` probably won't have to do much `new[]`/`delete[]` at all), but even if "not too much slower", certainly switch to that. The mainenability improvement would be dramatic, and I don't really see any performance benefits now compared to that.
 
 ##### 64-bit chunks instead of 32
 
@@ -177,6 +278,16 @@ If the 512 byte stack variable is faster, though, we can basically replace our l
 
 <sup>2</sup> — *short string optimization*; [here](https://www.youtube.com/watch?v=kPR8h4-qZdk) is a great CppCon talk related to it (never mind the guy's wierd tone and body language — you'd look the same if you took as much Aderall as he does).
 
+**Reserve heap memory ahead of time**
+
+The way everything's done right now, the `data` array is resized one chunk by one, which is unnecessarily expensive.
+
+This calls for a couple possible optimisations *(be careful not to make them prematurely, though)*:
+
+- during one operation is performed, save all the new chunks somewhere on the stack, then reallocate all at once (what operations whould even require large reallocations, though?);
+- decouple `len` (the number's parameter) from a new special thing like `__sz` (just the current size of `data`) — so that there's more flexibility overall;
+- make so that during the lifetime of an object, `data` just is just more eager to grow than to shrink — hopefully this aren't going to lead to a memory leak or something.
+
 #### Benchmarks
 
 Running benchmarks as soon as the class is implemented.
@@ -185,16 +296,81 @@ Planning to benchmark agains the following:
 
 - **high baseline** (something a good real-world application would be likely to use):
 
-  the widely-used [`GMP`](https://gmplib.org/) library, often cited as the fastest out there
-
-  *(too bad its official repo is [a mercurial one](https://gmplib.org/repo/gmp), though, with no current git mirror);
+  the widely-used [`GMP`](https://gmplib.org/) library, often cited as the fastest out there (their main repo is a mercularial one, without any up-to-date git mirrors, which I solved by just upacking the latest tarball into a folder with the version number and calling int a day);
 
 - **low baseline** (something one of my fellow [Software Engineering](http://www.hse.ru/ba/se) students would be likely to write):
 
-  [a really bad implementation I found on GitHub](https://github.com/panks/BigInteger) that, amazingly, shows up quite high if you google "c++ big integer implementation" and has got a fair bit of likes and retweets, even though it looks like something in competitive programming, and a complete novice at that — e.g. a number is represented as a `std::string` of `[0-9]`;
+  [a really bad implementation I found on GitHub](https://github.com/panks/BigInteger) that, amazingly, shows up quite high if you google "c++ big integer implementation"<sup>1</sup> and has got a fair bit of likes and retweets, even though it looks like something in competitive programming, and a complete novice at that — e.g. a number is represented as a `std::string` of `[0-9]`;
 
 - [some other, much less awful GitHub repo](https://github.com/calccrypto/integer), though a number is represented as a `std::deque` of bytes — only a step above the previous one;
 
 - [`boost::multiprecision`](https://www.boost.org/doc/libs/1_67_0/libs/multiprecision/doc/html/index.html)'s at the latest tag `v1.67.0` (their own provider, not GMP);
 
+
+
+|                                                         | representation                      |                                 |                                                              |
+| ------------------------------------------------------- | ----------------------------------- | ------------------------------- | ------------------------------------------------------------ |
+| `GMP ` (`tuneup`?)                                      | `uint64_t[]`                        | Widely regearded as the fastest | `.tar.lz`                                                    |
+| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | attempt at `uint8_t`<sup>2</sup>    | More for moudlars (`ring.h`)    | [git]( git://www.ginac.de/cln.git)                           |
+| [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                                   |                                 |                                                              |
+| `uint_long`                                             | `uint32_t[]`(&rarr; `std::vector`?) | —                               | —                                                            |
+| `integer`                                               | `std::deque<uint8_t>`               | Not as bad as the one below     | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
+| `BigInteger`                                            | `std::string` (`0-9`)               | Absolutely hideous              | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
+
+<sup>1</sup> — because in English you're supposed to say "multiple precision", got it.
+
+<sup>2</sup> — this guy has done something new completely: number represented as bytes, which are in turn represented as 8-byte structs, with half of each of them allocated for some "`position`":
+
+```cpp
+// BYTE-Operationen auf Integers
+
+struct cl_byte {
+	uintC size;
+	uintC position;
+// Konstruktor:
+	cl_byte (uintC s, uintC p) : size (s), position (p) {}
+};
+```
+
+*(make no mistake: `uintC` is a typedef of `uint32_t`)*
+
+<hr />
+
+## Links
+
+1. [Googletest Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md);
+
+2. [Длинная арифметика — e-maxx.ru](http://e-maxx.ru/algo/big_integer);
+
+3. RSA:
+
+   1. [R.L. Rivest, A. Shamir, and L. Adleman — A Method for Obtaining Digital Signatures and Public-Key Cryptosystems](http://people.csail.mit.edu/rivest/Rsapaper.pdf);
+
+   2. [RSA — Wikipedia](https://en.wikipedia.org/wiki/RSA_(cryptosystem));
+
+   3. [RSA and Primality Testing](https://imada.sdu.dk/~joan/projects/RSA.pdf) (slides);
+
+   4. [Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/);
+
+      [Chapter 4: Public-Key Parameters](http://cacr.uwaterloo.ca/hac/about/chap4.pdf) *(it's totally somewhere up there with more precise references)*;
+
+4. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
+
+   [Source File Organization for C++ Projects Part 2: Directories and Namespaces](https://arne-mertz.de/2016/06/organizing-directories-namespaces/);
+
+5. GMP user manual:
+
+   1. [Build Options ](https://gmplib.org/manual/Build-Options.html) — сука, надо было ключ прописывать `--enable-cxx`! Вот ты ж епта!
+   2. [3.1 Headers and Libraries](https://gmplib.org/manual/Headers-and-Libraries.html#Headers-and-Libraries);
+   3. [3.4 Conversions](https://ginac.de/CLN/cln.html#Conversions);
+   4. [5 Integer functions](https://gmplib.org/manual/Integer-Functions.html#Integer-Functions);
+   5. [5.4 Conversion functions](https://gmplib.org/manual/Converting-Integers.html);
+   6. [5.12 Input and Output Functions](https://gmplib.org/manual/I_002fO-of-Integers.html);
+   7. [12.2 C++ Interface Integers](https://gmplib.org/manual/C_002b_002b-Interface-Integers.html#C_002b_002b-Interface-Integers).
+
+6. Good-looking error bar plots:
+
+   1. [Styling plots for publication with matplotlib](http://jonchar.net/notebooks/matplotlib-styling/);
+   2. [Visualizing Errors](https://jakevdp.github.io/PythonDataScienceHandbook/04.03-errorbars.html) *(uses some "styles" to make it look good)*;
+   3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*.
 

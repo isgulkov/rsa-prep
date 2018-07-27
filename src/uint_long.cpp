@@ -117,3 +117,49 @@ bool uint_long::operator>(const uint_long& other) const
 {
     return !operator<=(other);
 }
+
+void uint_long::resize_data(size_t new_size)
+{
+    // TODO: accept that boy signed ^
+    // TODO: 0 -- only delete
+
+    // Can't wait until the class is done and I'm getting my shiny std::vector instead of this
+
+    if(new_size == std::abs(len)) {
+        return;
+    }
+
+    auto* new_data = new uint32_t[new_size];
+
+    memcpy(new_data, data, sizeof(uint32_t) * std::abs(len));
+    memset(new_data + std::abs(len), 0, sizeof(uint32_t) * (new_size - std::abs(len)));
+
+    delete[] data;
+    data = new_data;
+
+    if(len >= 0) {
+        len = (int)new_size;
+    }
+    else {
+        len = -(int)new_size;
+    }
+}
+
+void uint_long::operator+=(const uint_long& other)
+{
+    if(std::abs(other.len) > std::abs(len)) {
+        resize_data((size_t)std::abs(other.len));
+    }
+
+    uint32_t carry = 0;
+
+    for(size_t i = 0; i < std::min(sz_data(), other.sz_data()); i++) {
+        uint64_t sum = (uint64_t)data[i] + (uint64_t)other.data[i] + carry;
+
+        data[i] = (uint32_t)(sum & 0xFFFFFFFF);
+
+        carry = (uint32_t)(sum >> 32U);
+    }
+
+    // BUG: leftover carry shouldn't go discarded
+}

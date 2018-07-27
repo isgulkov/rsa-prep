@@ -14,6 +14,12 @@ class uint_long
     int32_t len = 0;
     uint32_t* data = nullptr;
 
+    size_t sz_data() const
+    {
+        // REMOVE: there's got to be a better way!
+        return (size_t)std::abs(len);
+    }
+
 public:
     /**
      * Construct a zero.
@@ -43,6 +49,25 @@ public:
     bool operator>=(const uint_long& other) const;
     bool operator >(const uint_long& other) const;
 
+private:
+    void resize_data(size_t new_size);
+
+public:
+    void operator+=(const uint_long& other);
+    void operator-=(const uint_long& other);
+
+    // REMOVE: temporary, until other conversions are implemented
+    explicit operator int32_t()
+    {
+        if(len == 0) {
+            return 0U;
+        }
+        else if(len == 1 || len == -1) {
+            return len * data[0];
+        }
+
+        throw std::logic_error("Can't convert to int -- too big");
+    }
 };
 
 #endif //RSA_PREP_LONGINT_H

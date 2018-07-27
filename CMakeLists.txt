@@ -32,6 +32,11 @@ if (BUILD_TESTS)
           gtest gtest_main
           uint_long
   )
+  target_include_directories(test_uint_long PUBLIC ./vendor/gmp)
+  target_link_libraries(test_uint_long
+          ${CMAKE_SOURCE_DIR}/vendor/gmp/libgmp.a
+          ${CMAKE_SOURCE_DIR}/vendor/gmp/libgmpxx.a
+  )
   add_test(test_uint_long test_uint_long)
 
   # all tests
@@ -40,4 +45,10 @@ if (BUILD_TESTS)
           gtest gtest_main
           uint_long
   )
+  # TODO: can I make every single test a library? So that `test_*` links to one of them and this one to all?
+  # TODO: https://cmake.org/cmake/help/v3.5/command/add_library.html#id6
+  # TODO: https://cmake.org/cmake/help/v3.5/manual/cmake-buildsystem.7.html#interface-libraries
+
+  # TODO: https://stackoverflow.com/a/28305481:
+  # TODO:   make sense of what the PRIVATE and PUBLIC do in `target_include_directories`
 endif()
