@@ -6,10 +6,12 @@
 
 class uint_long
 {
-    bool is_negative = false;
-
-    // Let zero always be represented with 0/nullptr, and not 1/{0}?
-    size_t len = 0;
+    /**
+     * Abs. of `len` represents size of `data`
+     * Sign of `len` is that of the number
+     * `len` equal to zero represents zero
+     */
+    int32_t len = 0;
     uint32_t* data = nullptr;
 
 public:

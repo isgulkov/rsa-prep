@@ -87,22 +87,31 @@ TODO
 The number is stored in a dynamically-allocated array of 32-bit unsigned chunks, with the sign byte as a separate boolean:
 
 ```cpp
-    bool is_negative = false;
-
     size_t len = 0;
     uint32_t* data = nullptr;
 ```
 
-**Note:** The number $0$ is created with zero length and no allocated array (`new` is expensive, y'know!), even though the representation "array of one zero" is also valid and should work. With two possible sign values, that gives us four representations of zero. At this point, I really have no clue how bad it is.
+Here, only the $abs$ of  `len` represents the size of `data`; the sign of `len` corresponds to that of the number. `len == 0` represents zero:
 
-> **TODO**: enforce single zero representation or at least define when should which of them be created.
+| **represented value **($n$) | `len`                       | `data`                |
+| --------------------------- | --------------------------- | --------------------- |
+| $n > 0$ (*positive*)        | $\lceil log_{32} n \rceil $ | ` new uint32_t[len]` |
+| $n = 0$ *(zero)* | $0$ | `nullptr` |
+| $n < 0$ *(negative)* | $-\lceil log_{32} |n| \rceil $ | ` new uint32_t[-len]` |
 
-> **TODO**: do as in GMP:
+This clever idea has been stolen directly out of [GMP's `mp_z` integer struct](https://gmplib.org/manual/Integer-Internals.html#Integer-Internals):
+
+> **_mp_size**
 >
-> ```
-> _mp_size
->     The number of limbs, or the negative of that when representing a negative integer. Zero is represented by _mp_size set to zero, in which case the _mp_d data is unused.
-> ```
+> - The number of limbs, or the negative of that when representing a negative integer. Zero is represented by _mp_size set to zero, in which case the _mp_d data is unused.
+
+> **TODO**: decide what to do when an old number drops to zero (`len = 0;`):
+>
+> - `delete data; data = nullptr;`,
+>
+> - or nothing, leaving `data` for future uses?
+>
+>   With sizes up to some limit?
 >
 
 #### Todo

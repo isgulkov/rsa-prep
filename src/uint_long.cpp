@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 //#include <iostream>
+#include <cmath>
 
 /**
  * Construct a number from its decimal string representation.
@@ -10,12 +11,14 @@
  */
 uint_long::uint_long(const std::string& s) { }
 
-uint_long::uint_long(uint64_t x, bool neg) : is_negative(neg)
+uint_long::uint_long(uint64_t x, bool neg)
 {
     if(x == 0) {
         return;
     }
     else {
+        // TODO: rearrange somehow?
+
         len = x > UINT32_MAX ? 2 : 1;
 
         data = new uint32_t[len];
@@ -25,6 +28,8 @@ uint_long::uint_long(uint64_t x, bool neg) : is_negative(neg)
         if(len == 2) {
             data[1] = (uint32_t)(x >> 32U);
         }
+
+        len = neg ? -len : len;
     }
 }
 
@@ -40,11 +45,7 @@ bool uint_long::operator==(const uint_long& other) const
         return true;
     }
 
-    if(is_negative != other.is_negative) {
-        return false;
-    }
-
-    for(size_t i = 0; i < len; i++) {
+    for(size_t i = 0; i < std::abs(len); i++) {
         if(data[i] != other.data[i]) {
             return false;
         }
