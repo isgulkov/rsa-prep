@@ -58,3 +58,52 @@ bool uint_long::operator!=(const uint_long& other) const
 {
     return !operator==(other);
 }
+
+bool uint_long::operator<(const uint_long& other) const
+{
+    if(len < other.len) {
+        return true;
+    }
+    else if(len == other.len) {
+        for(int i = std::abs(len) - 1; i >= 0; i--) {
+            if(data[i] == other.data[i]) {
+                continue;
+            }
+
+            if(len > 0) {
+                return data[i] < other.data[i];
+            }
+            else {
+                return data[i] > other.data[i];
+            }
+        }
+    }
+
+    return false;
+}
+
+bool uint_long::operator<=(const uint_long& other) const
+{
+    if(len < other.len) {
+        return true;
+    }
+    else if(len == other.len) {
+        for(int i = std::abs(len) - 1; i >= 0; i--) {
+            if(data[i] == other.data[i]) {
+                continue;
+            }
+
+
+            if(len > 0) {
+                return data[i] < other.data[i];
+            }
+            else {
+                return data[i] > other.data[i];
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}

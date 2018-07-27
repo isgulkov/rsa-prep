@@ -38,6 +38,11 @@ public:
     bool operator==(const uint_long& other) const;
     bool operator!=(const uint_long& other) const;
 
+    bool operator <(const uint_long& other) const;
+    bool operator<=(const uint_long& other) const;
+    bool operator>=(const uint_long& other) const;
+    bool operator >(const uint_long& other) const;
+
 };
 
 #endif //RSA_PREP_LONGINT_H
