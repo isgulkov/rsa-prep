@@ -88,102 +88,110 @@ protected:
 };
 
 // operator==
-TEST_F(UIntLongComparisons, EqEqualReturnsTrue) {
+TEST_F(UIntLongComparisons, EqOnEqualReturnsTrue) {
     for(auto& pair : eq_pairs) {
         EXPECT_TRUE(pair.first == pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, EqUnequalReturnsFalse) {
+TEST_F(UIntLongComparisons, EqOnUnequalReturnsFalse) {
     for(auto& pair : ne_pairs) {
+        EXPECT_FALSE(pair.first == pair.second);
+    }
+
+    for(auto& pair : lt_pairs) {
         EXPECT_FALSE(pair.first == pair.second);
     }
 }
 
 // operator!=
-TEST_F(UIntLongComparisons, NeEqualReturnsFalse) {
+TEST_F(UIntLongComparisons, NeOnEqualReturnsFalse) {
     for(auto& pair : eq_pairs) {
         EXPECT_FALSE(pair.first != pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, NeUnequalReturnsTrue) {
+TEST_F(UIntLongComparisons, NeOnUnequalReturnsTrue) {
     for(auto& pair : ne_pairs) {
         EXPECT_TRUE(pair.first != pair.second);
+    }
+
+    for(auto& pair : lt_pairs) {
+        EXPECT_FALSE(pair.first == pair.second);
     }
 }
 
 // operator<
-TEST_F(UIntLongComparisons, LtLessReturnsTrue) {
+TEST_F(UIntLongComparisons, LtOnLessReturnsTrue) {
     for(auto& pair : lt_pairs) {
         EXPECT_TRUE(pair.first < pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, EqLessReturnsFalse) {
+TEST_F(UIntLongComparisons, LtOnEqualReturnsFalse) {
     for(auto& pair : eq_pairs) {
         EXPECT_FALSE(pair.first < pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, GtLessReturnsFalse) {
+TEST_F(UIntLongComparisons, LtOnGreaterReturnsFalse) {
     for(auto& pair : lt_pairs) {
         EXPECT_FALSE(pair.second < pair.first);
     }
 }
 
 // operator<=
-TEST_F(UIntLongComparisons, LtLessEqReturnsTrue) {
+TEST_F(UIntLongComparisons, LeOnLessReturnsTrue) {
     for(auto& pair : lt_pairs) {
         EXPECT_TRUE(pair.first <= pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, EqLessEqReturnsTrue) {
+TEST_F(UIntLongComparisons, LeOnEqualReturnsTrue) {
     for(auto& pair : eq_pairs) {
         EXPECT_TRUE(pair.first <= pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, GtLessEqReturnsFalse) {
+TEST_F(UIntLongComparisons, LeOnGreaterEqReturnsFalse) {
     for(auto& pair : lt_pairs) {
         EXPECT_FALSE(pair.second <= pair.first);
     }
 }
 
 // operator>=
-TEST_F(UIntLongComparisons, LtGreaterEqReturnsFalse) {
+TEST_F(UIntLongComparisons, GeOnLessReturnsFalse) {
     for(auto& pair : lt_pairs) {
         EXPECT_FALSE(pair.first >= pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, EqGreaterEqReturnsTrue) {
+TEST_F(UIntLongComparisons, GeOnEqualReturnsTrue) {
     for(auto& pair : eq_pairs) {
         EXPECT_TRUE(pair.first >= pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, GtGreaterEqReturnsTrue) {
+TEST_F(UIntLongComparisons, GeOnGreaterEqReturnsTrue) {
     for(auto& pair : lt_pairs) {
         EXPECT_TRUE(pair.second >= pair.first);
     }
 }
 
 // operator>
-TEST_F(UIntLongComparisons, LtGreaterReturnsFalse) {
+TEST_F(UIntLongComparisons, GtOnLessReturnsFalse) {
     for(auto& pair : lt_pairs) {
         EXPECT_FALSE(pair.first > pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, EqGreaterReturnsFalse) {
+TEST_F(UIntLongComparisons, GtOnEqualReturnsFalse) {
     for(auto& pair : eq_pairs) {
         EXPECT_FALSE(pair.first > pair.second);
     }
 }
 
-TEST_F(UIntLongComparisons, GtGreaterReturnsTrue) {
+TEST_F(UIntLongComparisons, GtOnGreaterReturnsTrue) {
     for(auto& pair : lt_pairs) {
         EXPECT_TRUE(pair.second > pair.first);
     }
