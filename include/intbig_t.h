@@ -1,12 +1,12 @@
 
-#ifndef RSA_PREP_LONGINT_H
-#define RSA_PREP_LONGINT_H
+#ifndef RSA_PREP_INTBIG_T_H
+#define RSA_PREP_INTBIG_T_H
 
 #include <string>
 
 #include "InfInt.h"
 
-class uint_long
+class intbig_t
 {
     /**
      * Abs. of `len` represents size of `data`
@@ -26,45 +26,45 @@ public:
     /**
      * Construct a zero.
      */
-    uint_long() = default;
+    intbig_t() = default;
 
     /**
      * Construct a number from its decimal string representation.
      */
-    explicit uint_long(const std::string& s);
+    explicit intbig_t(const std::string& s);
 
     /**
      * Construct a number from an unsigned integer and a sign.
      */
-    explicit uint_long(uint64_t x, bool neg);
+    explicit intbig_t(uint64_t x, bool neg);
 
     /**
      * Construct a number from a 64-bit signed integer.
      */
-    explicit uint_long(int64_t x);
+    explicit intbig_t(int64_t x);
 
-    bool operator==(const uint_long& other) const;
-    bool operator!=(const uint_long& other) const;
+    bool operator==(const intbig_t& other) const;
+    bool operator!=(const intbig_t& other) const;
 
 private:
     /**
      * Three-way comparison that provides common implementation for operators <code>&lt;</code>, <code>&lt;=</code>,
      * <code>></code> and <code>>=</code>.
      */
-    int compare(const uint_long& other) const;
+    int compare(const intbig_t& other) const;
 
 public:
-    bool operator <(const uint_long& other) const;
-    bool operator<=(const uint_long& other) const;
-    bool operator>=(const uint_long& other) const;
-    bool operator >(const uint_long& other) const;
+    bool operator <(const intbig_t& other) const;
+    bool operator<=(const intbig_t& other) const;
+    bool operator>=(const intbig_t& other) const;
+    bool operator >(const intbig_t& other) const;
 
 private:
     void resize_data(size_t new_size);
 
 public:
-    void operator+=(const uint_long& other);
-    void operator-=(const uint_long& other);
+    void operator+=(const intbig_t& other);
+    void operator-=(const intbig_t& other);
 
     // REMOVE: temporary, until other conversions are implemented
     std::string to_string()
@@ -80,4 +80,4 @@ public:
     }
 };
 
-#endif //RSA_PREP_LONGINT_H
+#endif //RSA_PREP_INTBIG_T_H

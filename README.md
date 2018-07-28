@@ -17,7 +17,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
    $\phi(n)$ — [Euler's totient function](https://en.wikipedia.org/wiki/Euler%27s_totient_function);
 
-3. long integer arithmetics modulo large prime: $+$, $-$, $\times$, $a^b$, $a^{-1}$, $gcd$, $lcm$;
+3. arithmetics modulo large prime: $+$, $-$, $\times$, $a^b$, $a^{-1}$, $gcd$, $lcm$;
 
 4. cryptographically secure RNG;
 
@@ -51,7 +51,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 ##### Message exchange
 
 1. Three data formats — for cyphertexts, public and private keys:
-   1. text form, all printable, easily selectable, e.g. Bitcoin's base58;
+   1. text form — PGP uses base64 with `+`, `/` and `=`;
    2. whitespace insignificant;
    3. include insignificant labels (just like `--------BEGIN PGP PUBLIC KEY----------`) that will act as "telomeres" — would be able lose or gain a couple characters at the ends for the case of a sloppy selection.
 2. CLI application:
@@ -60,13 +60,21 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 #### Beyond scope
 
-1. Signature algorithm: *sign* and *verify*
+1. A degree of interoperability with some of the widely-used file formats — `.der`, `.crt`, `.cer`, `.pem`, etc.  (for testing, mainly);
 
-   *(need a cryptographic hash, though)*;
+2. Signature algorithm: *sign* and *verify*:
 
-2. GPG-like keys with fingerprints and self-signed metadata.
+   1. A cryptographic hash (GPG default is SHA-1, but SHA-256 is also well-supported;
 
-Might still eventually go for these, though.
+      otherwise, the implementation is quite trivial given *encrypt* and *decrypt*;
+
+3. GPG-like keys with fingerprints and self-signed metadata.
+
+##### Security features
+
+1. Secure memory operations (?).
+
+Might still eventually go for some of these, though.
 
 ### Goals
 
@@ -84,13 +92,7 @@ TODO
 
 ## Module descriptions
 
-### `uint_long` — long integer
-
-> **TODO**: what the fuck? rename into `int_long` 🌝
->
-> **TODO**: wait, `long` is something else; let's make it  `intmp` or something
->
-> **TODO**: `intbig_t` is good — sounds both silly and smart
+### `intbig_t` — arbitrary-precision integer
 
 The number is stored in a dynamically-allocated array of 32-bit unsigned chunks, with the sign byte as a separate boolean:
 
@@ -183,16 +185,16 @@ My current standing on this is the same as on multiplication — repeated squari
 
 #### Todo
 
-Operators and other functions until `uint_long` considered ready:
+Operators and other functions until `intbig_t` considered ready:
 
-- [x] `uint_long()` *(zero)*;
-- [x] `uint_long(uint64_t, bool)`, `uint_long(int64_t)`;
+- [x] `intbig_t()` *(zero)*;
+- [x] `intbig_t(uint64_t, bool)`, `intbig_t(int64_t)`;
 - [x] `==`, `!=`;
 - [x] `<`, `<=`, `>=`, `>`;
 
 - [x] implement temporary string dump through ~~`gmpxx`~~ some bigint for the tests;
 - [ ] `+=` *(for positives)*;
-- [ ]  `-=` and `+=` *(for negatives)*;
+- [ ] `-=` and `+=` *(for negatives)*;
 - [ ] `++`, `--` *(prefix)*;
 - [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
 - [ ] `size_t size()` — the number's magnitude, i.e. the position of its MSB plus $1$;
@@ -203,7 +205,7 @@ Operators and other functions until `uint_long` considered ready:
   - well, certainly not `std::to_string` — this would be an undefined behavior, as it turns out;
   - `operator std::string()` is not pretty as well — neither implicit nor explicit;
   - guess the way to go is `std::string to_string() const` and the `operator<<`;
-- [ ] *convert from string:* `uint_long(s)`;
+- [ ] *convert from string:* `intbig_t(s)`;
 - [ ] replace `uint32_t*` member with `std::unique_ptr<uint32_t[]>` *(move constructor needed)*;
 - [ ] `-` *(unary)*;
 - [ ] `++`, `--` *(post)*;
@@ -240,7 +242,7 @@ Anyway, with 64 the multiplication will basically be done the same way, but addi
 
 ##### Stack allocation instead of heap
 
-A heap allocation is hella expensive, and accessing the heap memory through a pointer is detrimental for performance for multiple reasons. That's too bad, as right now every `unit_long`'s actual bits are always completely allocated on the heap.
+A heap allocation is hella expensive, and accessing the heap memory through a pointer is detrimental for performance for multiple reasons. That's too bad, as right now every `intbig_t`'s actual bits are always completely allocated on the heap.
 
 Except the one number that is represented as no heap array, zero `len` and null pointer, so, doesn't require any allocation. This representation was chosen for number $0$, as (most probably) the most frequent number in a given program due to the "law of small numbers<sup>1</sup>"
 
@@ -301,10 +303,11 @@ Planning to benchmark agains the following:
 | ------------------------------------------------------- | ------------------------------ | ------- | --------------------------- | ------------------------------------------------------------ |
 | `GMP `                                                  | `uint64_t[]`                   | ✔️       | About the fastest it gets   | `.tar.lz`                                                    |
 | `boost::mp`                                             | *varying?*                     | ✔️       | *On its own backend*        | ?                                                            |
-| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>2</sup>         | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
+| Crypto++                                                | `SecBlock`<sup>2</sup>         | —       |                             | [GitHub](https://github.com/weidai11/cryptopp/blob/master/secblock.h) |
+| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>3</sup>         | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
 | [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                              | —       |                             | ?                                                            |
-| `uint_long`                                             | `uint32_t[]`(&rarr; `vector`?) | —       | —                           | —                                                            |
-| `InfInt`                                                | `vector<int32_t>` base $10^9$  | —       | The boy's really big        | [GitHub](https://github.com/sercantutar/infint)              |
+| `intbig_t`                                              | `uint32_t[]`(&rarr; `vector`?) | —       |                             | —                                                            |
+| `InfInt`                                                | `vector<int32_t>` base $10^9$  | —       |                             | [GitHub](https://github.com/sercantutar/infint)              |
 | `integer`                                               | `deque<uint8_t>`               | —       | Not as bad as the one below | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
 | `BigInteger`                                            | `std::string` (`'0'-'9'`)      | —       | Absolutely hideous          | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
 
@@ -312,7 +315,9 @@ Also, [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) seems to have modu
 
 <sup>1</sup> — because in English you're supposed to say "multiple precision", got it.
 
-<sup>2</sup> — I'm completely lost on why are these called "bytes" or wtf is "`position`":
+<sup>2</sup> — "secure memory block" with custom allocators, protecting against side-channels and shit.
+
+<sup>3</sup> — I'm completely lost on why are these called "bytes" or wtf is "`position`":
 
 ```cpp
 // BYTE-Operationen auf Integers
@@ -352,6 +357,52 @@ struct cl_byte {
    6. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
 
    7. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
+
+   8. Validation:
+
+      1. [The 186-4 RSA Validation System (RSA2VS)](https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss2/rsa2vs.pdf);
+
+      2. [Project Wycheproof](https://github.com/google/wycheproof) — some test vectors;
+
+      3. [Some other library's description](https://github.com/pyca/cryptography/blob/master/docs/development/test-vectors.rst) of where they get their test vectors;
+
+      4. [Crypto++'s test vectors](https://github.com/weidai11/cryptopp/tree/master/TestVectors);
+
+      5. [BoringSSL](https://boringssl.googlesource.com/boringssl/) — OpenSSL fork, has [fuzzing provisions](https://boringssl.googlesource.com/boringssl/+/HEAD/FUZZING.md) and [some tests](https://boringssl.googlesource.com/boringssl/+/ce3773f9fe25c3b54390bc51d72572f251c7d7e6/crypto/evp/evp_tests.txt);
+
+      6. Fuzzing:
+
+         1. [CDF – crypto differential fuzzing](https://github.com/kudelskisecurity/cdf) — a Go application;
+
+            [`rsaenc`](https://github.com/kudelskisecurity/cdf#rsaenc-rsa-encryption-oaep-or-pkcs-15) — its interface for RSA encryption/decryption;
+
+         2. llvm's [libFuzzer](http://llvm.org/docs/LibFuzzer.html), [AddressSanitizer](http://clang.llvm.org/docs/AddressSanitizer.html)
+
+         3. [American fuzzy lop](http://lcamtuf.coredump.cx/afl/) (AFL) — *complex file semantics* and shit;
+
+         4. [libFuzzer Tutorial](https://github.com/google/fuzzer-test-suite/blob/master/tutorial/libFuzzerTutorial.md);
+
+         5. [fuzzer-test-suite](https://github.com/google/fuzzer-test-suite);
+
+   9. Real implementations:
+
+      1. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
+
+         1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
+
+            > Wei's original code was much simpler ...
+            >
+            > ... memory findings ...
+
+         2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation;
+
+         3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
+
+      2. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
+
+         OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
+
+         Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
 
 4. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 

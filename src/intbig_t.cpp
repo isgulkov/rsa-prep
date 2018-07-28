@@ -1,4 +1,4 @@
-#include "uint_long.h"
+#include "intbig_t.h"
 
 #include <stdexcept>
 //#include <iostream>
@@ -9,9 +9,9 @@
  * @param s The number's decimal representation.
  * @throws std::invalid_argument If @p s is of invalid format.
  */
-uint_long::uint_long(const std::string& s) { }
+intbig_t::intbig_t(const std::string& s) { }
 
-uint_long::uint_long(uint64_t x, bool neg)
+intbig_t::intbig_t(uint64_t x, bool neg)
 {
     if(x == 0) {
         return;
@@ -33,9 +33,9 @@ uint_long::uint_long(uint64_t x, bool neg)
     }
 }
 
-uint_long::uint_long(int64_t x) : uint_long(x >= 0 ? (uint64_t)x : (uint64_t)(-x), x < 0) { }
+intbig_t::intbig_t(int64_t x) : intbig_t(x >= 0 ? (uint64_t)x : (uint64_t)(-x), x < 0) { }
 
-bool uint_long::operator==(const uint_long& other) const
+bool intbig_t::operator==(const intbig_t& other) const
 {
     if(len != other.len) {
         return false;
@@ -54,7 +54,7 @@ bool uint_long::operator==(const uint_long& other) const
     return true;
 }
 
-bool uint_long::operator!=(const uint_long& other) const
+bool intbig_t::operator!=(const intbig_t& other) const
 {
     return !operator==(other);
 }
@@ -64,7 +64,7 @@ bool uint_long::operator!=(const uint_long& other) const
  *         - if they are equal, zero;
  *         - otherwise, a positive number.
  */
-int uint_long::compare(const uint_long& other) const
+int intbig_t::compare(const intbig_t& other) const
 {
     if(len < other.len) {
         return -1;
@@ -86,27 +86,27 @@ int uint_long::compare(const uint_long& other) const
     return 0;
 }
 
-bool uint_long::operator<(const uint_long& other) const
+bool intbig_t::operator<(const intbig_t& other) const
 {
     return compare(other) < 0;
 }
 
-bool uint_long::operator<=(const uint_long& other) const
+bool intbig_t::operator<=(const intbig_t& other) const
 {
     return compare(other) <= 0;
 }
 
-bool uint_long::operator>=(const uint_long& other) const
+bool intbig_t::operator>=(const intbig_t& other) const
 {
     return compare(other) >= 0;
 }
 
-bool uint_long::operator>(const uint_long& other) const
+bool intbig_t::operator>(const intbig_t& other) const
 {
     return compare(other) > 0;
 }
 
-void uint_long::resize_data(size_t new_size)
+void intbig_t::resize_data(size_t new_size)
 {
     // TODO: accept that boy signed ^
     // TODO: 0 -- only delete
@@ -133,7 +133,7 @@ void uint_long::resize_data(size_t new_size)
     }
 }
 
-void uint_long::operator+=(const uint_long& other)
+void intbig_t::operator+=(const intbig_t& other)
 {
     if(std::abs(other.len) > std::abs(len)) {
         resize_data((size_t)std::abs(other.len));

@@ -10,11 +10,11 @@ set(CMAKE_CXX_STANDARD 11)
 ### ---------
 include_directories(include)
 
-# - uint_long: an unsigned long integer implementation
-add_library(uint_long src/uint_long.cpp)
+# - intbig_t: a multiple-precision integer implementation
+add_library(intbig_t src/intbig_t.cpp)
 
 # REMOVE: for converting to std::string during development
-target_include_directories(uint_long PRIVATE vendor/infint)
+target_include_directories(intbig_t PRIVATE vendor/infint)
 
 ### CLI executable, perhaps?
 ### ------------------------
@@ -29,21 +29,21 @@ if (BUILD_TESTS)
 
   enable_testing()
 
-  # - uint_long
-  add_executable(test_uint_long test/test_uint_long.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_uint_long.cpp")
-  target_link_libraries(test_uint_long
+  # - intbig_t
+  add_executable(test_intbig_t test/test_intbig_t.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t.cpp")
+  target_link_libraries(test_intbig_t
           gtest gtest_main
-          uint_long
+          intbig_t
   )
-  target_include_directories(test_uint_long PRIVATE vendor/infint)
-  add_test(test_uint_long test_uint_long)
+  target_include_directories(test_intbig_t PRIVATE vendor/infint)
+  add_test(test_intbig_t test_intbig_t)
 
   # all tests
   add_executable(test_all test/main.cpp "${TEST_SRCS}")
   target_link_libraries(test_all
           gtest gtest_main
-          uint_long
+          intbig_t
   )
   # TODO: can I make every single test a library? So that `test_*` links to one of them and this one to all?
   # TODO: https://cmake.org/cmake/help/v3.5/command/add_library.html#id6
