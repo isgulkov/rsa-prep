@@ -17,9 +17,21 @@ protected:
     }
 
 private:
-    // BUG: this value is not actually 2-chunk anymore
-    // TODO: replace (in tests) with a couple of proper long numbers when it is easy to create and copy those
+    // TODO: After the unary minus and non-compound +/- are done,
+    // TODO: replace each use of this number with a couple of analogous ones of some of the three numbers below
     const int64_t quite_big = 1000133710000LL;
+
+    // TODO: after << is done, create these numbers algebraically rather than from strings
+    // 2 ** 64 + 1337 -- 2-chunk
+    const intbig_t large = intbig_t::from_decimal("18446744073709552953");
+
+    // 2 ** 150 + 1414 -- 3-chunk
+    const intbig_t huge = intbig_t::from_decimal("1427247692705959881058285969449495136382748038");
+
+    // 2 ** 633 - 1 -- 9-chunk?
+    const intbig_t colossal = intbig_t::from_decimal("35644067325173400145634153169533525975728347712879374457649941546088087243817792082077443838416964060770643043543706307114755505635745609361348916560329798345718708393439569922522454626926591");
+
+    // TODO: replace everything below (0, 1, 99, 100, etc) with constants declared over here
 
 protected:
     const std::vector<std::pair<intbig_t, intbig_t>> eq_pairs = {
@@ -33,8 +45,10 @@ protected:
             { intbig_t(-1), intbig_t(-1) },
             { intbig_t(-100), intbig_t(-100) },
             { intbig_t(-99 - 1), intbig_t(-100) },
-            // 2-chunk
-            { intbig_t(quite_big), intbig_t(quite_big) },
+            // long
+            { large, large },
+            { huge, huge },
+            { colossal, colossal },
             { intbig_t(-quite_big), intbig_t(-quite_big) },
             { intbig_t(quite_big + 1), intbig_t(quite_big + 1) }
     };
@@ -42,12 +56,17 @@ protected:
     const std::vector<std::pair<intbig_t, intbig_t>> ne_pairs = {
             // diff. value same sign
             { intbig_t(1), intbig_t(2) },
+            { intbig_t(), large },
             { intbig_t(), intbig_t(10) },
+            { colossal, intbig_t(10) },
             { intbig_t(-1), intbig_t() },
             { intbig_t(-10), intbig_t(11) },
             { intbig_t(quite_big), intbig_t(quite_big - 25U) },
             { intbig_t(-quite_big), intbig_t(-(quite_big + 10U)) },
             { intbig_t(quite_big), intbig_t(quite_big + 1) },
+            { intbig_t(quite_big), colossal },
+            { large, colossal },
+            { large, huge },
             // same value diff. signs
             { intbig_t(-1), intbig_t(1) },
             { intbig_t(100), intbig_t(-100) },
@@ -62,26 +81,29 @@ protected:
             { intbig_t(-quite_big), intbig_t() },
             { intbig_t(), intbig_t(1) },
             { intbig_t(), intbig_t(quite_big) },
-            // 1-chunk diff.sign
+            { intbig_t(), large },
+            // diff.sign
             { intbig_t(-100), intbig_t(100) },
             { intbig_t(-100 + 1), intbig_t(100 - 1) },
-            // 1/2-chunk diff.sign
             { intbig_t(-quite_big), intbig_t(100) },
             { intbig_t(-100), intbig_t(quite_big) },
             { intbig_t(-quite_big), intbig_t(100) },
+            { intbig_t(-100), colossal },
             // both positive
             { intbig_t(10), intbig_t(25) },
             { intbig_t(quite_big + 10), intbig_t(quite_big + 111) },
             { intbig_t(99U), intbig_t(100U) },
             { intbig_t(50), intbig_t(quite_big) },
+            { intbig_t(15), intbig_t(quite_big) },
+            { intbig_t(100), colossal },
+            { large, colossal },
+            { large, huge },
             // both_negative
             { intbig_t(-25), intbig_t(-10) },
             { intbig_t(-quite_big - 90), intbig_t(-quite_big - 50) },
             { intbig_t(-101), intbig_t(-10) },
             { intbig_t(-quite_big), intbig_t(-50) },
     };
-
-    // TODO: add 3- and 50-chunk variants when have arithmetics
 };
 
 // operator==
@@ -93,7 +115,6 @@ TEST_F(IntBigTComparisons, EqOnEqualReturnsTrue) {
 
 TEST_F(IntBigTComparisons, EqOnUnequalReturnsFalse) {
     for(auto& pair : ne_pairs) {
-        std::cout << pair.first << " " << pair.second << std::endl;
         EXPECT_FALSE(pair.first == pair.second);
     }
 
