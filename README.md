@@ -43,10 +43,11 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 ##### The RSA itself
 
-1. the actual algorithms: *keygen*, *encrypt* and *decrypt* functions;
-2. padding schemes compatible with some existing implementations;
-3. compatibility with the [two ways of private exponent calculation](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2);
-4. [Chinese remainder-based](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Using_the_Chinese_remainder_algorithm) decryption optimization.
+1. key generation algorithm:
+2. encyption and decryption primitives;
+3. an encryption scheme: `RSAES-OAEP` or `RSAES-PKCS-v1_5` (if the first one's too complex);
+4. compatibility with the [two ways of private exponent calculation](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2);
+5. [Chinese remainder-based](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Using_the_Chinese_remainder_algorithm) decryption optimization.
 
 ##### Message exchange
 
@@ -60,21 +61,31 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 #### Beyond scope
 
-1. A degree of interoperability with some of the widely-used file formats — `.der`, `.crt`, `.cer`, `.pem`, etc.  (for testing, mainly);
+Might eventually get around to some of these.
 
-2. Signature algorithm: *sign* and *verify*:
+1. Both encryption schemes: `RSAES-OAEP` and `RSAES-PKCS-v1_5`;
+2. One of the hashes well-supported by RSA signature software (SHA-1 or SHA-256);
+3. Signature schemes: `RSASSA-PSS`, `RSASSA-PKCS1-v1_5`;
 
-   1. A cryptographic hash (GPG default is SHA-1, but SHA-256 is also well-supported;
+##### Compatibility with real-world applications
 
-      otherwise, the implementation is quite trivial given *encrypt* and *decrypt*;
-
-3. GPG-like keys with fingerprints and self-signed metadata.
+1. GPG (OpenPGP standard):
+   1. importing keys from it;
+   2. export of keys for it;
+   3. signatures interoperability;
+   4. encryption interoperability;
+2. SSL/TLS:
+   1. reading X.509 certificates;
+   2. interoperability with OpenSSL (`.pem`, `.der` and shit);
+   3. key exchange (?).
 
 ##### Security features
 
-1. Secure memory operations (?).
-
-Might still eventually go for some of these, though.
+1. Secure memory:
+   1. compiler-proof memory erasure (at least in destructors);
+   2. protection against swaps;
+   3. guarded heap allocations (through a C++11-style custom allocator);
+2.  Sourcing additional entropy from user environment.
 
 ### Goals
 
@@ -94,35 +105,41 @@ TODO
 
 ### `intbig_t` — arbitrary-precision integer
 
-The number is stored in a dynamically-allocated array of 32-bit unsigned chunks, with the sign byte as a separate boolean:
+The number is internally represented with two data members:
 
 ```cpp
-    size_t len = 0;
-    uint32_t* data = nullptr;
+    bool is_neg = false;
+    std::vector<uint64_t> chunks;
 ```
 
-Here, only the $abs$ of  `len` represents the size of `data`; the sign of `len` corresponds to that of the number. `len == 0` represents zero:
+- `is_neg` — the number's sign: `true` for negative numbers, `false` otherwise;
 
-| **represented value **($n$) | `len`                       | `data`                |
-| --------------------------- | --------------------------- | --------------------- |
-| $n > 0$ (*positive*)        | $\lceil log_{32} n \rceil $ | ` new uint32_t[len]` |
-| $n = 0$ *(zero)* | $0$ | `nullptr` |
-| $n < 0$ *(negative)* | $-\lceil log_{32} |n| \rceil $ | ` new uint32_t[-len]` |
+- `chunks` — the number's absolute value:
 
-This clever idea (of reusing `len` for sign, not of maximizing the chunks) has been stolen directly out of [GMP's `mp_z` integer struct](https://gmplib.org/manual/Integer-Internals.html#Integer-Internals):
+  - the value is stored base 64, the digits are in little-endian (ordered from least to most significant):
 
-> **_mp_size**
->
-> - The number of limbs, or the negative of that when representing a negative integer. Zero is represented by _mp_size set to zero, in which case the _mp_d data is unused.
+    $|x| = chunks[0] + 2^{64} \times chunks[1] + (2^{64})^2 \times chunks[2] + ...$;
 
-> **TODO**: decide what to do when an old number drops to zero (`len = 0;`):
+  - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
+
+Note that only one representation of zero, — `{ .is_neg=false, chunks={} }`, — is enforced. All other possibilities are illegal (i.e. invalid states of the `intbig_t` objects).
+
+> *Note*: the originally planned representation was GMP-inspired one:
 >
-> - `delete data; data = nullptr;`,
+> - digits stored a manually-reallocated array;
+> - the number's signed represented by the sign of its size field.
 >
-> - or nothing, leaving `data` for future uses?
+> Both of these have proven to be huge headaches.
+
+> **TODO**: Find the value for passing into `chunks.reserve()` that will allow 4096-bit modular operations with no further reallocations.
 >
->   With sizes up to some limit?
+> *Note*: the fact that `vector` never automatically shrinks is actually pretty sweet here;
+
+> **TODO**: Benchmark `std::vector<uint64_t>` to determine whether `emplace_back` that everyone (including `clang-Tidy`) is talking about is actually measurably slower than `push_back`. Remember to measure cases where each is called with:
 >
+> - an integer literal (in a loop);
+> - a `uint64_t` local variable whose value is always the same;
+> - a `uint64_t` local variable whose value is new each time.
 
 ##### Addition
 
@@ -166,120 +183,137 @@ There are also FFT-based algorithms that apparently have to be mentioned in ever
 
 > **TODO**: implement some fast multiplication shit
 
-##### Division, modulo
+##### Division, modulo, power
 
-[Fast Division of Large Integers](http://bioinfo.ict.ac.cn/~dbu/AlgorithmCourses/Lectures/Hasselstrom2003.pdf):
+The arbitrary-precision versions of these operations aren't used by corresponding modular algorithms; thus, these operations are skipped for now.
 
-- Newton Inversion;
-- Barrett's Algorithm.
-
-The modulo is generally a subproduct of division.
-
-##### Power
-
-My current standing on this is the same as on multiplication — repeated squaring is the extent of my knowledge here.
-
-
-
-
+Though basic impletementations of division and modulo are currently provided for the needs of `to_string` method, they are extremely wasteful and shouldn't be relied on.
 
 #### Todo
 
-Operators and other functions until `intbig_t` considered ready:
+Operators and other functions until `intbig_t` considered somewhat finished:
 
 - [x] `intbig_t()` *(zero)*;
-- [x] `intbig_t(uint64_t, bool)`, `intbig_t(int64_t)`;
+
+- [x] `intbig_t(int64_t)`;
+
 - [x] `==`, `!=`;
+
 - [x] `<`, `<=`, `>=`, `>`;
 
 - [x] implement temporary string dump through ~~`gmpxx`~~ some bigint for the tests;
+
 - [ ] `+=` *(for positives)*;
+
 - [ ] `-=` and `+=` *(for negatives)*;
+
 - [ ] `++`, `--` *(prefix)*;
+
 - [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
+
 - [ ] `size_t size()` — the number's magnitude, i.e. the position of its MSB plus $1$;
+
 - [ ] `<<`, `>>`;
+
 - [ ] `*=`;
+
 - [ ] `%`, `/`, `%=` and `/=` — **for string coversions only**: don't waste time putting any efficient algorithms there — for modulo $p$ the game will most likely be completely different *(don't forget to warn in the doc comments!)*;
+
 - [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`<sup>1</sup>;
   - well, certainly not `std::to_string` — this would be an undefined behavior, as it turns out;
   - `operator std::string()` is not pretty as well — neither implicit nor explicit;
   - guess the way to go is `std::string to_string() const` and the `operator<<`;
-- [ ] *convert from string:* `intbig_t(s)`;
-- [ ] replace `uint32_t*` member with `std::unique_ptr<uint32_t[]>` *(move constructor needed)*;
-- [ ] `-` *(unary)*;
-- [ ] `++`, `--` *(post)*;
-- [ ] `+`, `-`, `*`.
 
-On next iteration: `+=`, `*=`, `=`, etc. that accept strings, ints and everything — most likely, by defining implicit conversions from them (keep the "to" exclusively explicit, though, or it will all be pain).
+- [ ] convert from decimal representation: `intbig_t(std::string)`;
+
+- [ ] binary representation conversions:
+
+  - [ ] from:
+
+    - `static from_bytes(std::string bytes)`;
+    - `static from_bytes(std::istream stream)` (reads until EOF);
+
+  - [ ] to:
+
+    - `std::string to_bytes()`;
+    -  `void to_bytes(std::ostream stream)`;
+
+    these are roughly the `I2OSP` and `OSP2I` from the [PKCS#1](https://tools.ietf.org/html/rfc3447#page-9) standard;
+
+    the `I2OSP`'s parameter `xLen`, which, to my understanding, is included for overflow protection, is replaced by the following method:
+
+  - [ ] `size_t num_bytes() const` — exactly how many bytes will the previous two methods produce;
+
+    **Note**: consider copying 8 bytes at a time with `reinterpret_cast<uint64_t*>` (check if `std::strings` are contiguous, though);
+
+- [ ] `-` *(unary)*;
+
+- [ ] `++`, `--` *(post)*;
+
+- [ ] `+`, `-`, `*`;
+
+- [ ] set up any implicit "from" conversions for things like `big_x *= "1000000000"` and `big_x = 11`;
+
+- [ ] define conversions to integers — keep them explicit, though, or it will all be pain;
+
+- [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
 
 <sup>1</sup> — when will I finally start getting this overload right without StackOverflow?
 
 ```cpp
-std::ostream& operator<<(std::ostream& os, const MyClass& value)
-{
-	os << /* ... */ value /* ... */;
-	return os;
+// .h
+class MyClass {
+    // ...
+    friend std::ostream& operator<<(std::ostream& os, const MyClass& value)
+    // ...
+}
+
+// .cpp
+std::ostream& operator<<(std::ostream& os, const MyClass& value) {
+	return os << /* ... */ value.x /* ... */;
 }
 ```
 
 #### Possible optimizations
 
-##### Use `std::vector<uint32_t>` for `data` instead of hand-`malloc`ed array?
+##### Forward an allocator to the underlying `std::vector`
 
-Not only if that's faster (could be — the `vector` probably won't have to do much `new[]`/`delete[]` at all), but even if "not too much slower", certainly switch to that. The mainenability improvement would be dramatic, and I don't really see any performance benefits now compared to that.
+A custom allocator may be used to fulfill one of two goals:
 
-Unfortunately, the elegant `int32_t len` would have to step down to boring old `bool is_negative`.
+- speed things up, depending on how many temporaries do we end up creating (e.g. monotonic);
+- allocate (and deallocate!) with various security considerations, like the big boys in crypto do.
 
-##### 64-bit chunks instead of 32
+In either case, the `intbig_t` code will need only tiny changes, and code using its default version — no changes:
 
-I've heard about there being no cycle difference neither for add nor multiply; though not sure to which Intel architechtures does that apply.
+```cpp
+template<typename Alloc=std::allocator<uint64_t>>
+class intbig_t_alloc
+{
+    // ... the old intbig_t code
+	std::vector<uint64_t, Alloc> data;
+    // ... the old intbig_t code
+};
 
-Anyway, with 64 the multiplication will basically be done the same way, but addition speeds up easily by a factor of two.
+// ...
 
-> **TODO:** benchmark 32-bit chunks agains 64-bit chunks?
->
+typedef intbig_t_alloc<> intbig_t;
+// This wouldn't be possible:
+// typedef intbig_t<> intbig_t;
+```
 
-##### Stack allocation instead of heap
+So don't do it early!
 
-A heap allocation is hella expensive, and accessing the heap memory through a pointer is detrimental for performance for multiple reasons. That's too bad, as right now every `intbig_t`'s actual bits are always completely allocated on the heap.
+##### Small number optimization
 
-Except the one number that is represented as no heap array, zero `len` and null pointer, so, doesn't require any allocation. This representation was chosen for number $0$, as (most probably) the most frequent number in a given program due to the "law of small numbers<sup>1</sup>"
+In general, an SSO<sup>1</sup>-like optimization, i.e. if numbers $< 2^{64}$ didn't have a vector and were stored completely on the stack, seems to apply perfectly here due to the "law of small numbers"<sup>2</sup>.
 
-An obvious optimization here would be something like SSO<sup>2</sup> to store the number completely on the stack up to a certain length. This change could've brought significant benefits even if that would just be `8` or `4` bytes.
+For working with 1024- or 4096-bit numbers, though, this is questionable. Will the allocation and locality speedup make up for the requirement to store half a kilobyte or more on the stack?
 
-Unfortunately, the RSA primes our implementation is going to work with are about 1 024 to 16 384 bits long, or 128 to 2048 bytes, which is all kinda on the heavy side for the stack; moreover, the use of move constructors may become about as good as copying with these sizes.
+Moreover, the modular multiplication algorithm will probably both require a temporary and operate in a number longer than the operands.
 
-> **TODO**: benchmark 128, 256, 512, 1024 and 2048 byte SNO (*"small" number optimization*) against the baseline and implement that as called for
+<sup>1</sup> — *short string optimization*; [here](https://www.youtube.com/watch?v=kPR8h4-qZdk) is a great CppCon talk related to it (never mind the guy's wierd tone and body language — you'd look the same if you took as much Aderall as he does).
 
-If the 512 byte stack variable is faster, though, we can basically replace our long integers with fixed-lenth 512B integers, given careful implementation of modular arithmetic afterwards.
-
-> **TODO**: if proves effective, replace the long int with fixed-length int templated on width, e.g.:
->
-> ```cpp
-> template<size_t LWords>
-> class int_fixed
-> {
-> 	uint64_t data[LWords];
-> 	// or uint32_t data[2 * LWords];
-> 	//                  ^ wouldn't need constexpr?
-> 	/* ... */
-> }
-> ```
-
-<sup>1</sup> — the observations that in most programs, numbers are small: like, 90+% are $< 100$, about 20% are zero — who knows where I heard that, but seems reasonable.
-
-<sup>2</sup> — *short string optimization*; [here](https://www.youtube.com/watch?v=kPR8h4-qZdk) is a great CppCon talk related to it (never mind the guy's wierd tone and body language — you'd look the same if you took as much Aderall as he does).
-
-**Reserve heap memory ahead of time**
-
-The way everything's done right now, the `data` array is resized one chunk by one, which is unnecessarily expensive.
-
-This calls for a couple possible optimisations *(be careful not to make them prematurely, though)*:
-
-- during one operation is performed, save all the new chunks somewhere on the stack, then reallocate all at once (what operations whould even require large reallocations, though?);
-- decouple `len` (the number's parameter) from a new special thing like `__sz` (just the current size of `data`) — so that there's more flexibility overall;
-- make so that during the lifetime of an object, `data` just is just more eager to grow than to shrink — hopefully this aren't going to lead to a memory leak or something.
+<sup>2</sup> — the observations that in most programs, numbers are small: like, 90+% are $< 100$, about 20% are zero — who knows where I heard that, but seems reasonable.
 
 #### Benchmarks
 
@@ -344,21 +378,23 @@ struct cl_byte {
 
    1. [R.L. Rivest, A. Shamir, and L. Adleman — A Method for Obtaining Digital Signatures and Public-Key Cryptosystems](http://people.csail.mit.edu/rivest/Rsapaper.pdf);
 
-   2. [RSA — Wikipedia](https://en.wikipedia.org/wiki/RSA_(cryptosystem));
+   2. [PKCS #1: RSA Cryptography Specifications Version 2.1](https://tools.ietf.org/html/rfc3447) *(the latest verson 2.2 only expands the list of hashes with SHA-256 and others)*;
 
-   3. [RSA and Primality Testing](https://imada.sdu.dk/~joan/projects/RSA.pdf) (slides);
+   3. [RSA — Wikipedia](https://en.wikipedia.org/wiki/RSA_(cryptosystem));
 
-   4. [Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/);
+   4. [RSA and Primality Testing](https://imada.sdu.dk/~joan/projects/RSA.pdf) (slides);
+
+   5. [Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/);
 
       [Chapter 4: Public-Key Parameters](http://cacr.uwaterloo.ca/hac/about/chap4.pdf) *(it's totally somewhere up there with more precise references)*;
 
-   5. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) *(the dates aren't too good on this, but the presentation is promising)*;
+   6. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) *(the dates aren't too good on this, but the presentation is promising)*;
 
-   6. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
+   7. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
 
-   7. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
+   8. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
 
-   8. Validation:
+   9. Validation:
 
       1. [The 186-4 RSA Validation System (RSA2VS)](https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss2/rsa2vs.pdf);
 
@@ -384,31 +420,89 @@ struct cl_byte {
 
          5. [fuzzer-test-suite](https://github.com/google/fuzzer-test-suite);
 
-   9. Real implementations:
+   10. Real implementations:
 
-      1. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
-
-         1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
-
-            > Wei's original code was much simpler ...
-            >
-            > ... memory findings ...
-
-         2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation;
-
-         3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
-
-      2. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
+      1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
 
          OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
 
          Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
 
-4. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
+      2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
+
+         1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
+
+            > Wei's original code was much simpler ...
+            >
+
+         2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation;
+
+         3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
+
+         4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
+
+      3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
+
+         [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
+
+         **May be up for a pull request after I'm finished with this!**
+
+         > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
+
+         > Running doctests 1000x or until failure
+
+         Found the users:
+
+         > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
+
+4. Other related algorithms:
+
+   1. Cormen et el.:
+
+      1. 32: Number-Theoretic Algorithms, p. 926;
+      2. 31.8: Primality testing *(incl. Miller-Rabin primality test)*, pp. 971–975;
+
+   2. St. Denis — BigNum Math: Implementing Cryptographic Multiple Precision Arithmetic,
+
+      a book by the developer of [LibTomMath](https://www.libtom.net/LibTomMath/) and [LibTomCrypt](https://github.com/libtom/libtomcrypt) that are both written in C and the former reminds me a lot of GMP:
+
+      1. [TeX source](https://github.com/libtom/libtommath/blob/develop/doc/tommath.src);
+      2. [Generated PDF](https://github.com/libtom/libtommath/blob/432e3bd8eb40c4e5a40b688da6764d418b1804b2/tommath.pdf) (last version before deletion);
+      3. pirated Amazon PDF looks the best, though;
+
+   3. SHA-256:
+
+      1. [A JS implementation](https://www.movable-type.co.uk/scripts/sha256.html) with the "educational use" disclaimer;
+
+   4. `std::vector` replacements:
+
+      1. Some jerk's version: [blog post](https://www.movable-type.co.uk/scripts/sha256.html), [GitHub repo](https://github.com/dendibakh/prep/blob/master/SmallVector.cpp);
+
+      2. [llvm/ADT/SmallVector.h](http://llvm.org/docs/ProgrammersManual.html#llvm-adt-smallvector-h) *(benchmark against this, maybe?)*;
+
+      3. [`folly::fbvector`](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md) (Facebook/Alexandrescu);
+
+         [FBVectorBenchmark.cpp](https://github.com/facebook/folly/blob/master/folly/test/FBVectorBenchmark.cpp) — benchmarks against several others;
+
+      4. [nsTArray.h](https://dxr.mozilla.org/mozilla-beta/source/xpcom/ds/nsTArray.h) (Mozilla);
+
+      5. [`lni::vector`](https://github.com/lnishan/vector) (some fuck);
+
+      6. [`pector`](https://github.com/aguinet/pector) (some other fuck);
+
+      7. [StackOverflow answer](https://stackoverflow.com/a/2443195): "just use `std::basic_string`!";
+
+         (if I'm replacing `vector`, it doesn't neccessarily need to be nearly as complex as some of these: only a few methods needed, only one use-case considered);
+
+         (some of them boast improving the `memmove` assumptions which are suboptimal in `std::vector` — does this apply to `uint64_t`, though?);
+
+5. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 
    [Source File Organization for C++ Projects Part 2: Directories and Namespaces](https://arne-mertz.de/2016/06/organizing-directories-namespaces/);
 
-5. GMP user manual:
+6. [C++ Dos and Don'ts](https://www.chromium.org/developers/coding-style/cpp-dos-and-donts) (Chromium);
+
+7. GMP user manual:
 
    1. [Build Options ](https://gmplib.org/manual/Build-Options.html) — all I had to do was to pass  `--enable-cxx` to `./configure`, it turns out!
    2. [3.1 Headers and Libraries](https://gmplib.org/manual/Headers-and-Libraries.html#Headers-and-Libraries);
@@ -418,11 +512,15 @@ struct cl_byte {
    6. [5.12 Input and Output Functions](https://gmplib.org/manual/I_002fO-of-Integers.html);
    7. [12.2 C++ Interface Integers](https://gmplib.org/manual/C_002b_002b-Interface-Integers.html#C_002b_002b-Interface-Integers).
 
-6. Good-looking error bar plots:
+8. Benchmarks:
 
-   1. [Styling plots for publication with matplotlib](http://jonchar.net/notebooks/matplotlib-styling/);
-   2. [Visualizing Errors](https://jakevdp.github.io/PythonDataScienceHandbook/04.03-errorbars.html) *(uses some "styles" to make it look good)*;
-   3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*;
+   1. [Google Benchmark](https://github.com/google/benchmark) (documented mostly in `README.md`);
+      1. [`benchmark.h`](https://github.com/google/benchmark/blob/master/include/benchmark/benchmark.h) (includes some additional documentation with examples)
+   2. Good-looking error bar plots:
+      1. [Styling plots for publication with matplotlib](http://jonchar.net/notebooks/matplotlib-styling/);
+      2. [Visualizing Errors](https://jakevdp.github.io/PythonDataScienceHandbook/04.03-errorbars.html) *(uses some "styles" to make it look good)*;
+      3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*;
+   3. [incise.org: Hash Table Benchmarks](http://incise.org/hash-table-benchmarks.html) — doctor, my lines are worrying me 🌝;
 
-7. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, and he's even some benchmarks against `NTL`.
+9. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, and he's even some benchmarks against `NTL`.
 

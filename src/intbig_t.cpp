@@ -3,7 +3,7 @@
 #include "intbig_t.h"
 
 // REMOVE: temporary, for the following:
-// REMOTE:  - to_string
+// REMOVE:  - to_string
 #include "InfInt.h"
 
 intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg),
@@ -59,9 +59,18 @@ int intbig_t::compare_3way(const intbig_t& other) const
     // Since C++20, there's <=>
 
     if(is_neg != other.is_neg) {
-        // This is legal: (int) of bool results in 1 or 0
+        // This is legal: (int) of bool is 1 or 0
         // https://en.cppreference.com/w/cpp/language/implicit_conversion#Integral_promotion
-        return is_neg - other.is_neg;
+        return other.is_neg - is_neg;
+    }
+
+    {
+        // No leading zeroes are allowed, so longed value is neccessarily larger
+        int size_diff = (int)chunks.size() - (int)other.chunks.size();
+
+        if(size_diff != 0) {
+            return (is_neg ? -1 : 1) * size_diff;
+        }
     }
 
     // From most significant to least significant
@@ -73,13 +82,13 @@ int intbig_t::compare_3way(const intbig_t& other) const
          */
 
         const uint64_t our_chunk = chunks[(chunks.size() - 1) - i_back];
-        const uint64_t their_chunk = chunks[(chunks.size() - 1) - i_back];
+        const uint64_t their_chunk = other.chunks[(chunks.size() - 1) - i_back];
 
         if(our_chunk < their_chunk) {
-            return -1;
+            return is_neg ? 1 : -1;
         }
         else if(our_chunk > their_chunk) {
-            return 1;
+            return is_neg ? -1 : 1;
         }
     }
 

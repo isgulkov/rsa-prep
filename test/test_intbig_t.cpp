@@ -6,9 +6,6 @@
 
 #include "intbig_t.h"
 
-// TODO: might wanna separate the test case into several and fixtures in some of them
-// TODO: https://github.com/google/googletest/blob/master/googletest/docs/primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests
-
 class IntBigTComparisons : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -20,7 +17,9 @@ protected:
     }
 
 private:
-    const uint64_t quite_big = ((UINT32_MAX - 5U) << 10U) + 32;
+    // BUG: this value is not actually 2-chunk anymore
+    // TODO: replace (in tests) with a couple of proper long numbers when it is easy to create and copy those
+    const int64_t quite_big = 1000133710000LL;
 
 protected:
     const std::vector<std::pair<intbig_t, intbig_t>> eq_pairs = {
@@ -29,33 +28,32 @@ protected:
             // 1-chunk positive
             { intbig_t(1), intbig_t(1) },
             { intbig_t(100), intbig_t(100) },
-            { intbig_t(100U, false), intbig_t(100) },
+            { intbig_t(99 + 1), intbig_t(100) },
             // 1-chunk negative
             { intbig_t(-1), intbig_t(-1) },
             { intbig_t(-100), intbig_t(-100) },
-            { intbig_t(100U, true), intbig_t(-100) },
-            { intbig_t(100U, true), intbig_t(100U, true) },
+            { intbig_t(-99 - 1), intbig_t(-100) },
             // 2-chunk
             { intbig_t(quite_big), intbig_t(quite_big) },
-            { intbig_t(quite_big), intbig_t(quite_big, false) },
-            { intbig_t(quite_big, true), intbig_t(-quite_big) }
+            { intbig_t(-quite_big), intbig_t(-quite_big) },
+            { intbig_t(quite_big + 1), intbig_t(quite_big + 1) }
     };
 
     const std::vector<std::pair<intbig_t, intbig_t>> ne_pairs = {
             // diff. value same sign
             { intbig_t(1), intbig_t(2) },
             { intbig_t(), intbig_t(10) },
+            { intbig_t(-1), intbig_t() },
             { intbig_t(-10), intbig_t(11) },
             { intbig_t(quite_big), intbig_t(quite_big - 25U) },
             { intbig_t(-quite_big), intbig_t(-(quite_big + 10U)) },
-            { intbig_t(quite_big, true), intbig_t(quite_big + 1, true) },
+            { intbig_t(quite_big), intbig_t(quite_big + 1) },
             // same value diff. signs
             { intbig_t(-1), intbig_t(1) },
             { intbig_t(100), intbig_t(-100) },
-            { intbig_t(100U, true), intbig_t(100) },
+            { intbig_t(-100), intbig_t(100) },
             { intbig_t(-quite_big), intbig_t(quite_big) },
-            { intbig_t(quite_big, true), intbig_t(quite_big) },
-            { intbig_t(quite_big, true), intbig_t(quite_big, false) }
+            { intbig_t(-quite_big - 1), intbig_t(-quite_big + 1) }
     };
 
     const std::vector<std::pair<intbig_t, intbig_t>> lt_pairs = {
@@ -66,22 +64,21 @@ protected:
             { intbig_t(), intbig_t(quite_big) },
             // 1-chunk diff.sign
             { intbig_t(-100), intbig_t(100) },
-            { intbig_t(100U, true), intbig_t(100) },
-            { intbig_t(-100), intbig_t(100U, false) },
+            { intbig_t(-100 + 1), intbig_t(100 - 1) },
             // 1/2-chunk diff.sign
             { intbig_t(-quite_big), intbig_t(100) },
-            { intbig_t(100U, true), intbig_t(quite_big) },
-            { intbig_t(-quite_big), intbig_t(100U, false) },
+            { intbig_t(-100), intbig_t(quite_big) },
+            { intbig_t(-quite_big), intbig_t(100) },
             // both positive
             { intbig_t(10), intbig_t(25) },
             { intbig_t(quite_big + 10), intbig_t(quite_big + 111) },
-            { intbig_t(99U, false), intbig_t(100U , false) },
-            { intbig_t(50), intbig_t(quite_big, false) },
+            { intbig_t(99U), intbig_t(100U) },
+            { intbig_t(50), intbig_t(quite_big) },
             // both_negative
             { intbig_t(-25), intbig_t(-10) },
             { intbig_t(-quite_big - 90), intbig_t(-quite_big - 50) },
-            { intbig_t(101U, true), intbig_t(10U , true) },
-            { intbig_t(quite_big, true), intbig_t(50) },
+            { intbig_t(-101), intbig_t(-10) },
+            { intbig_t(-quite_big), intbig_t(-50) },
     };
 
     // TODO: add 3- and 50-chunk variants when have arithmetics
@@ -90,12 +87,13 @@ protected:
 // operator==
 TEST_F(IntBigTComparisons, EqOnEqualReturnsTrue) {
     for(auto& pair : eq_pairs) {
-        EXPECT_TRUE(pair.first == pair.second);
+        EXPECT_EQ(pair.first, pair.second);
     }
 }
 
 TEST_F(IntBigTComparisons, EqOnUnequalReturnsFalse) {
     for(auto& pair : ne_pairs) {
+        std::cout << pair.first << " " << pair.second << std::endl;
         EXPECT_FALSE(pair.first == pair.second);
     }
 
@@ -113,18 +111,18 @@ TEST_F(IntBigTComparisons, NeOnEqualReturnsFalse) {
 
 TEST_F(IntBigTComparisons, NeOnUnequalReturnsTrue) {
     for(auto& pair : ne_pairs) {
-        EXPECT_TRUE(pair.first != pair.second);
+        EXPECT_NE(pair.first, pair.second);
     }
 
     for(auto& pair : lt_pairs) {
-        EXPECT_FALSE(pair.first == pair.second);
+        EXPECT_NE(pair.first, pair.second);
     }
 }
 
 // operator<
 TEST_F(IntBigTComparisons, LtOnLessReturnsTrue) {
     for(auto& pair : lt_pairs) {
-        EXPECT_TRUE(pair.first < pair.second);
+        EXPECT_LT(pair.first, pair.second);
     }
 }
 
@@ -143,13 +141,13 @@ TEST_F(IntBigTComparisons, LtOnGreaterReturnsFalse) {
 // operator<=
 TEST_F(IntBigTComparisons, LeOnLessReturnsTrue) {
     for(auto& pair : lt_pairs) {
-        EXPECT_TRUE(pair.first <= pair.second);
+        EXPECT_LE(pair.first, pair.second);
     }
 }
 
 TEST_F(IntBigTComparisons, LeOnEqualReturnsTrue) {
     for(auto& pair : eq_pairs) {
-        EXPECT_TRUE(pair.first <= pair.second);
+        EXPECT_LE(pair.first, pair.second);
     }
 }
 
@@ -168,13 +166,13 @@ TEST_F(IntBigTComparisons, GeOnLessReturnsFalse) {
 
 TEST_F(IntBigTComparisons, GeOnEqualReturnsTrue) {
     for(auto& pair : eq_pairs) {
-        EXPECT_TRUE(pair.first >= pair.second);
+        EXPECT_GE(pair.first, pair.second);
     }
 }
 
 TEST_F(IntBigTComparisons, GeOnGreaterEqReturnsTrue) {
     for(auto& pair : lt_pairs) {
-        EXPECT_TRUE(pair.second >= pair.first);
+        EXPECT_GE(pair.second, pair.first);
     }
 }
 
@@ -193,7 +191,7 @@ TEST_F(IntBigTComparisons, GtOnEqualReturnsFalse) {
 
 TEST_F(IntBigTComparisons, GtOnGreaterReturnsTrue) {
     for(auto& pair : lt_pairs) {
-        EXPECT_TRUE(pair.second > pair.first);
+        EXPECT_GT(pair.second, pair.first);
     }
 }
 
@@ -202,17 +200,17 @@ TEST(IntBigTInPlace, AddAssignPositiveOneChunk) {
     intbig_t x(10);
     x += intbig_t(12);
 
-    EXPECT_TRUE(x == intbig_t(22));
+    EXPECT_EQ(x, intbig_t(22));
 
     intbig_t y;
     y += intbig_t(233);
 
-    EXPECT_TRUE(y == intbig_t(233));
+    EXPECT_EQ(y, intbig_t(233));
 
-    intbig_t z(100000, false);
+    intbig_t z(100000);
     z += intbig_t();
 
-    EXPECT_TRUE(z == intbig_t(100000));
+    EXPECT_EQ(z, intbig_t(100000));
 }
 
 TEST(IntBigTInPlace, AddAssignPositiveOneChunkMany) {
@@ -237,14 +235,13 @@ TEST(IntBigTInPlace, AddAssignPositiveOneChunkMany) {
 }
 
 TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
-    std::mt19937 rnd(1337);
-    std::exponential_distribution<double> exp(1.0 / 10000000);
-
     intbig_t test;
     InfInt control;
 
-    for(int i = 0; i < 1000; i++) {
-        auto x = (uint32_t)exp(rnd);
+    for(int i = 0; i < 40; i++) {
+        // Will go out of uint64_t range in about 8 iterations
+
+        int64_t x = 1LL << 61;
 
         if(x % 10 == 0) {
             x = 0;
