@@ -36,7 +36,7 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     intbig_t(int64_t x);
 
-    static intbig_t from_decimal(const std::string& s);
+    static intbig_t from_decimal(const std::string& decimal);
 
     std::string to_string() const;
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);

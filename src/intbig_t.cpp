@@ -16,20 +16,40 @@ intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg)
 
 intbig_t::intbig_t(int64_t x) : intbig_t(x < 0, { (uint64_t)(x < 0 ? -x : x) }) { }
 
+intbig_t intbig_t::from_decimal(const std::string& decimal)
+{
+    // REMOVE: temporary, until proper string conversions are implemented
+
+    InfInt fifth_leg(decimal);
+
+    InfInt TWO_64 = InfInt(UINT64_MAX) + 1;
+
+    bool is_neg = fifth_leg < 0;
+    std::vector<uint64_t> chunks;
+
+    while(fifth_leg != 0) {
+        chunks.push_back((fifth_leg % TWO_64).toUnsignedLongLong());
+
+        fifth_leg /= TWO_64;
+    }
+
+    return { is_neg, std::move(chunks) };
+}
+
 std::string intbig_t::to_string() const
 {
-    // REMOVE: temporary, until proper string conversion is implemented
+    // REMOVE: temporary, until proper string conversions are implemented
 
     const uint64_t HALF_CHUNK = 1ULL << 32U;
 
     InfInt x;
 
-    for(uint64_t chunk : chunks) {
+    for(size_t i_back = 0; i_back < chunks.size(); i_back++) {
         x *= InfInt(HALF_CHUNK);
-        x += chunk >> 32U;
+        x += chunks[(chunks.size() - 1) - i_back] >> 32U;
 
         x *= InfInt(HALF_CHUNK);
-        x += chunk & (HALF_CHUNK - 1);
+        x += chunks[(chunks.size() - 1) - i_back] & (HALF_CHUNK - 1);
     }
 
     if(is_neg) {

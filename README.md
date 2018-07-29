@@ -203,7 +203,7 @@ Operators and other functions until `intbig_t` considered somewhat finished:
 
 - [x] implement temporary string dump through ~~`gmpxx`~~ some bigint for the tests;
 
-- [ ] `+=` *(for positives)*;
+- [x] `+=` *(for positives)*;
 
 - [ ] `-=` and `+=` *(for negatives)*;
 
@@ -252,7 +252,13 @@ Operators and other functions until `intbig_t` considered somewhat finished:
 
 - [ ] `+`, `-`, `*`;
 
-- [ ] set up any implicit "from" conversions for things like `big_x *= "1000000000"` and `big_x = 11`;
+- [ ] set up any implicit "from" conversions for simple stuff like:
+
+  - `big_x *= "1000000000"`;
+  - `big_x = 11`;
+  - `while(big_x != 0) { }`;
+
+- [ ] `operator bool()`;
 
 - [ ] define conversions to integers — keep them explicit, though, or it will all be pain;
 
