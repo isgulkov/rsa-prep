@@ -1,85 +1,85 @@
+#include <stdexcept>
+
 #include "intbig_t.h"
 
-#include <stdexcept>
-//#include <iostream>
-#include <cmath>
+// REMOVE: temporary, for the following:
+// REMOTE:  - to_string
+#include "InfInt.h"
 
-/**
- * Construct a number from its decimal string representation.
- * @param s The number's decimal representation.
- * @throws std::invalid_argument If @p s is of invalid format.
- */
-intbig_t::intbig_t(const std::string& s) { }
-
-intbig_t::intbig_t(uint64_t x, bool neg)
+intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg),
+                                                                  chunks(std::move(chunks))
 {
-    if(x == 0) {
-        return;
-    }
-    else {
-        // TODO: rearrange somehow?
-
-        len = x > UINT32_MAX ? 2 : 1;
-
-        data = new uint32_t[len];
-
-        data[0] = (uint32_t)x;
-
-        if(len == 2) {
-            data[1] = (uint32_t)(x >> 32U);
-        }
-
-        len = neg ? -len : len;
-    }
+    // TODO: decide how much to reserve
+    // TODO: decide whether to reserve in the default (zero) constructor
+    chunks.reserve(20);
 }
 
-intbig_t::intbig_t(int64_t x) : intbig_t(x >= 0 ? (uint64_t)x : (uint64_t)(-x), x < 0) { }
+intbig_t::intbig_t(int64_t x) : intbig_t(x < 0, { (uint64_t)(x < 0 ? -x : x) }) { }
+
+std::string intbig_t::to_string() const
+{
+    // REMOVE: temporary, until proper string conversion is implemented
+
+    const uint64_t HALF_CHUNK = 1ULL << 32U;
+
+    InfInt x;
+
+    for(uint64_t chunk : chunks) {
+        x *= InfInt(HALF_CHUNK);
+        x += chunk >> 32U;
+
+        x *= InfInt(HALF_CHUNK);
+        x += chunk & (HALF_CHUNK - 1);
+    }
+
+    if(is_neg) {
+        x *= -1;
+    }
+
+    return x.toString();
+}
+
+std::ostream& operator<<(std::ostream& os, const intbig_t& value)
+{
+    return os << value.to_string();
+}
 
 bool intbig_t::operator==(const intbig_t& other) const
 {
-    if(len != other.len) {
-        return false;
-    }
-
-    if(len == 0) {
-        return true;
-    }
-
-    for(size_t i = 0; i < std::abs(len); i++) {
-        if(data[i] != other.data[i]) {
-            return false;
-        }
-    }
-
-    return true;
+    return is_neg == other.is_neg && chunks == other.chunks;
 }
 
 bool intbig_t::operator!=(const intbig_t& other) const
 {
-    return !operator==(other);
+    return is_neg != other.is_neg || chunks != other.chunks;
 }
 
-/**
- * @return - If the number is less than \p other, a negative number;
- *         - if they are equal, zero;
- *         - otherwise, a positive number.
- */
-int intbig_t::compare(const intbig_t& other) const
+int intbig_t::compare_3way(const intbig_t& other) const
 {
-    if(len < other.len) {
-        return -1;
-    }
-    else if(len > other.len) {
-        return 1;
+    // Since C++20, there's <=>
+
+    if(is_neg != other.is_neg) {
+        // This is legal: (int) of bool results in 1 or 0
+        // https://en.cppreference.com/w/cpp/language/implicit_conversion#Integral_promotion
+        return is_neg - other.is_neg;
     }
 
-    // From most to least significant
-    for(int i = std::abs(len) - 1; i >= 0; i--) {
-        if(data[i] < other.data[i]) {
-            return -len;
+    // From most significant to least significant
+    for(size_t i_back = 0; i_back < chunks.size(); i_back++) {
+        /*
+         * Can't simply return a - b here:
+         *   a) it may not fit neither int nor int64_t;
+         *   b) it will be unsigned, so some additional work is required anyway.
+         */
+
+        const uint64_t our_chunk = chunks[(chunks.size() - 1) - i_back];
+        const uint64_t their_chunk = chunks[(chunks.size() - 1) - i_back];
+
+        if(our_chunk < their_chunk) {
+            return -1;
         }
-        else if(data[i] > other.data[i]) {
-            return len;
+        else if(our_chunk > their_chunk) {
+            return 1;
         }
     }
 
@@ -88,66 +88,49 @@ int intbig_t::compare(const intbig_t& other) const
 
 bool intbig_t::operator<(const intbig_t& other) const
 {
-    return compare(other) < 0;
+    return compare_3way(other) < 0;
 }
 
 bool intbig_t::operator<=(const intbig_t& other) const
 {
-    return compare(other) <= 0;
+    return compare_3way(other) <= 0;
 }
 
 bool intbig_t::operator>=(const intbig_t& other) const
 {
-    return compare(other) >= 0;
+    return compare_3way(other) >= 0;
 }
 
 bool intbig_t::operator>(const intbig_t& other) const
 {
-    return compare(other) > 0;
-}
-
-void intbig_t::resize_data(size_t new_size)
-{
-    // TODO: accept that boy signed ^
-    // TODO: 0 -- only delete
-
-    // Can't wait until the class is done and I'm getting my shiny std::vector instead of this
-
-    if(new_size == std::abs(len)) {
-        return;
-    }
-
-    auto* new_data = new uint32_t[new_size];
-
-    memcpy(new_data, data, sizeof(uint32_t) * std::abs(len));
-    memset(new_data + std::abs(len), 0, sizeof(uint32_t) * (new_size - std::abs(len)));
-
-    delete[] data;
-    data = new_data;
-
-    if(len >= 0) {
-        len = (int)new_size;
-    }
-    else {
-        len = -(int)new_size;
-    }
+    return compare_3way(other) > 0;
 }
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    if(std::abs(other.len) > std::abs(len)) {
-        resize_data((size_t)std::abs(other.len));
+    if(is_neg || other.is_neg) {
+        // TODO: implement through unary and binary `-`s
+        throw std::logic_error("Only positives, please");
     }
 
-    uint32_t carry = 0;
-
-    for(size_t i = 0; i < std::min(sz_data(), other.sz_data()); i++) {
-        uint64_t sum = (uint64_t)data[i] + (uint64_t)other.data[i] + carry;
-
-        data[i] = (uint32_t)(sum & 0xFFFFFFFF);
-
-        carry = (uint32_t)(sum >> 32U);
+    if(other.chunks.size() > chunks.size()) {
+        chunks.resize(other.chunks.size());
     }
 
-    // BUG: leftover carry shouldn't go discarded
+    bool carry = false;
+
+    // other.chunks.size() <= chunks.size(), so we never iterate through too many
+    for(size_t i = 0; i < other.chunks.size(); i++) {
+        chunks[i] += other.chunks[i] + carry;
+
+        // Set carry if overflow occured
+        if(!carry) {
+            carry = chunks[i] < other.chunks[i];
+        }
+        else {
+            carry = chunks[i] <= other.chunks[i];
+        }
+    }
+
+    // TODO: carry the leftover carry
 }

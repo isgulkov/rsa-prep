@@ -19,6 +19,7 @@ target_include_directories(intbig_t PRIVATE vendor/infint)
 ### CLI executable, perhaps?
 ### ------------------------
 add_executable(rsa_prep src/main.cpp)
+target_link_libraries(rsa_prep intbig_t)
 
 ### Unit tests
 ### ----------

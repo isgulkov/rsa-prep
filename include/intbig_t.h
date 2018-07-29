@@ -2,56 +2,50 @@
 #ifndef RSA_PREP_INTBIG_T_H
 #define RSA_PREP_INTBIG_T_H
 
+#include <vector>
 #include <string>
-
-#include "InfInt.h"
 
 class intbig_t
 {
     /**
-     * Abs. of `len` represents size of `data`
-     * Sign of `len` is that of the number
-     * `len` equal to zero represents zero
+     * Internal representation:
+     *
+     *   - `is_neg`: the number's sign
+     *       - `true` for negative numbers;
+     *       - `false` otherwise (including 0).
+     *
+     *   - `chunks`: the number's absolute value
+     *       - as 64-bit digits (base 2^64);
+     *       - little-endian (least to most significant);
+     *       - with no leading zeroes (thus, empty for 0).
      */
-    int32_t len = 0;
-    uint32_t* data = nullptr;
 
-    size_t sz_data() const
-    {
-        // REMOVE: there's got to be a better way!
-        return (size_t)std::abs(len);
-    }
+    bool is_neg = false;
+    std::vector<uint64_t> chunks;
 
 public:
     /**
-     * Construct a zero.
+     * Construct a zero
      */
     intbig_t() = default;
 
-    /**
-     * Construct a number from its decimal string representation.
-     */
-    explicit intbig_t(const std::string& s);
+private:
+    intbig_t(bool is_neg, std::vector<uint64_t>&& chunks);
 
-    /**
-     * Construct a number from an unsigned integer and a sign.
-     */
-    explicit intbig_t(uint64_t x, bool neg);
+public:
+    // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
+    intbig_t(int64_t x);
 
-    /**
-     * Construct a number from a 64-bit signed integer.
-     */
-    explicit intbig_t(int64_t x);
+    static intbig_t from_decimal(const std::string& s);
+
+    std::string to_string() const;
+    friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
     bool operator==(const intbig_t& other) const;
     bool operator!=(const intbig_t& other) const;
 
 private:
-    /**
-     * Three-way comparison that provides common implementation for operators <code>&lt;</code>, <code>&lt;=</code>,
-     * <code>></code> and <code>>=</code>.
-     */
-    int compare(const intbig_t& other) const;
+    int compare_3way(const intbig_t& other) const;
 
 public:
     bool operator <(const intbig_t& other) const;
@@ -59,25 +53,9 @@ public:
     bool operator>=(const intbig_t& other) const;
     bool operator >(const intbig_t& other) const;
 
-private:
-    void resize_data(size_t new_size);
-
 public:
     void operator+=(const intbig_t& other);
     void operator-=(const intbig_t& other);
-
-    // REMOVE: temporary, until other conversions are implemented
-    std::string to_string()
-    {
-        InfInt x;
-
-        for(size_t i = 0; i < std::abs(len); i++) {
-            x *= std::to_string((uint64_t)UINT32_MAX + 1);
-            x += data[i];
-        }
-
-        return x.toString();
-    }
 };
 
 #endif //RSA_PREP_INTBIG_T_H
