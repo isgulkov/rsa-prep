@@ -4,17 +4,28 @@
 
 // REMOVE: temporary, for the following:
 // REMOVE:  - to_string
+// REMOVE:  - from_decimal
 #include "InfInt.h"
+
+// TODO: decide how much to reserve
+// TODO: decide whether to create some common constructor that just reserves
+constexpr size_t INITIAL_RESEVATION = 20;
 
 intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg),
                                                                   chunks(std::move(chunks))
 {
-    // TODO: decide how much to reserve
-    // TODO: decide whether to reserve in the default (zero) constructor
-    chunks.reserve(20);
+    chunks.reserve(INITIAL_RESEVATION);
 }
 
-intbig_t::intbig_t(int64_t x) : intbig_t(x < 0, { (uint64_t)(x < 0 ? -x : x) }) { }
+intbig_t::intbig_t(int64_t x) : is_neg(x < 0)
+{
+    chunks.reserve(INITIAL_RESEVATION);
+
+    // Respect the representation of zero with empty vector
+    if(x != 0) {
+        chunks = { (uint64_t)(x < 0 ? -x : x) };
+    }
+}
 
 intbig_t intbig_t::from_decimal(const std::string& decimal)
 {
