@@ -150,6 +150,51 @@ bool intbig_t::operator>(const intbig_t& other) const
     return compare_3way(other) > 0;
 }
 
+intbig_t intbig_t::operator+() const
+{
+    // Return a copy
+    return intbig_t(*this);
+
+    // I was 100% sure I couldn't do this here:
+//    return *this;
+    // but there's no difference!
+
+    /*
+     * In this expression just the copy constructor is called:
+     *     intbig_t y = +x;
+     * And is this one -- copy then move:
+     *     intbig_t y = std::move(+x);
+     * In both cases `y` ends up with a copy like intended.
+     *
+     * All right. When return is used with a prvalue expression, like here:
+     *     return intbig_t(*this);
+     * RVO takes place, and `y` is directly initialized by this expression; so only thing that happens is the evident
+     * copy.
+     *
+     * Now, this function's return type is non-reference, so when it is used with an lvalue expression:
+     *     return *this;
+     * There happens an implicit lvalue-to-rvalue conversion, which "effectively copy-constructs" a prvalue temporary.
+     * This apparently happens "before" the actual return, so return value optimization happens just like in the
+     * previous case.
+     *
+     * So the only difference between the twoo is explicit copy versus implicit. Phew. Better stick with explicit one.
+     *
+     * https://en.cppreference.com/w/cpp/language/return#Notes
+     * https://en.cppreference.com/w/cpp/language/copy_elision
+     * https://en.cppreference.com/w/cpp/language/implicit_conversion#Lvalue_to_rvalue_conversion
+     * https://en.cppreference.com/w/cpp/language/value_category#lvalue
+     * https://en.cppreference.com/w/cpp/language/value_category#prvalue
+     */
+}
+
+intbig_t intbig_t::operator-() const
+{
+    return intbig_t(
+            !is_neg && !chunks.empty(),  // Preserve false for zero
+            std::vector<uint64_t>(chunks)  // Explicitly copy the vector for the && parameter
+    );
+}
+
 void intbig_t::operator+=(const intbig_t& other)
 {
     if(is_neg || other.is_neg) {

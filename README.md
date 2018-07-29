@@ -205,13 +205,15 @@ Operators and other functions until `intbig_t` considered somewhat finished:
 
 - [x] `+=` *(for positives)*;
 
+- [x] The 5: *(copy, move) $\times$ (constructor, assignment) (+ destructor?)* **turns out, I don't need to do them manually here**;
+
+- [x] `-`,`+` *(unary)*;
+
 - [ ] `-=` and `+=` *(for negatives)*;
 
 - [ ] `++`, `--` *(prefix)*;
 
-- [ ] *(copy, move) $\times$ (constructor, assignment) (+ destructor?)*;
-
-- [ ] `size_t size()` — the number's magnitude, i.e. the position of its MSB plus $1$;
+- [ ] `size_t size()` — the number's magnitude *(?)*, i.e. the 1-based position of its leftmost set bit (`size_t num_bits()`, perhaps?);
 
 - [ ] `<<`, `>>`;
 
@@ -245,8 +247,6 @@ Operators and other functions until `intbig_t` considered somewhat finished:
   - [ ] `size_t num_bytes() const` — exactly how many bytes will the previous two methods produce;
 
     **Note**: consider copying 8 bytes at a time with `reinterpret_cast<uint64_t*>` (check if `std::strings` are contiguous, though);
-
-- [ ] `-` *(unary)*;
 
 - [ ] `++`, `--` *(post)*;
 

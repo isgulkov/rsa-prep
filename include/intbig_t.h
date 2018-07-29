@@ -29,6 +29,15 @@ public:
      */
     intbig_t() = default;
 
+    // Rule of zero applies, so all 5 defaults are implicitly defined:
+//    intbig_t(const intbig_t& other) = default;
+//    intbig_t(intbig_t&& other) = default;
+//
+//    intbig_t& operator=(intbig_t&& other) = default;
+//    intbig_t& operator=(const intbig_t& other) = default;
+//
+//    ~intbig_t() = default;
+
 private:
     intbig_t(bool is_neg, std::vector<uint64_t>&& chunks);
 
@@ -54,6 +63,9 @@ public:
     bool operator >(const intbig_t& other) const;
 
 public:
+    intbig_t operator-() const;
+    intbig_t operator+() const;
+
     void operator+=(const intbig_t& other);
     void operator-=(const intbig_t& other);
 };

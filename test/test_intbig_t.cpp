@@ -216,6 +216,65 @@ TEST_F(IntBigTComparisons, GtOnGreaterReturnsTrue) {
     }
 }
 
+TEST(IntBigTCopying, UnaryPlusReturnsCopy) {
+    intbig_t x = 1337;
+    intbig_t y = +x;
+
+    y += 1;
+    ASSERT_EQ(x, 1337);
+    ASSERT_EQ(y, 1338);
+
+    x += 2;
+    ASSERT_EQ(x, 1339);
+    ASSERT_EQ(y, 1338);
+}
+
+TEST(IntBigTCopying, UnaryPlusReturnsSameValue) {
+    intbig_t x = 1337;
+
+    ASSERT_EQ(x, +x);
+    ASSERT_EQ(+x, 1337);
+
+    intbig_t y = +x;
+
+    ASSERT_EQ(y, x);
+    ASSERT_EQ(y, 1337);
+}
+
+TEST(IntBigTCopying, UnaryMinusReturnsCopy) {
+    // TODO: needs +=/-= for negatives
+
+    intbig_t x = 1337;
+    intbig_t y = -x;
+
+    y += 1;
+    ASSERT_EQ(x, 1337);
+    ASSERT_EQ(y, -1336);
+
+    x += 2;
+    ASSERT_EQ(x, 1339);
+    ASSERT_EQ(y, -1336);
+}
+
+TEST(IntBigTCopying, UnaryMinusReturnsOppositeValue) {
+    intbig_t x = 1337;
+
+    ASSERT_EQ((-x).to_string(), "-" + x.to_string());
+    ASSERT_EQ(-x, -1337);
+
+    intbig_t y = -x;
+
+    ASSERT_EQ(y.to_string(), "-" + x.to_string());
+    ASSERT_EQ(y, -1337);
+}
+
+TEST(IntBigTCopying, UnaryMinusOfZeroReturnsSameValue) {
+    intbig_t x = 0;
+
+    ASSERT_EQ((-x), x);
+    ASSERT_EQ(-x, 0);
+}
+
 // operator+=
 TEST(IntBigTInPlace, AddAssignPositiveOneChunk) {
     intbig_t x(10);
