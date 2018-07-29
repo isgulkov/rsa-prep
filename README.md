@@ -191,42 +191,39 @@ Though basic impletementations of division and modulo are currently provided for
 
 #### Todo
 
-Operators and other functions until `intbig_t` considered somewhat finished:
+Implement most of the appropriate C++ opeartors:
 
-- [x] `intbig_t()` *(zero)*;
+- Assignment: `a = b`, `a += b`, `a -= b`, `a *= b`, `a /= b`, `a %= b`, `a &= b`, `a |= b`, `a ^= b`, `a <<= b`, `a >>= b`;
+- Increment, decrement: `++a`, `--a`, `a++`, `a--`;
+- Arithmetic: `+a`, `-a`, `a + b`, `a - b`, `a * b`, `a / b`, `a % b`, `~a`, `a & b`, `a | b`, `a ^ b`, `a << b`, `a >> b`;
+- Logical: `!a`;
+- Comparison: `a == b`, `a != b`, `a < b`, `a > b`, `a <= b`, `a >= b`;
 
-- [x] `intbig_t(int64_t)`;
+as well as some additional methods:
 
-- [x] `==`, `!=`;
+- Constructors:
 
-- [x] `<`, `<=`, `>=`, `>`;
+  - [x] `intbig_t()` *(zero)*;
 
-- [x] implement temporary string dump through ~~`gmpxx`~~ some bigint for the tests;
+  - [x] `intbig_t(int64_t)` *(integer's value) * — implicit conversion;
 
-- [x] `+=` *(for positives)*;
+  - [ ] `intbig_t(const std::string& decimal)` *(decimal representation's value)*
 
-- [x] The 5: *(copy, move) $\times$ (constructor, assignment) (+ destructor?)* **turns out, I don't need to do them manually here**;
+    **questionable**:
 
-- [x] `-`,`+` *(unary)*;
+    - on one hand, things like `x * "100000"` and `y = "100"` are hard to live without;
+    - on the other hand, this may cause mayhem in the expressions there's already the factory method;
+    - on the third hand, far from every string will parse and potentially cause a silent bug;
+    - ...
 
-- [ ] `-=` and `+=` *(for negatives)*;
+- [x] Rule of 5; **— turns out, I don't need to define them manually given the member types**;
 
-- [ ] `++`, `--` *(prefix)*;
+- [ ] either provide a `swap` or ensure that `std::swap` works (and why);
 
-- [ ] `size_t size()` — the number's magnitude *(?)*, i.e. the 1-based position of its leftmost set bit (`size_t num_bits()`, perhaps?);
+- [ ] *convert to string*:
 
-- [ ] `<<`, `>>`;
-
-- [ ] `*=`;
-
-- [ ] `%`, `/`, `%=` and `/=` — **for string coversions only**: don't waste time putting any efficient algorithms there — for modulo $p$ the game will most likely be completely different *(don't forget to warn in the doc comments!)*;
-
-- [ ] *convert to string*: `std::to_string($)`, `operator std::string()`, or `operator<<(std::ostream& os, $)`<sup>1</sup>;
-  - well, certainly not `std::to_string` — this would be an undefined behavior, as it turns out;
-  - `operator std::string()` is not pretty as well — neither implicit nor explicit;
-  - guess the way to go is `std::string to_string() const` and the `operator<<`;
-
-- [ ] convert from decimal representation: `intbig_t(std::string)`;
+  - [ ] `std::string to_string() const`;
+  - [ ] `operator<<(std::ostream& os, $)`<sup>1</sup>;
 
 - [ ] binary representation conversions:
 
@@ -246,23 +243,23 @@ Operators and other functions until `intbig_t` considered somewhat finished:
 
   - [ ] `size_t num_bytes() const` — exactly how many bytes will the previous two methods produce;
 
+  - [ ] as well as `size_t num_bits() const` — the length of the underlying number's binary representation, i.e. the 1-based position of its leftmost set bit (if a use is found);
+
+    **Note**: check if `std::string` is OK with zero bytes;
+
     **Note**: consider copying 8 bytes at a time with `reinterpret_cast<uint64_t*>` (check if `std::strings` are contiguous, though);
 
-- [ ] `++`, `--` *(post)*;
+- [ ] return a copy of the underlying vector?;
 
-- [ ] `+`, `-`, `*`;
+- [ ] *explicit* conversions to `int`s of various sizes (throw `range_error` if doesn't fit);
 
-- [ ] set up any implicit "from" conversions for simple stuff like:
-
-  - `big_x *= "1000000000"`;
-  - `big_x = 11`;
-  - `while(big_x != 0) { }`;
-
-- [ ] `operator bool()`;
-
-- [ ] define conversions to integers — keep them explicit, though, or it will all be pain;
+- [ ] `operator bool()` — **questionable**, [here's a discussion](https://www.artima.com/cppsource/safebool.html);
 
 - [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
+
+Notes:
+
+- `%`, `/`, `%=` and `/=` — **for string coversions only**: don't waste time putting any efficient algorithms there — for modulo $p$ the game will most likely be completely different *(don't forget to warn in the doc comments!)*;
 
 <sup>1</sup> — when will I finally start getting this overload right without StackOverflow?
 

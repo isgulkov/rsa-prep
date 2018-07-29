@@ -62,12 +62,18 @@ public:
     bool operator>=(const intbig_t& other) const;
     bool operator >(const intbig_t& other) const;
 
-public:
     intbig_t operator-() const;
     intbig_t operator+() const;
 
+private:
+    static void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
+
+public:
     void operator+=(const intbig_t& other);
     void operator-=(const intbig_t& other);
+
+    intbig_t operator+(const intbig_t& other) const;
+    intbig_t operator-(const intbig_t& other) const;
 };
 
 #endif //RSA_PREP_INTBIG_T_H

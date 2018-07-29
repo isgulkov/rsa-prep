@@ -7,8 +7,14 @@
 // REMOVE:  - from_decimal
 #include "InfInt.h"
 
-// TODO: decide how much to reserve
-// TODO: decide whether to create some common constructor that just reserves
+/*
+ * TODO: decide how much to reserve
+ *       (i.e. how much bytes will we need and how much to pass to "reverse" to achieve that amount)
+ *
+ * TODO: use a common a private method for reservation?
+ * TODO: check if vectors are copied and moved with their reservations (pretty sure, they are)
+ * TODO: if so, only reserve when creating new objects, not in copies or moves
+ */
 constexpr size_t INITIAL_RESEVATION = 20;
 
 intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg),
@@ -195,31 +201,61 @@ intbig_t intbig_t::operator-() const
     );
 }
 
-void intbig_t::operator+=(const intbig_t& other)
+void intbig_t::add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
 {
-    if(is_neg || other.is_neg) {
-        // TODO: implement through unary and binary `-`s
-        throw std::logic_error("Only positives, please");
-    }
-
-    if(other.chunks.size() > chunks.size()) {
-        chunks.resize(other.chunks.size());
+    if(acc.size() < x.size()) {
+        acc.resize(x.size());
     }
 
     bool carry = false;
 
-    // other.chunks.size() <= chunks.size(), so we never iterate through too many
-    for(size_t i = 0; i < other.chunks.size(); i++) {
-        chunks[i] += other.chunks[i] + carry;
+    for(size_t i = 0; i < x.size(); i++) {
+        acc[i] += x[i] + carry;
 
         // Set carry if overflow occured
         if(!carry) {
-            carry = chunks[i] < other.chunks[i];
+            carry = acc[i] < x[i];
         }
         else {
-            carry = chunks[i] <= other.chunks[i];
+            carry = acc[i] <= x[i];
         }
+        // TODO: ^ make this if/else one logic+arithmetic expression?
     }
 
-    // TODO: carry the leftover carry
+    // Propagate the carry, if any, through the acc's higher digits
+    for(size_t i = x.size(); i < acc.size(); i++) {
+        acc[i] += carry;
+
+        carry = (acc[i] == 0);
+    }
+
+    // potentially reaching a power of 64
+    if(carry) {
+        acc.push_back(1);
+    }
+}
+
+void intbig_t::operator+=(const intbig_t& other)
+{
+    if(is_neg || other.is_neg) {
+        throw std::logic_error("This kind of addition isn't there yet");
+    }
+
+    if(chunks.empty()) {
+        chunks = other.chunks;
+        return;
+    }
+    else if(other.chunks.empty()) {
+        return;
+    }
+
+    add2_unsigned(chunks, other.chunks);
+}
+
+intbig_t intbig_t::operator+(const intbig_t& other) const
+{
+    intbig_t result = intbig_t(*this);
+    result += other;
+
+    return result;
 }

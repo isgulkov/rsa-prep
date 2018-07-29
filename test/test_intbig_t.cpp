@@ -335,3 +335,20 @@ TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
     }
 
 }
+
+// operator+
+TEST(IntBigTCopying, AddPositiveOneChunk) {
+    intbig_t x(10);
+
+    EXPECT_EQ(x + 12, intbig_t(22));
+
+    intbig_t y;
+
+    EXPECT_EQ(y + 233, intbig_t(233));
+
+    intbig_t z(100000);
+
+    EXPECT_EQ(z + 0, intbig_t(100000));
+
+    // TODO: the other way around (e.g. 10 + x)
+}
