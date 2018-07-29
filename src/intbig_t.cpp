@@ -27,6 +27,10 @@ intbig_t intbig_t::from_decimal(const std::string& decimal)
     bool is_neg = fifth_leg < 0;
     std::vector<uint64_t> chunks;
 
+    if(fifth_leg < 0) {
+        fifth_leg *= -1;
+    }
+
     while(fifth_leg != 0) {
         chunks.push_back((fifth_leg % TWO_64).toUnsignedLongLong());
 
