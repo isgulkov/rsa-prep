@@ -92,6 +92,10 @@ public:
     void operator+=(const intbig_t& other);
     void operator-=(const intbig_t& other);
 
+    // TODO: Make the compounds return intbig_t&, and don't forget to:
+    // TODO:   - employ it in the old tests (e.g. composables);
+    // TODO:   - add (two) new tests for this behavior.
+
     intbig_t operator+(const intbig_t& other) const;
     intbig_t operator-(const intbig_t& other) const;
 };

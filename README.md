@@ -3,7 +3,7 @@
 
 ## Motivation
 
-I'm enrolled for course at the uni starting this September where the old man will make us do precisely that, as a year-long project.
+I'm enrolled for a course at the uni starting this September where the old man will make us do precisely that, as a year-long project.
 
 Better start early, right? Nothing better to do, anyway — it's not like a have a job.
 
@@ -556,7 +556,7 @@ struct cl_byte {
 
          > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
 
-4. Other related algorithms:
+4. Other relevant algorithms:
 
    1. Cormen et el.:
 
@@ -573,7 +573,11 @@ struct cl_byte {
 
    3. SHA-256:
 
-      1. [A JS implementation](https://www.movable-type.co.uk/scripts/sha256.html) with the "educational use" disclaimer;
+      1. [FIPS PUB 180-4 Secure Hash Standard](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf) — specification draft;
+      2. [A JS implementation](https://www.movable-type.co.uk/scripts/sha256.html) with the "educational use" disclaimer;
+      3. OpenSSL: [`sha.h`](https://github.com/openssl/openssl/blob/26a7d938c9bf932a55cb5e4e02abb48fe395c5cd/include/openssl/sha.h), [`sha.c`](https://github.com/openssl/openssl/blob/26a7d938c9bf932a55cb5e4e02abb48fe395c5cd/crypto/sha/sha256.c);
+      4. GitHub yobichi: [`picosha2.h`](https://github.com/okdshin/PicoSHA2/blob/master/picosha2.h), [`sha256.cpp`](https://github.com/hlilje/sha-256/blob/master/sha256.cpp), [`sha256.py`](https://github.com/delqn/py-sha256/blob/master/sha256.py) — no shortage of those;
+      5. PyPy: [`_sha256.py`](https://bitbucket.org/pypy/pypy/src/tip/lib_pypy/_sha256.py?fileviewer=file-view-default);
 
    4. `std::vector` replacements:
 

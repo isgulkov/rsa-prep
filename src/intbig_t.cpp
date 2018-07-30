@@ -327,6 +327,8 @@ namespace {
          * Pre: x <= acc
          */
 
+        // REMOVE: refactor these two, then either specialize this one or replace the other one with it
+
         //
         if(acc.size() != x.size() && acc.size() < x.size() == in_reverse) {
             std::logic_error("it's less, you fuck!");

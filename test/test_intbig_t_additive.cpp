@@ -17,42 +17,51 @@
  * | negation      |  negate  |  - (un)  |
  *
  * For the binaries:
- *   - "cases":
- *     different signs of the operands and their relative magnitude;
- *   - zeroes:
+ *   - [x] "cases":
+ *         different signs of the operands and their relative magnitude;
+ *   - [x] zeroes:
  *     cases of zero operands and zero result;
- *   - positive:
- *     - small (<= 1 chunk)
- *     - mixed_sizes (2 – 100 chunks)
- *   - mixed signs:
- *     - (same)
- *   - on a chunk's brink:
- *     - 1 00(64)00 00(64)00
- *     -   11(64)11 11(64)11
- *   TODO: the stuff below
- *   - "sequence":
- *     - within 1 chunk
- *     - with growth
- *     - with alternating growth and shrinkage
- *     - just some large numbers with varying sizes?
- *     - same, two ops interleaved
+ *   - [x] positive:
+ *         - [x] small (<= 1 chunk)
+ *         - [x] large (2 – 100 chunks)
+ *   - [x] mixed signs:
+ *         - [x] (same)
+ *   - [x] on a chunk's edge:
+ *         - 1 00(64)00 00(64)00
+ *         -   11(64)11 11(64)11
+ *   - [ ] sequential composition:
+ *         - [ ] within 1 chunk
+ *         - [ ] with growth
+ *         - [ ] with alternating growth and shrinkage
+ *         - [ ] same, several ops interleaved
  *
  * For copying:
- *   - that one in fact returns a copy
+ *   - [ ] that one in fact returns a copy
  *
- * For non-copying:
- *   - that one in fact returns the same object
- *   - including when it's zero
+ * For in-place:
+ *   - [ ] that one in fact returns the same instance
+ *         TODO: implement this first
+ *   - [ ] including when it becomes zero from non-zero
+ *   - [ ] including when it stays zero from being zero
  *
  * For negations:
- *   - some non-zero values
- *   - zero
+ *   - [ ] some non-zero values
+ *   - [ ] zero
  *
  * Have I missed something? Have I included something dumb?
  *
- * Note that result comparisons are done through decimal string representation as the most "representative". Tests
- * specific to `from_decimal` and `to_decimal`, as well as other representations, should be in a separate file.
- *   (e.g. don't feed it invalid data and shit)
+ * Note that result comparisons are done through decimal string representation as the most "representative": most
+ * human-readable and (arguably) most brittle. Tests specific to `from_decimal` and `to_decimal`, as well as other
+ * representations, should be in a separate file.  (e.g. don't intentionally feed it invalid data and shit)
+ *
+ * TODO: put the "Single" and "Composed" at the end of the fixture names
+ * TODO: put some notion of "Additive" in the test names
+ *
+ * TODO: this whole file should be reorganized -- test data, function structs and all
+ * TODO: unify the single and composable structs?
+ *
+ * REVIEW: type on the operation, then parametrize on the values instead of running loops?
+ * REVIEW: that'd be a shitload of tests, though
  */
 
 namespace
@@ -134,7 +143,7 @@ protected:
 };
 
 namespace {
-BinaryOpSingleTester AddAssign_single = {
+const BinaryOpSingleTester AddAssign_single = {
         "AddAssign",
         [](const std::string& x, const std::string& y) {
             intbig_t a = intbig_t::from_decimal(x);
@@ -147,7 +156,7 @@ BinaryOpSingleTester AddAssign_single = {
         }
 };
 
-BinaryOpSingleTester Add_single = {
+const BinaryOpSingleTester Add_single = {
         "Add",
         [](const std::string& x, const std::string& y) {
             return intbig_t::from_decimal(x) + intbig_t::from_decimal(y);
@@ -157,7 +166,7 @@ BinaryOpSingleTester Add_single = {
         }
 };
 
-BinaryOpSingleTester SubAssign_single = {
+const BinaryOpSingleTester SubAssign_single = {
         "SubAssign",
         [](const std::string& x, const std::string& y) {
             intbig_t a = intbig_t::from_decimal(x);
@@ -170,7 +179,7 @@ BinaryOpSingleTester SubAssign_single = {
         }
 };
 
-BinaryOpSingleTester Sub_single = {
+const BinaryOpSingleTester Sub_single = {
         "Sub",
         [](const std::string& x, const std::string& y) {
             return intbig_t::from_decimal(x) - intbig_t::from_decimal(y);
@@ -349,72 +358,156 @@ const std::vector<std::string> just_below_power = {
 };
 }
 
-TEST_P(IntBigTSingleBinaryOp, BrinkOfPower)
+TEST_P(IntBigTSingleBinaryOp, PowerBoundaryUnderPosOne)
 {
-    expectAll_pairedWith(IntBigTTestData::precise_power, "-1");
     expectAll_pairedWith(IntBigTTestData::just_below_power, "1");
 }
 
-// REMOVE: remove after transferring their functions into the fixture
-TEST(IntBigTInPlace, AddAssignPositiveOneChunk) {
-    intbig_t x(10);
-    x += intbig_t(12);
-
-    EXPECT_EQ(x, intbig_t(22));
-
-    intbig_t y;
-    y += intbig_t(233);
-
-    EXPECT_EQ(y, intbig_t(233));
-
-    intbig_t z(100000);
-    z += intbig_t();
-
-    EXPECT_EQ(z, intbig_t(100000));
+TEST_P(IntBigTSingleBinaryOp, PowerBoundaryUnderNegOne)
+{
+    expectAll_pairedWith(IntBigTTestData::just_below_power, "-1");
 }
 
-TEST(IntBigTInPlace, AddAssignPositiveOneChunkMany) {
-    std::mt19937 rnd(1337);
+TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverPosOne)
+{
+    expectAll_pairedWith(IntBigTTestData::precise_power, "1");
+}
 
-    intbig_t test;
-    InfInt control;
+TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverNegOne)
+{
+    expectAll_pairedWith(IntBigTTestData::precise_power, "-1");
+}
 
-    for(int i = 0; i < 25; i++) {
-        uint32_t x = rnd() % 10000;
+namespace {
+struct BinaryOpComposable {
+    std::string op_name;
+    std::function<void(intbig_t&, const std::string&)> apply_impl;
+    std::function<std::string(intbig_t&, const std::string&)> apply_ref;
+};
 
-        if(x % 10 == 0) {
-            x = 0;
+const BinaryOpComposable AddAssign_composable = {
+        "AddAssign",
+        [](intbig_t& x, const std::string& arg) {
+            x += intbig_t::from_decimal(arg);
+        },
+        [](intbig_t& x, const std::string& arg) {
+            return (InfInt(x.to_string()) + InfInt(arg)).toString();
         }
+};
 
-        control += x;
-        test += intbig_t(x);
-
-        ASSERT_EQ(control.toString(), test.to_string())
-                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
-    }
-}
-
-TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
-    intbig_t test;
-    InfInt control;
-
-    for(int i = 0; i < 40; i++) {
-        // Will go out of uint64_t range in about 8 iterations
-
-        int64_t x = 1ULL << 61;
-
-        if(x % 10 == 0) {
-            x = 0;
+const BinaryOpComposable Add_composable = {
+        "Add",
+        [](intbig_t& x, const std::string& arg) {
+            x = x + intbig_t::from_decimal(arg);
+        },
+        [](intbig_t& x, const std::string& arg) {
+            return (InfInt(x.to_string()) + InfInt(arg)).toString();
         }
+};
 
-        control += x;
-        test += intbig_t(x);
+const BinaryOpComposable SubAssign_composable = {
+        "SubAssign",
+        [](intbig_t& x, const std::string& arg) {
+            x -= intbig_t::from_decimal(arg);
+        },
+        [](intbig_t& x, const std::string& arg) {
+            return (InfInt(x.to_string()) - InfInt(arg)).toString();
+        }
+};
 
-        ASSERT_EQ(control.toString(), test.to_string())
-                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
-    }
+const BinaryOpComposable Sub_composable = {
+        "Sub",
+        [](intbig_t& x, const std::string& arg) {
+            x = x - intbig_t::from_decimal(arg);
+        },
+        [](intbig_t& x, const std::string& arg) {
+            return (InfInt(x.to_string()) - InfInt(arg)).toString();
+        }
+};
+
+const std::vector<BinaryOpComposable> composable_ops = {
+        AddAssign_composable,
+        Add_composable,
+        SubAssign_composable,
+        Sub_composable
+};
 }
-// REMOVE: /remove after transferring their functions into the fixture
+
+class IntBigTComposedBinaryOp : public ::testing::TestWithParam<BinaryOpSingleTester>
+{
+protected:
+
+    // TODO
+};
+
+TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
+{
+//    std::mt19937 rnd(1337);
+//
+//    intbig_t test;
+//    InfInt control;
+//
+//    for(int i = 0; i < 25; i++) {
+//        uint32_t x = rnd() % 10000;
+//
+//        if(x % 10 == 0) {
+//            x = 0;
+//        }
+//
+//        control += x;
+//        test += intbig_t(x);
+//
+//        ASSERT_EQ(control.toString(), test.to_string())
+//                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
+//    }
+}
+
+TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeOneChunk)
+{
+    // TODO
+}
+
+TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveManyChunks)
+{
+//    intbig_t test;
+//    InfInt control;
+//
+//    for(int i = 0; i < 40; i++) {
+//        // Will go out of uint64_t range in about 8 iterations
+//
+//        int64_t x = 1ULL << 61;
+//
+//        if(x % 10 == 0) {
+//            x = 0;
+//        }
+//
+//        control += x;
+//        test += intbig_t(x);
+//
+//        ASSERT_EQ(control.toString(), test.to_string())
+//                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
+//    }
+}
+
+TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeManyChunks)
+{
+    // TODO
+}
+
+TEST_P(IntBigTComposedBinaryOp, OscilatingManyChunks)
+{
+    // TODO
+}
+
+TEST(IntBigTBinaryOpComposedAll, WithinOneChunk)
+{
+    // TODO
+}
+
+TEST(IntBigTBinaryOpComposedAll, ManyChunks)
+{
+    // TODO
+}
 
 TEST(IntBigTCopying, UnaryPlusReturnsCopy) {
     intbig_t x = 1337;
