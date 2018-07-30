@@ -229,6 +229,13 @@ Calculating into a temporary is a waste of cycles, and passing $b$ not by `const
 > ```
 >
 > These should also do the zero check. `negate` may use them.
+>
+> Also, private method for checking for zero instead of `chunks.empty()`:
+>
+> ```cpp
+> private:
+> 	bool is_zero() const;
+> ```
 
 . . .
 

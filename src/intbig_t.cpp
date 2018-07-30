@@ -273,20 +273,21 @@ namespace {
 
 void intbig_t::add_abs(const intbig_t& other)
 {
-    // a <- abs(a) + abs(b)
+    if(other.chunks.empty()) {
+        return;
+    }
 
-    // TODO: handle zero cases
-
-    add2_unsigned(chunks, other.chunks);
-    is_neg = false;  // TODO: you've handled zero cases, haven't you?
+    if(chunks.empty()) {
+        chunks = other.chunks;
+    }
+    else {
+        add2_unsigned(chunks, other.chunks);
+        is_neg = false;
+    }
 }
 
 void intbig_t::sub_abs(const intbig_t& other)
 {
-    // a <- abs(a) - abs(b)
-
-    // TODO: make these two call each other!
-
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
