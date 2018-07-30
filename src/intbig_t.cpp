@@ -266,8 +266,31 @@ void intbig_t::operator+=(const intbig_t& other)
         if(!is_neg) {
             // a += b --> a -= -b
 
-            // BUG: 1 copy (other)
-            operator-=(-other);
+            // Try to avoid copying b by reducing to sub2_unsigned
+            // TODO: DRY
+
+            // Make both negative to compare by absolute value
+            // TODO: <-- abstract out from compare_3way its 'abs(x) <=> abs(y)' part for this spot here
+            negate();
+            int cmp_with_other = -compare_3way(other);
+            negate();
+
+            if(cmp_with_other < 0) {
+                // a -= -b --> a = -b - a
+
+                // BUG: 2 copies (other, result)
+                *this = -other - *this;
+            }
+            else if(cmp_with_other == 0) {
+                // a -= -b --> a = 0
+
+                *this = 0;  // REVIEW: see analogous case in operator-=
+            }
+            else {
+                // a -= -b
+
+                sub2_unsigned(chunks, other.chunks);
+            }
         }
         else if(!other.is_neg) {
             // a += b --> a = b - -a
