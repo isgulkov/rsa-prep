@@ -219,6 +219,11 @@ intbig_t& intbig_t::negate()
 namespace {
     void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
     {
+        /*
+         * In-place add the two unsigned big integers:
+         *   acc = acc + x
+         */
+
         if(acc.size() < x.size()) {
             acc.resize(x.size());
         }
@@ -238,7 +243,7 @@ namespace {
         }
 
         // Propagate the carry, if any, through the acc's higher digits
-        for(size_t i = x.size(); i < acc.size(); i++) {
+        for(size_t i = x.size(); carry && i < acc.size(); i++) {
             acc[i] += carry;
 
             carry = (acc[i] == 0);
@@ -256,10 +261,61 @@ namespace {
          * In-place subtract the two unsigned big integers:
          *   acc = acc - x
          *
-         * NOTE: when the result is negative (acc < x), the function instead segfaults
+         * Pre: acc >= x
          */
 
-        // TODO
+        // TODO: after sufficient testing, remove or put into #ifndef NDEBUG
+        if(acc.size() < x.size()) {
+            std::logic_error("it's less, you fuck!");
+        }
+
+        bool carry = false;
+
+        // TODO: index of the "first leading zero": set to (i + 1) on non-zeroes
+//        size_t i_first_lz = 0;
+
+        for(size_t i = 0; i < x.size(); i++) {
+            acc[i] -= carry;
+            acc[i] -= x[i];
+
+            // This could result in early overflow:
+//            acc[i] -= x[i] + carry;
+            // REVIEW: can't this still be done in one statement?
+
+            // Set carry if overflow occured
+            if(!carry) {
+                carry = acc[i] > x[i];
+            }
+            else {
+                carry = acc[i] >= x[i];
+            }
+        }
+
+        // Collect the remaining carry, if any
+        for(size_t i = x.size(); carry && i < acc.size(); i++) {
+            acc[i] -= carry;
+
+            carry = (acc[i] == UINT64_MAX);
+        }
+        // TODO: how do you do ^this for sub2from?
+
+        // TODO: after sufficient testing, remove or put into #ifndef NDEBUG
+        // TODO: as well as "i < acc.size()" from loop's condition -- it serves no other purpose
+        if(carry) {
+            /*
+             * This should never happen, so the check is just wasteful; but nobody wants an infinite loop in their
+             * unit tests
+             */
+            std::logic_error("you lost your carry!");
+        }
+
+        while(acc.back() == 0) {
+            acc.pop_back();
+        }
+        // REMOVE: after testing, replace this filth and implement the proper way:
+//        if(acc.back() == 0) {
+//            acc.resize(i_first_lz);
+//        }
     }
 
     void sub2from_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
@@ -268,10 +324,10 @@ namespace {
          * In-place subtract the two unsigned big integers, but with reverse order of the operands:
          *   acc = x - acc
          *
-         * NOTE: when the result is negative (x < acc), the function instead segfaults
+         * Pre: x <= acc
          */
 
-        // TODO
+        throw std::logic_error("there's no sub2from yet, boy");
     }
 }
 
@@ -305,6 +361,8 @@ void intbig_t::sub_abs(const intbig_t& other)
         negate();
     }
     else if(cmp_with_other == 0) {
+        // This is just an optimization -- the base case could handle this fine
+
         clear();
     }
     else {
