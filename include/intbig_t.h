@@ -76,6 +76,11 @@ private:
      * NOTE: while only the absolute values are considered, the result may is signed
      */
 
+    // Set this number to zero (for when two equal numbers are subtracted)
+    // TODO: restore the explanation that the base case can handle it, but blah blah blah
+    void clear();
+    // TODO: (->doc) implement =(int64_t)
+
     // this = |this| + |other|
     void add_abs(const intbig_t& other);
     // this = |this| - |other|

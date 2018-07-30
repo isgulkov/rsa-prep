@@ -286,6 +286,12 @@ void intbig_t::add_abs(const intbig_t& other)
     }
 }
 
+void intbig_t::clear()
+{
+    chunks.resize(0);
+    is_neg = false;
+}
+
 void intbig_t::sub_abs(const intbig_t& other)
 {
     int cmp_with_other = compare_3way_unsigned(other);
@@ -299,7 +305,7 @@ void intbig_t::sub_abs(const intbig_t& other)
     else if(cmp_with_other == 0) {
         // a - b --> 0
 
-        *this = 0;
+        clear();
     }
     else {
         // a - b
@@ -322,7 +328,7 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     else if(cmp_with_other == 0) {
         // b - a --> 0
 
-        *this = 0;
+        clear();
     }
     else {
         // b - a -> -(a - b)
