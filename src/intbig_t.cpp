@@ -14,18 +14,20 @@
  * TODO: use a common a private method for reservation?
  * TODO: check if vectors are copied and moved with their reservations (pretty sure, they are)
  * TODO: if so, only reserve when creating new objects, not in copies or moves
+ *
+ * Note: reserve() on an empty vector (which has no buffer) causes it to allocate its buffer right away
  */
-constexpr size_t INITIAL_RESEVATION = 20;
+constexpr size_t INITIAL_RESERVATION = 20;
 
 intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg),
                                                                   chunks(std::move(chunks))
 {
-    chunks.reserve(INITIAL_RESEVATION);
+    chunks.reserve(INITIAL_RESERVATION);
 }
 
 intbig_t::intbig_t(int64_t x) : is_neg(x < 0)
 {
-    chunks.reserve(INITIAL_RESEVATION);
+    chunks.reserve(INITIAL_RESERVATION);
 
     // Respect the representation of zero with empty vector
     if(x != 0) {
@@ -245,30 +247,138 @@ void intbig_t::add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint6
     }
 }
 
+void intbig_t::sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+{
+    // TODO
+}
+
 void intbig_t::operator+=(const intbig_t& other)
 {
+    // TODO: eliminate the need of copying
+
+    // The idiot is doing this by just storing the [0; N) in, like, a [-2N; 2N] data type:
+    //   - add digits elementwise (with the corresponding number's sign);
+    //   - just somehow spread the carries through.
+    // The 2x overhead does not seem to be worth it, though.
+
+    // Handle non-positive operands separately
     if(is_neg || other.is_neg) {
-        throw std::logic_error("This kind of addition isn't there yet");
+        if(!is_neg) {
+            // a += b --> a -= -b
 
-        // TODO: swapping the arguments of inline operators seems to be quite easily doable
-        // TODO: add3_unsigned(acc, a, b) and sub3_unsigned(
+            // BUG: 1 copy (other)
+            operator-=(-other);
+        }
+        else if(!other.is_neg) {
+            // a += b --> a = b - -a
+
+            // BUG: 2 copies (this, result)
+            *this = other - operator-();
+        }
+        else {
+            // a += b --> a = -(-a + -b) --> |a| += |b|
+
+            add2_unsigned(chunks, other.chunks);
+        }
+    }
+    else {
+        // Handle zero operands separately
+        if(other.chunks.empty()) {
+            // a += b --> no-op
+        }
+        else if(chunks.empty()) {
+            // a += b --> a = b
+
+            chunks = other.chunks;
+        }
+        else {
+            // The base case: both operands are positive
+
+            add2_unsigned(chunks, other.chunks);
+        }
+    }
+}
+
+void intbig_t::operator-=(const intbig_t& other)
+{
+    // Handle non-positive operands separately
+    if(is_neg || other.is_neg) {
+        // TODO: eliminate the need of copying
+
+        if(!is_neg) {
+            // a -= b --> a += -b
+
+            add2_unsigned(chunks, other.chunks);
+        }
+        else if(!other.is_neg) {
+            // a -= b --> a = -(a + b)
+
+            negate();
+            operator+=(other);
+            negate();
+        }
+        else {
+            // a -= b --> a = (b - a)
+
+            // BUG: 2 copies (this, result)
+            *this = other - operator-();
+        }
     }
 
-    if(chunks.empty()) {
-        chunks = other.chunks;
-        return;
-    }
-    else if(other.chunks.empty()) {
-        return;
-    }
+    int cmp_with_other = compare_3way(other);
 
-    add2_unsigned(chunks, other.chunks);
+    // Handle non-positive result separately
+    if(cmp_with_other < -1) {
+        // a -= b --> a = -(b - a)
+
+        // BUG: 1 copy (result)
+        *this = other - *this;
+        negate();
+    }
+    else if(cmp_with_other == 0) {
+        // a -= b --> a = 0
+        // Base case should work on this, but it's unnecessary
+
+        *this = 0;
+
+        // REVIEW: check if modifying this object is any faster than move-assign:
+        // REVIEW: we also currently lose the vector reserve buffer
+//        chunks.resize(0);
+//        is_neg = false;
+    }
+    else {
+        // Handle zero operands separately
+        if(other.chunks.empty()) {
+            // a -= b --> no-op
+        }
+        else if(chunks.empty()) {
+            // a -= b --> a = -b
+
+            chunks = other.chunks;
+            negate();  // So that zero stays a zero
+        }
+        else {
+            // The base case:
+            //   - both operands are positive;
+            //   - a >= b, so the result is positive
+
+            sub2_unsigned(chunks, other.chunks);
+        }
+    }
 }
 
 intbig_t intbig_t::operator+(const intbig_t& other) const
 {
     intbig_t result = intbig_t(*this);
     result += other;
+
+    return result;
+}
+
+intbig_t intbig_t::operator-(const intbig_t& other) const
+{
+    intbig_t result = intbig_t(*this);
+    result -= other;
 
     return result;
 }

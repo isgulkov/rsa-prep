@@ -112,7 +112,11 @@ The number is internally represented with two data members:
     std::vector<uint64_t> chunks;
 ```
 
-> **TODO**: put the bool at the end so theoretically something smaller than 8 bytes can be put after the object?
+> **TODO**: consider replacing the Minecraft-associated word "chunk" with something meaningful?
+>
+> - just call it "digit" (might be confusing with decimal digits, though);
+> - adopt [GMP's "limb" metaphor](https://gmplib.org/manual/Nomenclature-and-Types.html#Nomenclature-and-Types) (it is even more disorientating, though, and I don't like how it sounds);
+> - "figure" (seems to sound like bad English, though).
 
 - `is_neg` — the number's sign: `true` for negative numbers, `false` otherwise;
 
@@ -126,56 +130,93 @@ The number is internally represented with two data members:
 
 Note that for the number zero a unique representation, — `{ .is_neg=false, chunks={} }`, — is enforced. All other possibilities are illegal (i.e. invalid states of the `intbig_t` objects).
 
-> *Note*: the originally planned representation was GMP-inspired one:
->
-> - digits stored a manually-reallocated array;
-> - the number's signed represented by the sign of its size field.
->
-> Both of these have proven to be huge headaches.
+If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `bool` field.
+
+Not all dynamic arrays explicitly store their size, though (e.g. `std::vector` doesn't), and it's unclear whether this would bring any performance benefits.
+
+> **TODO**: put the bool at the end so theoretically something smaller than 8 bytes can be put after the object?
 
 > **TODO**: Find the value for passing into `chunks.reserve()` that will allow 4096-bit modular operations with no further reallocations.
 >
 > *Note*: the fact that `vector` never automatically shrinks is actually pretty sweet here;
 
-> **TODO**: Benchmark `std::vector<uint64_t>` to determine whether `emplace_back` that everyone (including `clang-Tidy`) is talking about is actually measurably slower than `push_back`. Remember to measure cases where each is called with:
+> **TODO**: Benchmark `std::vector<uint64_t>` to determine whether `emplace_back` that everyone (including `clang-Tidy`) is talking about is actually measurably faster than `push_back`. Remember to measure cases where each is called with:
 >
 > - an integer literal (in a loop);
 > - a `uint64_t` local variable whose value is always the same;
 > - a `uint64_t` local variable whose value is new each time.
 
-##### Addition
+##### Addition and subtraction
 
-So, addition turned out to be piece of cake, as you can only ever overflow by one bit, and always have somewhere to put it in the next chunk:
+Now, both addition and subtraction are pretty straightforward if you just work with unsigned values:
 
+- $a, b \in \mathbb{N_0}$ for addition;
+- $a, b, a-b \in \mathbb{N_0}$ for subtraction.
+
+You just go through pairs of digits from least to most significant, and for each of them, emit the corresponding digits of the result:
 $$
-{\begin{array}{r}
-\quad11111111\\
-+11111111\\
-+\underline{\quad\quad\quad\,\,\,1}\\
-\fbox{1}11111111\\
-  \end{array} } \hspace{2em} \longleftarrow  \hspace{2em} {\begin{array}{c}
-   \ \ \ \ 11111111\\
-+\underline{11111111}\\
-\fbox{1}11111110\\
-  \end{array} }
+c_i = (a_i \pm b_i + carry)\ mod\ N,
 $$
+where $carry$ is $0$ if the previous digit's computation didn't overflow, and $\pm 1$ if it did.
 
-Occasionally `chunks` has to be grown, when carry spills, which happens at most by one bit.
+For `uint64_t` calculations, the $N = 2^{64}$ remainder gets taken naturally (which is [specified in the C++ standard](https://en.cppreference.com/w/cpp/language/operator_arithmetic#Overflows)), and overflow of these operations is detected quite easily, given either of the operands. E.g., for addition:
 
-##### Subtraction
+```cpp
+bool overflow(uint64_t x, uint64_t y) {
+	uint64_t s = x + y;
 
-Compared to addition, there are a couple of different cases here concerning carry and whatnot; but, using the corresponding addition opeartor and a unary minus, it is possible to handle all of them in the most pleasant one:
+    return s < x;
+    // or:
+    // return s < y;
+}
+```
 
--  $a - b$ where both $a, b$ are positive and $a \ge b$.
+Additionally, the addition of carry needs to be accounted for:
 
-| constraints on $a - b$ | what it transforms into    |
-| ---------------------- | -------------------------- |
-| $a < 0, b\ge 0$        | $-(a + b)$                 |
-| $a, b < 0$             | $b - a$  **or** $-(a - b)$ |
-| $a \ge 0, b < 0 $      | $a + b$                    |
-| $a, b \ge 0, a < b$    | $-(b - a)$                 |
+```cpp
+    if(!carry) {
+        return s < x;
+    }
+    else {
+        return s <= x;
+    }
+```
 
-All of these transformations are essentially free; except the case of `a -= b`, where `b` is (for a good reason) `const&`. The comparisons, though, are far from it.
+I've done a correctness proof for this scheme, but it's too large for this `README.md` *(no fucking clue)*.
+
+Also, the `vector` lengths should be checked and updated appropriately:
+
+- after subtraction — to cut off possible leading zeroes;
+- before addition — to equalise the lengths of the operands *(when adding in-place)*;
+- after addition — to add a new digit if carry was left.
+
+Using these two base cases to the operations over integers, though, is a whole new ordeal.
+
+Addition transforms depending on signs of the operands:
+
+- $a + (-b) \rarr a - b$;
+- $(-a) + b \rarr b - a$;
+- $(-a) + (-b) \rarr - (a + b)$.
+
+For subtraction, the result's sign also matters:
+
+- $a - (-b) \rarr a + b$;
+- $(-a) - b \rarr -(a + b)$;
+- $(-a) - (-b) \rarr b - a$;
+- otherwise, if $a < b$, then $a - b \rarr b - a$.
+
+Most of these transformations are just calls between functions, which is minimal overhead.
+
+Some of them complicate implementing the compound assignments:
+
+- where the right operand is used with another sign;
+- where the operands are swapped.
+
+Calculating into a temporary is a waste of cycles, and passing $b$ not by `const&` or making the fields mutable is just sloppy programming.
+
+. . .
+
+
 
 ##### Multiplication
 
@@ -190,6 +231,8 @@ There are also FFT-based algorithms that apparently have to be mentioned in ever
 The arbitrary-precision versions of these operations aren't used by corresponding modular algorithms; thus, these operations are skipped for now.
 
 Though basic impletementations of division and modulo are currently provided for the needs of `to_string` method, they are extremely wasteful and shouldn't be relied on.
+
+>  **TODO**: look at how power is done in [`longobject.c`](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Objects/longobject.c#L118)
 
 #### Todo
 

@@ -15,7 +15,8 @@ class intbig_t
      *       - `false` otherwise (including 0).
      *
      *   - `chunks`: the number's absolute value
-     *       - as 64-bit digits (base 2^64);
+     *       - in base 2^64, so with 64-bit integers as digits
+     *           (the term "chunk" is used to avoid confusion with decimal digits 0-9);
      *       - little-endian (least to most significant);
      *       - with no leading zeroes (thus, empty for 0).
      */
@@ -68,6 +69,19 @@ public:
 
 private:
     static void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
+    static void sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
+
+    // "Universal" in-place adds that should work when result points to the same vector as x, y, or both of them
+    //
+    // TODO: these are kinda difficult to write well, so the plan is get away with copying and add2/sub2 for now, and
+    // TODO: after everything is correct and tested, switch to in-place where appropriate
+//    static void add3_unsigned(std::vector<uint64_t>& result,
+//                              const std::vector<uint64_t>& x,
+//                              const std::vector<uint64_t>& y);
+//
+//    static void sub3_unsigned(std::vector<uint64_t>& result,
+//                              const std::vector<uint64_t>& x,
+//                              const std::vector<uint64_t>& y);
 
 public:
     void operator+=(const intbig_t& other);
