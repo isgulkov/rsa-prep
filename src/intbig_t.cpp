@@ -235,8 +235,6 @@ namespace {
             else {
                 carry = acc[i] <= x[i];
             }
-            // TODO: can this be made with one logic+arithmetic expression instead of this if/else?
-            // TODO: one option is add carry after the check, but then you'd have to store the new carry -- not pleasing
         }
 
         // Propagate the carry, if any, through the acc's higher digits
@@ -254,18 +252,24 @@ namespace {
 
     void sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
     {
-        // Pre:  acc >= x
-        // Post: acc = acc - x
+        /*
+         * In-place subtract the two unsigned big integers:
+         *   acc = acc - x
+         *
+         * NOTE: when the result is negative (acc < x), the function instead segfaults
+         */
 
         // TODO
     }
 
-    void sub2swap_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+    void sub2from_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
     {
-        // Same as `sub2_unsigned`, but with the other order of operands (the result is stored in acc as well)
-
-        // Pre:  acc <= x
-        // Post: acc = x - acc
+        /*
+         * In-place subtract the two unsigned big integers, but with reverse order of the operands:
+         *   acc = x - acc
+         *
+         * NOTE: when the result is negative (x < acc), the function instead segfaults
+         */
 
         // TODO
     }
@@ -314,7 +318,7 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        sub2swap_unsigned(chunks, other.chunks);
+        sub2from_unsigned(chunks, other.chunks);
         is_neg = false;
     }
     else if(cmp_with_other == 0) {
