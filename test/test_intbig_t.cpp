@@ -306,6 +306,50 @@ TEST(IntBigTInPlace, NegatePreservesZero) {
     ASSERT_EQ(y.to_string(), y.negate().to_string());
 }
 
+class IntBigTBinaryAdditive : public ::testing::Test {
+protected:
+    std::vector<InfInt> argumentos;
+
+    struct single_triple
+    {
+        InfInt a, b, sum;
+    };
+
+    std::vector<single_triple> triples;
+
+    void SetUp() override {
+        // TODO: set this up once (somehow)
+
+        argumentos = {
+                0,
+                1,
+                2,
+                10,
+                999,
+                1000133710000LL,
+                "18446744073709552953",
+                "1427247692705959881058285969449495136382748038",
+                "35644067325173400145634153169533525975728347712879374457649941546088087243817792082077443838416964060770643043543706307114755505635745609361348916560329798345718708393439569922522454626926591"
+        };
+
+        for(const InfInt& x : argumentos) {
+            if(x != 0) {
+                argumentos.push_back(-x);
+            }
+        }
+
+        for(const InfInt& x : argumentos) {
+            for(const InfInt& y : argumentos) {
+                triples.push_back({ x, y, x + y });
+            }
+        }
+    }
+
+    void TearDown() override {
+        //
+    }
+};
+
 // operator+=
 TEST(IntBigTInPlace, AddAssignPositiveOneChunk) {
     intbig_t x(10);
@@ -352,7 +396,7 @@ TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
     for(int i = 0; i < 40; i++) {
         // Will go out of uint64_t range in about 8 iterations
 
-        int64_t x = 1LL << 61;
+        int64_t x = 1ULL << 61;
 
         if(x % 10 == 0) {
             x = 0;
@@ -363,6 +407,17 @@ TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
 
         ASSERT_EQ(control.toString(), test.to_string())
                                     << i << ": " << "+" << x << " = " << control << " " << test.to_string();
+    }
+}
+
+TEST_F(IntBigTBinaryAdditive, AddAssignTriples) {
+    for(const single_triple& triple : triples) {
+        intbig_t x = intbig_t::from_decimal(triple.a.toString());
+        intbig_t y = intbig_t::from_decimal(triple.b.toString());
+
+        x += y;
+
+        ASSERT_EQ(x.to_string(), triple.sum.toString());
     }
 }
 

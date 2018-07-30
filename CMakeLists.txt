@@ -6,6 +6,10 @@ project(rsa_prep
 
 set(CMAKE_CXX_STANDARD 11)
 
+set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall")
+#                          ^^^
+# This may or may not improve llvm's "Evaluate Expression" functionality in CLion
+
 ### Libraries
 ### ---------
 include_directories(include)
