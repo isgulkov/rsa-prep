@@ -297,19 +297,13 @@ void intbig_t::sub_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        // a - b --> -(b - a)
-
         subfrom_abs(other);
         negate();
     }
     else if(cmp_with_other == 0) {
-        // a - b --> 0
-
         clear();
     }
     else {
-        // a - b
-
         sub2_unsigned(chunks, other.chunks);
         is_neg = false;
     }
@@ -320,19 +314,13 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        // b - a
-
         sub2swap_unsigned(chunks, other.chunks);
         is_neg = false;
     }
     else if(cmp_with_other == 0) {
-        // b - a --> 0
-
         clear();
     }
     else {
-        // b - a -> -(a - b)
-
         sub_abs(other);
         negate();
     }
