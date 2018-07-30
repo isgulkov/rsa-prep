@@ -71,6 +71,7 @@ public:
 private:
     static void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
     static void sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
+    static void sub2swap_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
 
     // "Universal" in-place adds that should work when result points to the same vector as x, y, or both of them
     //

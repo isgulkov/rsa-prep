@@ -253,12 +253,27 @@ void intbig_t::add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint6
 
 void intbig_t::sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
 {
+    // Pre:  acc >= x
+    // Post: acc = acc - x
+
     // TODO
+}
+
+void intbig_t::sub2swap_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+{
+    // Same as `sub2_unsigned`, but with the other order of operands (the result is stored in acc as well)
+
+    // Pre:  acc <= x
+    // Post: acc = x - acc
+
+    // TODO
+
+    // REVIEW: make these also non-static?
 }
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    // TODO: eliminate the need of copying
+    // TODO: THE SIGNS!
 
     // The idiot is doing this by just storing the [0; N) in, like, a [-2N; 2N] data type:
     //   - add digits elementwise (with the corresponding number's sign);
@@ -268,42 +283,47 @@ void intbig_t::operator+=(const intbig_t& other)
     // Handle non-positive operands separately
     if(is_neg || other.is_neg) {
         if(!is_neg) {
-            // a += b --> a -= -b
+            // a + -b --> a - b
 
-            // Try to avoid copying b by reducing to sub2_unsigned
             // TODO: DRY
 
-            // Make both negative to compare by absolute value
-            // TODO: <-- abstract out from compare_3way its 'abs(x) <=> abs(y)' part for this spot here
-            negate();
-            int cmp_with_other = -compare_3way(other);
-            negate();
+            int cmp_with_other = compare_3way_unsigned(other);
 
             if(cmp_with_other < 0) {
-                // a -= -b --> a = -b - a
+                // a - b --> a = b - a
 
-                // BUG: 2 copies (other, result)
-                *this = -other - *this;
+                sub2swap_unsigned(chunks, other.chunks);
             }
             else if(cmp_with_other == 0) {
-                // a -= -b --> a = 0
+                // a - b --> 0
 
                 *this = 0;  // REVIEW: see analogous case in operator-=
             }
             else {
-                // a -= -b
+                // a - b
 
                 sub2_unsigned(chunks, other.chunks);
             }
         }
         else if(!other.is_neg) {
-            // a += b --> a = b - -a
+            // -a + b --> b - a
 
-            // BUG: 2 copies (this, result)
-            *this = other - operator-();
+            // TODO: rename all `cmp_with_other` variables to reflect the "unsigned" part
+            int cmp_with_other = compare_3way_unsigned(other);
+
+            if(cmp_with_other < 0) {
+                sub2swap_unsigned(chunks, other.chunks);
+                negate();
+            }
+            else if(cmp_with_other == 0) {
+                *this = 0;  // REVIEW: see the other two cases
+            }
+            else {
+                sub2_unsigned(chunks, other.chunks);
+            }
         }
         else {
-            // a += b --> a = -(-a + -b) --> |a| += |b|
+            // -a + -b --> -(a + b)
 
             add2_unsigned(chunks, other.chunks);
         }
@@ -311,10 +331,10 @@ void intbig_t::operator+=(const intbig_t& other)
     else {
         // Handle zero operands separately
         if(other.chunks.empty()) {
-            // a += b --> no-op
+            // a + 0 --> a (no-op)
         }
         else if(chunks.empty()) {
-            // a += b --> a = b
+            // 0 + b --> b
 
             chunks = other.chunks;
         }
@@ -333,22 +353,35 @@ void intbig_t::operator-=(const intbig_t& other)
         // TODO: eliminate the need of copying
 
         if(!is_neg) {
-            // a -= b --> a += -b
+            // a - -b --> a + b
 
             add2_unsigned(chunks, other.chunks);
         }
         else if(!other.is_neg) {
-            // a -= b --> a = -(a + b)
+            // -a - b --> -(a + b)
 
+            // REVIEW: is this 'negate()' preparation better than handling all the cases here? How many are there?
             negate();
             operator+=(other);
             negate();
         }
         else {
-            // a -= b --> a = (b - a)
+            // -a - -b --> b - a
 
-            // BUG: 2 copies (this, result)
-            *this = other - operator-();
+            int cmp_with_other = compare_3way_unsigned(other);
+
+            if(cmp_with_other < 0) {
+                sub2swap_unsigned(chunks, other.chunks);
+                negate();
+            }
+            else if(cmp_with_other == 0) {
+                *this = 0;  // REVIEW: see the other four cases
+            }
+            else {
+                sub2_unsigned(chunks, other.chunks);
+            }
+
+            sub2swap_unsigned(chunks, other.chunks);
         }
     }
 
@@ -356,14 +389,13 @@ void intbig_t::operator-=(const intbig_t& other)
 
     // Handle non-positive result separately
     if(cmp_with_other < -1) {
-        // a -= b --> a = -(b - a)
+        // a - b --> -(b - a)
 
-        // BUG: 1 copy (result)
-        *this = other - *this;
+        sub2swap_unsigned(chunks, other.chunks);
         negate();
     }
     else if(cmp_with_other == 0) {
-        // a -= b --> a = 0
+        // a - b --> 0
         // Base case should work on this, but it's unnecessary
 
         *this = 0;
@@ -376,10 +408,10 @@ void intbig_t::operator-=(const intbig_t& other)
     else {
         // Handle zero operands separately
         if(other.chunks.empty()) {
-            // a -= b --> no-op
+            // a - 0 --> a (no-op)
         }
         else if(chunks.empty()) {
-            // a -= b --> a = -b
+            // 0 - b --> -b
 
             chunks = other.chunks;
             negate();  // So that zero stays a zero
