@@ -452,7 +452,13 @@ struct cl_byte {
 
 ## Links
 
-1. [Googletest Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md);
+1. [Googletest Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md)
+
+   [Advanced googletest Topics](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md);
+
+   1. [Teaching googletest How to Print Your Values](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#teaching-googletest-how-to-print-your-values);
+   2. [Predicate Assertions for Better Error Messages](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#predicate-assertions-for-better-error-messages);
+   3. [Value-Parameterized Tests](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#value-parameterized-tests);
 
 2. [Длинная арифметика — e-maxx.ru](http://e-maxx.ru/algo/big_integer);
 

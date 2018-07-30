@@ -318,7 +318,7 @@ namespace {
 //        }
     }
 
-    void sub2from_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+    void sub2from_unsigned_(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x, bool in_reverse)
     {
         /*
          * In-place subtract the two unsigned big integers, but with reverse order of the operands:
@@ -327,7 +327,64 @@ namespace {
          * Pre: x <= acc
          */
 
-        throw std::logic_error("there's no sub2from yet, boy");
+        //
+        if(acc.size() != x.size() && acc.size() < x.size() == in_reverse) {
+            std::logic_error("it's less, you fuck!");
+        }
+
+        size_t pi = acc.size(), dor = x.size();
+
+        bool carry = false;
+
+        for(size_t i = 0; i < (!in_reverse ? x.size() : acc.size()); i++) {
+            uint64_t chunk;
+
+            if(!in_reverse) {
+                chunk = acc[i] - x[i] - carry;
+            }
+            else {
+                chunk = x[i] - acc[i] - carry;
+            }
+
+            if(!carry) {
+                carry = chunk > acc[i];
+            }
+            else {
+                carry = chunk >= acc[i];
+            }
+
+            acc[i] = chunk;
+        }
+
+        // TODO: extract the sizes as const size_t variables
+        for(size_t i = (!in_reverse ? x.size() : acc.size()); i < (!in_reverse ? acc.size() : x.size()); i++) {
+            if(in_reverse) {
+                acc.push_back(x[i]);
+            }
+
+            if(carry) {
+                carry = (acc[i] == UINT64_MAX);
+            }
+        }
+
+        if(carry) {
+            std::logic_error("you lost your carry! " + std::string(in_reverse ? "fuck" : "my life"));
+        }
+
+        while(acc.back() == 0) {
+            acc.pop_back();
+        }
+        // REMOVE: after testing, replace this filth and implement the proper way:
+//        if(acc.back() == 0) {
+//            acc.resize(i_first_lz);
+//        }
+    }
+    void sub2from_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+    {
+        sub2from_unsigned_(acc, x, true);
+
+        // REMOVE:
+//        sub2from_unsigned_(acc, x, false);
     }
 }
 
@@ -404,7 +461,7 @@ void intbig_t::operator+=(const intbig_t& other)
         }
     }
     else {
-        if(!is_neg) {
+        if(!other.is_neg) {
             // -a + b --> b - a
 
             subfrom_abs(other);
