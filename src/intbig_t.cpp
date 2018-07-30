@@ -340,13 +340,21 @@ void intbig_t::subfrom_abs(const intbig_t& other)
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    if(is_neg || other.is_neg) {
-        if(!is_neg) {
+    if(!is_neg) {
+        if(!other.is_neg) {
+            // The base case:
+            // a + b
+
+            add_abs(other);
+        }
+        else {
             // a + -b --> a - b
 
             sub_abs(other);
         }
-        else if(!other.is_neg) {
+    }
+    else {
+        if(!is_neg) {
             // -a + b --> b - a
 
             subfrom_abs(other);
@@ -358,22 +366,25 @@ void intbig_t::operator+=(const intbig_t& other)
             negate();
         }
     }
-    else {
-        // The base case: both operands are positive
-
-        add_abs(other);
-    }
 }
 
 void intbig_t::operator-=(const intbig_t& other)
 {
-    if(is_neg || other.is_neg) {
-        if(!is_neg) {
+    if(!is_neg) {
+        if(!other.is_neg) {
+            // The base case:
+            // a - b
+
+            sub_abs(other);
+        }
+        else {
             // a - -b --> a + b
 
             add_abs(other);
         }
-        else if(!other.is_neg) {
+    }
+    else {
+        if(!is_neg) {
             // -a - b --> -(a + b)
 
             add_abs(other);
@@ -384,11 +395,6 @@ void intbig_t::operator-=(const intbig_t& other)
 
             subfrom_abs(other);
         }
-    }
-    else {
-        // The base case: both operands are positive
-
-        sub_abs(other);
     }
 }
 
