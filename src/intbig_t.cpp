@@ -97,45 +97,50 @@ bool intbig_t::operator!=(const intbig_t& other) const
     return is_neg != other.is_neg || chunks != other.chunks;
 }
 
+int intbig_t::compare_3way_unsigned(const std::vector<uint64_t>& a_chunks,
+                                     const std::vector<uint64_t>& b_chunks)
+{
+    // No leading zeroes are allowed, so longer value is necessarily larger
+    if(a_chunks.size() < b_chunks.size()) {
+        return -1;
+    }
+    else if(a_chunks.size() > b_chunks.size()) {
+        return 1;
+    }
+
+    // From most significant to least significant
+    for(ssize_t i = a_chunks.size() - 1; i >= 0; i--) {
+        /*
+         * Can't simply return a - b here -- it may not fit neither int nor int64_t
+         */
+
+        // REVIEW: const uint64_t&
+        // REVIEW: a way to make their signed difference fit some type?
+        const uint64_t our_chunk = a_chunks[i];
+        const uint64_t their_chunk = b_chunks[i];
+
+        if(our_chunk < their_chunk) {
+            return -1;
+        }
+        else if(our_chunk > their_chunk) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int intbig_t::compare_3way(const intbig_t& other) const
 {
     // Since C++20, there's <=>
 
     if(is_neg != other.is_neg) {
-        // This is legal: (int) of bool is 1 or 0
+        // This is legal: bool gets casted to int values 1 and 0
         // https://en.cppreference.com/w/cpp/language/implicit_conversion#Integral_promotion
         return other.is_neg - is_neg;
     }
 
-    {
-        // No leading zeroes are allowed, so longed value is neccessarily larger
-        int size_diff = (int)chunks.size() - (int)other.chunks.size();
-
-        if(size_diff != 0) {
-            return (is_neg ? -1 : 1) * size_diff;
-        }
-    }
-
-    // From most significant to least significant
-    for(size_t i_back = 0; i_back < chunks.size(); i_back++) {
-        /*
-         * Can't simply return a - b here:
-         *   a) it may not fit neither int nor int64_t;
-         *   b) it will be unsigned, so some additional work is required anyway.
-         */
-
-        const uint64_t our_chunk = chunks[(chunks.size() - 1) - i_back];
-        const uint64_t their_chunk = other.chunks[(chunks.size() - 1) - i_back];
-
-        if(our_chunk < their_chunk) {
-            return is_neg ? 1 : -1;
-        }
-        else if(our_chunk > their_chunk) {
-            return is_neg ? -1 : 1;
-        }
-    }
-
-    return 0;
+    return (is_neg ? -1 : 1) * compare_3way_unsigned(chunks, other.chunks);
 }
 
 bool intbig_t::operator<(const intbig_t& other) const

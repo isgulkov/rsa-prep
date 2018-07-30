@@ -128,6 +128,8 @@ The number is internally represented with two data members:
 
   - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
 
+> **TODO**: eliminate all the `is_neg ? -1 : 0` stuff by storing `int sign` instead of `bool is_neg`? The memory overhead will be the same due to alignment by `vector`'s `size_t` fields, the computation most likely same as well
+
 Note that for the number zero a unique representation, — `{ .is_neg=false, chunks={} }`, — is enforced. All other possibilities are illegal (i.e. invalid states of the `intbig_t` objects).
 
 If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `bool` field.
