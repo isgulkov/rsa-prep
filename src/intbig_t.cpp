@@ -183,7 +183,7 @@ intbig_t intbig_t::operator+() const
      * This apparently happens "before" the actual return, so return value optimization happens just like in the
      * previous case.
      *
-     * So the only difference between the twoo is explicit copy versus implicit. Phew. Better stick with explicit one.
+     * So the only difference between the two is explicit copy versus implicit. Phew. Better stick with explicit one.
      *
      * https://en.cppreference.com/w/cpp/language/return#Notes
      * https://en.cppreference.com/w/cpp/language/copy_elision
@@ -199,6 +199,15 @@ intbig_t intbig_t::operator-() const
             !is_neg && !chunks.empty(),  // Preserve false for zero
             std::vector<uint64_t>(chunks)  // Explicitly copy the vector for the && parameter
     );
+}
+
+intbig_t& intbig_t::negate()
+{
+    if(!chunks.empty()) {
+        is_neg = !is_neg;
+    }
+
+    return *this;
 }
 
 void intbig_t::add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
@@ -219,7 +228,8 @@ void intbig_t::add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint6
         else {
             carry = acc[i] <= x[i];
         }
-        // TODO: ^ make this if/else one logic+arithmetic expression?
+        // TODO: can this be made with one logic+arithmetic expression instead of this if/else?
+        // TODO: one option is add carry after the check, but then you'd have to store the new carry -- not pleasing
     }
 
     // Propagate the carry, if any, through the acc's higher digits
@@ -239,6 +249,9 @@ void intbig_t::operator+=(const intbig_t& other)
 {
     if(is_neg || other.is_neg) {
         throw std::logic_error("This kind of addition isn't there yet");
+
+        // TODO: swapping the arguments of inline operators seems to be quite easily doable
+        // TODO: add3_unsigned(acc, a, b) and sub3_unsigned(
     }
 
     if(chunks.empty()) {

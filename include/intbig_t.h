@@ -62,8 +62,9 @@ public:
     bool operator>=(const intbig_t& other) const;
     bool operator >(const intbig_t& other) const;
 
-    intbig_t operator-() const;
     intbig_t operator+() const;
+    intbig_t operator-() const;
+    intbig_t& negate();
 
 private:
     static void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);

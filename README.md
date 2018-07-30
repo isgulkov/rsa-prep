@@ -51,7 +51,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 ##### Message exchange
 
-1. Three data formats — for cyphertexts, public and private keys:
+1. A data format for cyphertexts, public and private keys (so, basically three formats):
    1. text form — PGP uses base64 with `+`, `/` and `=`;
    2. whitespace insignificant;
    3. include insignificant labels (just like `--------BEGIN PGP PUBLIC KEY----------`) that will act as "telomeres" — would be able lose or gain a couple characters at the ends for the case of a sloppy selection.
@@ -112,6 +112,8 @@ The number is internally represented with two data members:
     std::vector<uint64_t> chunks;
 ```
 
+> **TODO**: put the bool at the end so theoretically something smaller than 8 bytes can be put after the object?
+
 - `is_neg` — the number's sign: `true` for negative numbers, `false` otherwise;
 
 - `chunks` — the number's absolute value:
@@ -122,7 +124,7 @@ The number is internally represented with two data members:
 
   - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
 
-Note that only one representation of zero, — `{ .is_neg=false, chunks={} }`, — is enforced. All other possibilities are illegal (i.e. invalid states of the `intbig_t` objects).
+Note that for the number zero a unique representation, — `{ .is_neg=false, chunks={} }`, — is enforced. All other possibilities are illegal (i.e. invalid states of the `intbig_t` objects).
 
 > *Note*: the originally planned representation was GMP-inspired one:
 >
@@ -158,7 +160,7 @@ $$
   \end{array} }
 $$
 
-The only catch is that sometimes `data` has to be grown.
+Occasionally `chunks` has to be grown, when carry spills, which happens at most by one bit.
 
 ##### Subtraction
 
@@ -194,10 +196,19 @@ Though basic impletementations of division and modulo are currently provided for
 Implement most of the appropriate C++ opeartors:
 
 - Assignment: `a = b`, `a += b`, `a -= b`, `a *= b`, `a /= b`, `a %= b`, `a &= b`, `a |= b`, `a ^= b`, `a <<= b`, `a >>= b`;
+
 - Increment, decrement: `++a`, `--a`, `a++`, `a--`;
 - Arithmetic: `+a`, `-a`, `a + b`, `a - b`, `a * b`, `a / b`, `a % b`, `~a`, `a & b`, `a | b`, `a ^ b`, `a << b`, `a >> b`;
 - Logical: `!a`;
 - Comparison: `a == b`, `a != b`, `a < b`, `a > b`, `a <= b`, `a >= b`;
+
+>  **Note**: standard overloading rules:
+>
+> - compound assignments should return `intbig_t&` (for further assignments);
+>
+> - binary operators accepting other types (i.e. not `intbig_t`), including cases where in an implicit conversion is desired, should be declared outside class (most frequently with `friend` keyword);
+>
+>   these changes are better applied (and tested) in bulk when all operators are done.
 
 as well as some additional methods:
 
@@ -205,16 +216,21 @@ as well as some additional methods:
 
   - [x] `intbig_t()` *(zero)*;
 
-  - [x] `intbig_t(int64_t)` *(integer's value) * — implicit conversion;
+  - [x] `intbig_t(int64_t)` *(integer's value)* — implicit conversion;
 
   - [ ] `intbig_t(const std::string& decimal)` *(decimal representation's value)*
 
     **questionable**:
 
-    - on one hand, things like `x * "100000"` and `y = "100"` are hard to live without;
-    - on the other hand, this may cause mayhem in the expressions there's already the factory method;
+    - on one hand, things like `x * "100000"` and `y = "100"` are irritating to operate without;
+    - on the other hand, this may cause mayhem in the expressions;
+    - also on the other hand, there's already the factory method;
     - on the third hand, far from every string will parse and potentially cause a silent bug;
     - ...
+
+- Factory methods:
+
+  - [ ] `static intbig_t from_decimal(const std::string& decimal)`;
 
 - [x] Rule of 5; **— turns out, I don't need to define them manually given the member types**;
 
@@ -223,14 +239,17 @@ as well as some additional methods:
 - [ ] *convert to string*:
 
   - [ ] `std::string to_string() const`;
+
+    **TODO**: rename into `to_decimal`;
+
   - [ ] `operator<<(std::ostream& os, $)`<sup>1</sup>;
 
 - [ ] binary representation conversions:
 
   - [ ] from:
 
-    - `static from_bytes(std::string bytes)`;
-    - `static from_bytes(std::istream stream)` (reads until EOF);
+    - `static intbig_t from_bytes(std::string bytes)`;
+    - `static intbig_t from_bytes(std::istream stream)` (reads until EOF);
 
   - [ ] to:
 
@@ -252,6 +271,8 @@ as well as some additional methods:
 - [ ] return a copy of the underlying vector?;
 
 - [ ] *explicit* conversions to `int`s of various sizes (throw `range_error` if doesn't fit);
+
+- [ ] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
 
 - [ ] `operator bool()` — **questionable**, [here's a discussion](https://www.artima.com/cppsource/safebool.html);
 
@@ -310,7 +331,7 @@ So don't do it early!
 
 In general, an SSO<sup>1</sup>-like optimization, i.e. if numbers $< 2^{64}$ didn't have a vector and were stored completely on the stack, seems to apply perfectly here due to the "law of small numbers"<sup>2</sup>.
 
-For working with 1024- or 4096-bit numbers, though, this is questionable. Will the allocation and locality speedup make up for the requirement to store half a kilobyte or more on the stack?
+For working with 1024- or 4096-bit numbers, though, this is questionable. Will the allocation speedup even be noticeable? Will the locality improve significantly? Half a kilobyte is 1/16th of L1 already.
 
 Moreover, the modular multiplication algorithm will probably both require a temporary and operate in a number longer than the operands.
 
@@ -318,35 +339,27 @@ Moreover, the modular multiplication algorithm will probably both require a temp
 
 <sup>2</sup> — the observations that in most programs, numbers are small: like, 90+% are $< 100$, about 20% are zero — who knows where I heard that, but seems reasonable.
 
+##### Expression templates
+
+All the smartest guys do those. This is essentially a way to optimize expressions at compile time, e.g. computation `a = b + c`, that would normally sum into a temporary, then move it into `a`, can be done is `a` directly, without any user intervention..
+
+They are a huge ordeal to develop, though, and even `boost::math::multiprecision`'s documentation admits their limited merits. Moreover, at the first glance, the computations involved in RSA don't seem to involve any complex expressions that might realistically benefit from such an optimization.
+
 #### Benchmarks
 
-Running benchmarks as soon as the class is implemented.
+Planning to benchmark against the following implementations:
 
-Planning to benchmark agains the following:
+|                                                         | representation                | ex. Tx. |                             |                                                              |
+| ------------------------------------------------------- | ----------------------------- | ------- | --------------------------- | ------------------------------------------------------------ |
+| `GMP `                                                  | `uint64_t[]`                  | ✔️       | About the fastest it gets   | `.tar.lz`                                                    |
+| `boost::mp`                                             | *varying?*                    | ✔️       | *On its own backend*        | ?                                                            |
+| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>3</sup>        | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
+| `intbig_t`                                              | `vector<uint64_t>`            | —       |                             | —                                                            |
+| `InfInt`                                                | `vector<int32_t>` base $10^9$ | —       |                             | [GitHub](https://github.com/sercantutar/infint)              |
+| `integer`                                               | `deque<uint8_t>`              | —       | Not as bad as the one below | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
+| `BigInteger`                                            | `std::string` (`'0'-'9'`)     | —       | The real shit               | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
 
-- **high baseline** (something a good real-world application would be likely to use):
-
-  the widely-used [`GMP`](https://gmplib.org/) library, often cited as the fastest out there (their main repo is a mercularial one, without any up-to-date git mirrors, which I solved by just upacking the latest tarball into a folder with the version number and calling int a day);
-
-- **low baseline** (something one of my fellow [Software Engineering](http://www.hse.ru/ba/se) students would be likely to write):
-
-  [a really bad implementation I found on GitHub](https://github.com/panks/BigInteger) that, amazingly, shows up quite high if you google "c++ big integer implementation"<sup>1</sup> and has got a fair bit of likes and retweets, even though it looks like something in competitive programming, and a complete novice at that — e.g. a number is represented as a `std::string` of `[0-9]`;
-
-- [some other, much less awful GitHub repo](https://github.com/calccrypto/integer), though a number is represented as a `std::deque` of bytes — only a step above the previous one;
-
-- [`boost::multiprecision`](https://www.boost.org/doc/libs/1_67_0/libs/multiprecision/doc/html/index.html)'s at the latest tag `v1.67.0` (the builds are a pain, though).
-
-|                                                         | representation                 | ex. Tx. |                             |                                                              |
-| ------------------------------------------------------- | ------------------------------ | ------- | --------------------------- | ------------------------------------------------------------ |
-| `GMP `                                                  | `uint64_t[]`                   | ✔️       | About the fastest it gets   | `.tar.lz`                                                    |
-| `boost::mp`                                             | *varying?*                     | ✔️       | *On its own backend*        | ?                                                            |
-| Crypto++                                                | `SecBlock`<sup>2</sup>         | —       |                             | [GitHub](https://github.com/weidai11/cryptopp/blob/master/secblock.h) |
-| [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) | `uint32_t`<sup>3</sup>         | —       |                             | [git]( git://www.ginac.de/cln.git)                           |
-| [`NTL`](http://www.shoup.net/ntl/doc/tour-ex1.html)     | ?                              | —       |                             | ?                                                            |
-| `intbig_t`                                              | `uint32_t[]`(&rarr; `vector`?) | —       |                             | —                                                            |
-| `InfInt`                                                | `vector<int32_t>` base $10^9$  | —       |                             | [GitHub](https://github.com/sercantutar/infint)              |
-| `integer`                                               | `deque<uint8_t>`               | —       | Not as bad as the one below | [GitHub](https://github.com/calccrypto/integer/blob/master/integer.h) |
-| `BigInteger`                                            | `std::string` (`'0'-'9'`)      | —       | Absolutely hideous          | [GitHub](https://github.com/panks/BigInteger/blob/master/BigInteger.h) |
+All of them non-cryptographic, so no memory security overheads are at play.
 
 Also, [`CLN`](https://ginac.de/CLN/cln.html#Modular-integers) seems to have modulars (`ring.h`).
 
@@ -525,5 +538,5 @@ struct cl_byte {
       3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*;
    3. [incise.org: Hash Table Benchmarks](http://incise.org/hash-table-benchmarks.html) — doctor, my lines are worrying me 🌝;
 
-9. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, and he's even some benchmarks against `NTL`.
+9. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, some of which he even benchmarks against our old friend `NTL`.
 

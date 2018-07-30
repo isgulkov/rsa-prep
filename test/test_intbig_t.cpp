@@ -275,6 +275,37 @@ TEST(IntBigTCopying, UnaryMinusOfZeroReturnsSameValue) {
     ASSERT_EQ(-x, 0);
 }
 
+TEST(IntBigTInPlace, NegateReturnsSameObject) {
+    // TODO: needs +=/-= for negatives
+
+    intbig_t x = 1337;
+    intbig_t& y = x.negate().negate();
+
+    y += 1;
+    ASSERT_EQ(x, 1338);
+    ASSERT_EQ(y, 1338);
+
+    x += 2;
+    ASSERT_EQ(x, 1340);
+    ASSERT_EQ(y, 1340);
+}
+
+TEST(IntBigTInPlace, NegateNegatesTheValue) {
+    intbig_t x = 1337;
+
+    ASSERT_EQ("-" + x.to_string(), x.negate().to_string());
+    ASSERT_EQ(x, -1337);
+}
+
+TEST(IntBigTInPlace, NegatePreservesZero) {
+    intbig_t x = 0;
+    intbig_t y = 0;
+
+    ASSERT_EQ(x.negate(), y);
+
+    ASSERT_EQ(y.to_string(), y.negate().to_string());
+}
+
 // operator+=
 TEST(IntBigTInPlace, AddAssignPositiveOneChunk) {
     intbig_t x(10);
@@ -333,7 +364,6 @@ TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
         ASSERT_EQ(control.toString(), test.to_string())
                                     << i << ": " << "+" << x << " = " << control << " " << test.to_string();
     }
-
 }
 
 // operator+
