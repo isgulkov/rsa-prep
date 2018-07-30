@@ -366,19 +366,41 @@ TEST(IntBigTInPlace, AddAssignPositiveGrowth) {
     }
 }
 
-// operator+
-TEST(IntBigTCopying, AddPositiveOneChunk) {
-    intbig_t x(10);
+// operator-=
+TEST(IntBigTInPlace, SubAssignPositiveOneChunk) {
+    intbig_t x(22);
+    x -= intbig_t(10);
 
-    EXPECT_EQ(x + 12, intbig_t(22));
+    EXPECT_EQ(x, intbig_t(12));
 
-    intbig_t y;
+    intbig_t y(233);
 
-    EXPECT_EQ(y + 233, intbig_t(233));
+    y -= 0;
+    EXPECT_EQ(y, intbig_t(233));
 
-    intbig_t z(100000);
+    y -= 233;
+    EXPECT_EQ(y, intbig_t(0));
 
-    EXPECT_EQ(z + 0, intbig_t(100000));
+    intbig_t z;
+    z -= intbig_t(-1111);
 
-    // TODO: the other way around (e.g. 10 + x)
+    EXPECT_EQ(z, intbig_t(1111));
 }
+
+// TODO: somehow generalize inplace tests onto copying tests
+// operator+
+//TEST(IntBigTCopying, AddPositiveOneChunk) {
+//    intbig_t x(10);
+//
+//    EXPECT_EQ(x + 12, intbig_t(22));
+//
+//    intbig_t y;
+//
+//    EXPECT_EQ(y + 233, intbig_t(233));
+//
+//    intbig_t z(100000);
+//
+//    EXPECT_EQ(z + 0, intbig_t(100000));
+//
+//    // TODO: the other way around (e.g. 10 + x)
+//}
