@@ -29,6 +29,7 @@
  *   - on a chunk's brink:
  *     - 1 00(64)00 00(64)00
  *     -   11(64)11 11(64)11
+ *   TODO: the stuff below
  *   - "sequence":
  *     - within 1 chunk
  *     - with growth
@@ -54,32 +55,35 @@
  *   (e.g. don't feed it invalid data and shit)
  */
 
-class IntBigTSingleBinaryOp : public ::testing::Test {
-    // TODO: after += is done, find a way to abstract it all across at least the four binary ops
-    // TODO: most likely parametrized, e.g. with a (name, std::function<intbig_t&>) tuple
+namespace
+{
+struct BinaryOpSingleTester
+{
+    std::string op_name;
+    std::function<intbig_t(const std::string&, const std::string&)> get_result;
+    std::function<std::string(const std::string&, const std::string&)> get_reference;
+};
+}
+
+class IntBigTSingleBinaryOp : public ::testing::TestWithParam<BinaryOpSingleTester>
+{
 protected:
-//    virtual
     intbig_t get_result(const std::string& x, const std::string& y)
     {
-        intbig_t a = intbig_t::from_decimal(x);
-        a += intbig_t::from_decimal(y);
-
-        return a;
+        return GetParam().get_result(x, y);
     }
 
-//    virtual
     std::string get_reference(const std::string& x, const std::string& y)
     {
-        return (InfInt(x) + InfInt(y)).toString();
+        return GetParam().get_reference(x, y);
     }
 
     void expect_likeReference(const std::string& x, const std::string& y, const std::string& msg="")
     {
-        std::string ref = get_reference(x, y);
-
-        std::cout << (x.size() < 25 ? x : "(too long)") << " "
-                  << (y.size() < 25 ? y : "(too long)") << " = "
-                  << (ref.size() < 25 ? ref : "(too long)") << std::endl;
+//        std::string ref = get_reference(x, y);
+//        std::cout << (x.size() < 25 ? x : "(too long)") << " "
+//                  << (y.size() < 25 ? y : "(too long)") << " = "
+//                  << (ref.size() < 25 ? ref : "(too long)") << std::endl;
 
         EXPECT_EQ(
                 get_result(x, y).to_string(),
@@ -129,6 +133,74 @@ protected:
     }
 };
 
+namespace {
+BinaryOpSingleTester AddAssign_single = {
+        "AddAssign",
+        [](const std::string& x, const std::string& y) {
+            intbig_t a = intbig_t::from_decimal(x);
+            a += intbig_t::from_decimal(y);
+
+            return a;
+        },
+        [](const std::string& x, const std::string& y) {
+            return (InfInt(x) + InfInt(y)).toString();
+        }
+};
+
+BinaryOpSingleTester Add_single = {
+        "Add",
+        [](const std::string& x, const std::string& y) {
+            return intbig_t::from_decimal(x) + intbig_t::from_decimal(y);
+        },
+        [](const std::string& x, const std::string& y) {
+            return (InfInt(x) + InfInt(y)).toString();
+        }
+};
+
+BinaryOpSingleTester SubAssign_single = {
+        "SubAssign",
+        [](const std::string& x, const std::string& y) {
+            intbig_t a = intbig_t::from_decimal(x);
+            a -= intbig_t::from_decimal(y);
+
+            return a;
+        },
+        [](const std::string& x, const std::string& y) {
+            return (InfInt(x) - InfInt(y)).toString();
+        }
+};
+
+BinaryOpSingleTester Sub_single = {
+        "Sub",
+        [](const std::string& x, const std::string& y) {
+            return intbig_t::from_decimal(x) - intbig_t::from_decimal(y);
+        },
+        [](const std::string& x, const std::string& y) {
+            return (InfInt(x) - InfInt(y)).toString();
+        }
+};
+}
+
+INSTANTIATE_TEST_CASE_P(AddAssign,
+                        IntBigTSingleBinaryOp,
+                        ::testing::Values(AddAssign_single)
+);
+
+INSTANTIATE_TEST_CASE_P(Add,
+                        IntBigTSingleBinaryOp,
+                        ::testing::Values(Add_single)
+);
+
+INSTANTIATE_TEST_CASE_P(SubAssign,
+                        IntBigTSingleBinaryOp,
+                        ::testing::Values(SubAssign_single)
+);
+
+INSTANTIATE_TEST_CASE_P(Sub,
+                        IntBigTSingleBinaryOp,
+                        ::testing::Values(Sub_single)
+);
+
 namespace IntBigTTestData
 {
 const std::vector<std::pair<std::string, std::pair<std::string, std::string>>> operand_sign_cases = {
@@ -143,7 +215,7 @@ const std::vector<std::pair<std::string, std::pair<std::string, std::string>>> o
 };
 }
 
-TEST_F(IntBigTSingleBinaryOp, OperandSignCases)
+TEST_P(IntBigTSingleBinaryOp, OperandSignCases)
 {
     expectAll_labelledPairs(IntBigTTestData::operand_sign_cases);
 }
@@ -154,17 +226,17 @@ const std::vector<std::string> few_both = { "-48093441235234523452789014750", "-
 const std::vector<std::string> few_both_opposite = { "48093441235234523452789014750", "1", "-10", "-1999" };
 }
 
-TEST_F(IntBigTSingleBinaryOp, ZeroOperandLeft)
+TEST_P(IntBigTSingleBinaryOp, ZeroOperandLeft)
 {
     expectAll_pairedWith(IntBigTTestData::few_both, "0");
 }
 
-TEST_F(IntBigTSingleBinaryOp, ZeroOperandRight)
+TEST_P(IntBigTSingleBinaryOp, ZeroOperandRight)
 {
     expectAll_pairedWith("0", IntBigTTestData::few_both);
 }
 
-TEST_F(IntBigTSingleBinaryOp, ZeroResult)
+TEST_P(IntBigTSingleBinaryOp, ZeroResult)
 {
     expectAll_paired(IntBigTTestData::few_both, IntBigTTestData::few_both_opposite);
     expectAll_paired(IntBigTTestData::few_both_opposite, IntBigTTestData::few_both);
@@ -173,16 +245,13 @@ TEST_F(IntBigTSingleBinaryOp, ZeroResult)
 }
 
 namespace IntBigTTestData {
-std::vector<std::string> negated(const std::vector<std::string>& xs)
+std::vector<std::string> prepend_minus(const std::vector<std::string>& xs)
 {
-    // TODO: is there an STL algorithm for this?
-    std::vector<std::string> negatives;
+    std::vector<std::string> negatives(xs.size());
 
-    for(const std::string& x : xs) {
-        if(x != "0" && x[0] != '-') {
-            negatives.push_back("-" + x);
-        }
-    }
+    std::transform(xs.begin(), xs.end(), negatives.begin(), [](const std::string& x) {
+        return "-" + x;
+    });
 
     return negatives;
 }
@@ -196,7 +265,7 @@ const std::vector<std::string> small_positive = {
         "10832543123"
 };
 
-const std::vector<std::string> small_negative = negated(small_positive);
+const std::vector<std::string> small_negative = prepend_minus(small_positive);
 
 // NOTE: 2^64 is about 10^19
 const std::vector<std::string> large_positive = {
@@ -229,36 +298,36 @@ const std::vector<std::string> large_positive = {
         "67651698652459"
 };
 
-const std::vector<std::string> large_negative = negated(large_positive);
+const std::vector<std::string> large_negative = prepend_minus(large_positive);
 }
 
-TEST_F(IntBigTSingleBinaryOp, PositiveSmall)
+TEST_P(IntBigTSingleBinaryOp, PositiveSmall)
 {
     expectAll_allPairs(IntBigTTestData::small_positive);
 }
 
-TEST_F(IntBigTSingleBinaryOp, PositiveLarge)
+TEST_P(IntBigTSingleBinaryOp, PositiveLarge)
 {
     expectAll_allPairs(IntBigTTestData::large_positive);
 }
 
-TEST_F(IntBigTSingleBinaryOp, NegativeSmall)
+TEST_P(IntBigTSingleBinaryOp, NegativeSmall)
 {
     expectAll_allPairs(IntBigTTestData::small_negative);
 }
 
-TEST_F(IntBigTSingleBinaryOp, NegativeLarge)
+TEST_P(IntBigTSingleBinaryOp, NegativeLarge)
 {
     expectAll_allPairs(IntBigTTestData::large_negative);
 }
 
-TEST_F(IntBigTSingleBinaryOp, MixedSignsSmall)
+TEST_P(IntBigTSingleBinaryOp, MixedSignsSmall)
 {
     expectAll_paired(IntBigTTestData::small_negative, IntBigTTestData::small_positive);
     expectAll_paired(IntBigTTestData::small_positive, IntBigTTestData::small_negative);
 }
 
-TEST_F(IntBigTSingleBinaryOp, MixedSignsLarge)
+TEST_P(IntBigTSingleBinaryOp, MixedSignsLarge)
 {
     expectAll_paired(IntBigTTestData::large_negative, IntBigTTestData::large_positive);
     expectAll_paired(IntBigTTestData::large_positive, IntBigTTestData::large_negative);
@@ -280,7 +349,7 @@ const std::vector<std::string> just_below_power = {
 };
 }
 
-TEST_F(IntBigTSingleBinaryOp, BrinkOfPower)
+TEST_P(IntBigTSingleBinaryOp, BrinkOfPower)
 {
     expectAll_pairedWith(IntBigTTestData::precise_power, "-1");
     expectAll_pairedWith(IntBigTTestData::just_below_power, "1");
