@@ -58,7 +58,7 @@
  * TODO: put some notion of "Additive" in the test names
  *
  * TODO: this whole file should be reorganized -- test data, function structs and all
- * TODO: unify the single and composable structs?
+ * TODO: unify the single and composable structs? like, their get_reference methods are basically identical
  *
  * REVIEW: type on the operation, then parametrize on the values instead of running loops?
  * REVIEW: that'd be a shitload of tests, though
@@ -379,13 +379,13 @@ TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverNegOne)
 }
 
 namespace {
-struct BinaryOpComposable {
+struct BinaryOpComposableTester {
     std::string op_name;
     std::function<void(intbig_t&, const std::string&)> apply_impl;
     std::function<std::string(intbig_t&, const std::string&)> apply_ref;
 };
 
-const BinaryOpComposable AddAssign_composable = {
+const BinaryOpComposableTester AddAssign_composable = {
         "AddAssign",
         [](intbig_t& x, const std::string& arg) {
             x += intbig_t::from_decimal(arg);
@@ -395,7 +395,7 @@ const BinaryOpComposable AddAssign_composable = {
         }
 };
 
-const BinaryOpComposable Add_composable = {
+const BinaryOpComposableTester Add_composable = {
         "Add",
         [](intbig_t& x, const std::string& arg) {
             x = x + intbig_t::from_decimal(arg);
@@ -405,7 +405,7 @@ const BinaryOpComposable Add_composable = {
         }
 };
 
-const BinaryOpComposable SubAssign_composable = {
+const BinaryOpComposableTester SubAssign_composable = {
         "SubAssign",
         [](intbig_t& x, const std::string& arg) {
             x -= intbig_t::from_decimal(arg);
@@ -415,7 +415,7 @@ const BinaryOpComposable SubAssign_composable = {
         }
 };
 
-const BinaryOpComposable Sub_composable = {
+const BinaryOpComposableTester Sub_composable = {
         "Sub",
         [](intbig_t& x, const std::string& arg) {
             x = x - intbig_t::from_decimal(arg);
@@ -425,7 +425,7 @@ const BinaryOpComposable Sub_composable = {
         }
 };
 
-const std::vector<BinaryOpComposable> composable_ops = {
+const std::vector<BinaryOpComposableTester> composable_ops = {
         AddAssign_composable,
         Add_composable,
         SubAssign_composable,
@@ -433,33 +433,61 @@ const std::vector<BinaryOpComposable> composable_ops = {
 };
 }
 
-class IntBigTComposedBinaryOp : public ::testing::TestWithParam<BinaryOpSingleTester>
+class IntBigTComposedBinaryOp : public ::testing::TestWithParam<BinaryOpComposableTester>
 {
 protected:
+    intbig_t current;
+    size_t i_iter;
 
-    // TODO
+    void SetUp() override {
+        current = {};
+        i_iter = 0;
+    }
+
+    void assert_advance(const std::string& x)
+    {
+        std::string ref = GetParam().apply_ref(current, x);
+
+        GetParam().apply_impl(current, x);
+
+        EXPECT_EQ(
+                current.to_string(), ref
+        ) << " after arg. " << x << " on iteration " << i_iter;
+
+        i_iter += 1;
+    }
 };
+
+INSTANTIATE_TEST_CASE_P(AddAssign,
+                        IntBigTComposedBinaryOp,
+                        ::testing::Values(AddAssign_composable)
+);
+
+INSTANTIATE_TEST_CASE_P(Add,
+                        IntBigTComposedBinaryOp,
+                        ::testing::Values(Add_composable)
+);
+
+INSTANTIATE_TEST_CASE_P(SubAssign,
+                        IntBigTComposedBinaryOp,
+                        ::testing::Values(SubAssign_composable)
+);
+
+INSTANTIATE_TEST_CASE_P(Sub,
+                        IntBigTComposedBinaryOp,
+                        ::testing::Values(Sub_composable)
+);
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
 {
-//    std::mt19937 rnd(1337);
-//
-//    intbig_t test;
-//    InfInt control;
-//
-//    for(int i = 0; i < 25; i++) {
-//        uint32_t x = rnd() % 10000;
-//
-//        if(x % 10 == 0) {
-//            x = 0;
-//        }
-//
-//        control += x;
-//        test += intbig_t(x);
-//
-//        ASSERT_EQ(control.toString(), test.to_string())
-//                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
-//    }
+    InfInt increment = 11;
+
+    for(int i = 0; i < 20; i++) {
+        assert_advance(increment.toString());
+
+        increment *= 17;
+        increment -= 19;
+    }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeOneChunk)
