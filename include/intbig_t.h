@@ -69,21 +69,19 @@ public:
     intbig_t& negate();
 
 private:
-    static void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
-    static void sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
-    static void sub2swap_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x);
+    /*
+     * Apply operations just on the absolute values of the numbers
+     * This is done in-place (so, no temporaries), the result is stored in this
+     *
+     * NOTE: while only the absolute values are considered, the result may is signed
+     */
 
-    // "Universal" in-place adds that should work when result points to the same vector as x, y, or both of them
-    //
-    // TODO: these are kinda difficult to write well, so the plan is get away with copying and add2/sub2 for now, and
-    // TODO: after everything is correct and tested, switch to in-place where appropriate
-//    static void add3_unsigned(std::vector<uint64_t>& result,
-//                              const std::vector<uint64_t>& x,
-//                              const std::vector<uint64_t>& y);
-//
-//    static void sub3_unsigned(std::vector<uint64_t>& result,
-//                              const std::vector<uint64_t>& x,
-//                              const std::vector<uint64_t>& y);
+    // this = |this| + |other|
+    void add_abs(const intbig_t& other);
+    // this = |this| - |other|
+    void sub_abs(const intbig_t& other);
+    // this = |other| - |this|
+    void subfrom_abs(const intbig_t& other);
 
 public:
     void operator+=(const intbig_t& other);

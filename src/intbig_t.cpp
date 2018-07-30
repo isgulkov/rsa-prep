@@ -216,133 +216,148 @@ intbig_t& intbig_t::negate()
     return *this;
 }
 
-void intbig_t::add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
-{
-    if(acc.size() < x.size()) {
-        acc.resize(x.size());
-    }
-
-    bool carry = false;
-
-    for(size_t i = 0; i < x.size(); i++) {
-        acc[i] += x[i] + carry;
-
-        // Set carry if overflow occured
-        if(!carry) {
-            carry = acc[i] < x[i];
+namespace {
+    void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+    {
+        if(acc.size() < x.size()) {
+            acc.resize(x.size());
         }
-        else {
-            carry = acc[i] <= x[i];
+
+        bool carry = false;
+
+        for(size_t i = 0; i < x.size(); i++) {
+            acc[i] += x[i] + carry;
+
+            // Set carry if overflow occured
+            if(!carry) {
+                carry = acc[i] < x[i];
+            }
+            else {
+                carry = acc[i] <= x[i];
+            }
+            // TODO: can this be made with one logic+arithmetic expression instead of this if/else?
+            // TODO: one option is add carry after the check, but then you'd have to store the new carry -- not pleasing
         }
-        // TODO: can this be made with one logic+arithmetic expression instead of this if/else?
-        // TODO: one option is add carry after the check, but then you'd have to store the new carry -- not pleasing
+
+        // Propagate the carry, if any, through the acc's higher digits
+        for(size_t i = x.size(); i < acc.size(); i++) {
+            acc[i] += carry;
+
+            carry = (acc[i] == 0);
+        }
+
+        // potentially reaching a power of 64
+        if(carry) {
+            acc.push_back(1);
+        }
     }
 
-    // Propagate the carry, if any, through the acc's higher digits
-    for(size_t i = x.size(); i < acc.size(); i++) {
-        acc[i] += carry;
+    void sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+    {
+        // Pre:  acc >= x
+        // Post: acc = acc - x
 
-        carry = (acc[i] == 0);
+        // TODO
     }
 
-    // potentially reaching a power of 64
-    if(carry) {
-        acc.push_back(1);
+    void sub2swap_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+    {
+        // Same as `sub2_unsigned`, but with the other order of operands (the result is stored in acc as well)
+
+        // Pre:  acc <= x
+        // Post: acc = x - acc
+
+        // TODO
     }
 }
 
-void intbig_t::sub2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+void intbig_t::add_abs(const intbig_t& other)
 {
-    // Pre:  acc >= x
-    // Post: acc = acc - x
+    // a <- abs(a) + abs(b)
 
-    // TODO
+    // TODO: handle zero cases
+
+    add2_unsigned(chunks, other.chunks);
+    is_neg = false;  // TODO: you've handled zero cases, haven't you?
 }
 
-void intbig_t::sub2swap_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
+void intbig_t::sub_abs(const intbig_t& other)
 {
-    // Same as `sub2_unsigned`, but with the other order of operands (the result is stored in acc as well)
+    // a <- abs(a) - abs(b)
 
-    // Pre:  acc <= x
-    // Post: acc = x - acc
+    // TODO: make these two call each other!
 
-    // TODO
+    int cmp_with_other = compare_3way_unsigned(other);
 
-    // REVIEW: make these also non-static?
+    if(cmp_with_other < 0) {
+        // a - b --> -(b - a)
+
+        subfrom_abs(other);
+        negate();
+    }
+    else if(cmp_with_other == 0) {
+        // a - b --> 0
+
+        *this = 0;
+    }
+    else {
+        // a - b
+
+        sub2_unsigned(chunks, other.chunks);
+        is_neg = false;
+    }
+}
+
+void intbig_t::subfrom_abs(const intbig_t& other)
+{
+    // a <- abs(b) - abs(a)
+
+    int cmp_with_other = compare_3way_unsigned(other);
+
+    if(cmp_with_other < 0) {
+        // b - a
+
+        sub2swap_unsigned(chunks, other.chunks);
+        is_neg = false;
+    }
+    else if(cmp_with_other == 0) {
+        // b - a --> 0
+
+        *this = 0;
+    }
+    else {
+        // b - a -> -(a - b)
+
+        sub_abs(other);
+        negate();
+    }
 }
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    // TODO: THE SIGNS!
-
-    // The idiot is doing this by just storing the [0; N) in, like, a [-2N; 2N] data type:
-    //   - add digits elementwise (with the corresponding number's sign);
-    //   - just somehow spread the carries through.
-    // The 2x overhead does not seem to be worth it, though.
-
     // Handle non-positive operands separately
     if(is_neg || other.is_neg) {
         if(!is_neg) {
             // a + -b --> a - b
 
-            // TODO: DRY
-
-            int cmp_with_other = compare_3way_unsigned(other);
-
-            if(cmp_with_other < 0) {
-                // a - b --> a = b - a
-
-                sub2swap_unsigned(chunks, other.chunks);
-            }
-            else if(cmp_with_other == 0) {
-                // a - b --> 0
-
-                *this = 0;  // REVIEW: see analogous case in operator-=
-            }
-            else {
-                // a - b
-
-                sub2_unsigned(chunks, other.chunks);
-            }
+            sub_abs(other);
         }
         else if(!other.is_neg) {
             // -a + b --> b - a
 
-            // TODO: rename all `cmp_with_other` variables to reflect the "unsigned" part
-            int cmp_with_other = compare_3way_unsigned(other);
-
-            if(cmp_with_other < 0) {
-                sub2swap_unsigned(chunks, other.chunks);
-                negate();
-            }
-            else if(cmp_with_other == 0) {
-                *this = 0;  // REVIEW: see the other two cases
-            }
-            else {
-                sub2_unsigned(chunks, other.chunks);
-            }
+            subfrom_abs(other);
         }
         else {
             // -a + -b --> -(a + b)
 
-            add2_unsigned(chunks, other.chunks);
+            add_abs(other);
+            negate();
         }
     }
     else {
-        // Handle zero operands separately
-        if(other.chunks.empty()) {
-            // a + 0 --> a (no-op)
-        }
-        else if(chunks.empty()) {
-            // 0 + b --> b
+        // The base case: both operands are positive
 
-            chunks = other.chunks;
-        }
-        else {
-            // The base case: both operands are positive
-
-            add2_unsigned(chunks, other.chunks);
-        }
+        add_abs(other);
     }
 }
 
@@ -355,33 +370,18 @@ void intbig_t::operator-=(const intbig_t& other)
         if(!is_neg) {
             // a - -b --> a + b
 
-            add2_unsigned(chunks, other.chunks);
+            add_abs(other);
         }
         else if(!other.is_neg) {
             // -a - b --> -(a + b)
 
-            // REVIEW: is this 'negate()' preparation better than handling all the cases here? How many are there?
-            negate();
-            operator+=(other);
+            add_abs(other);
             negate();
         }
         else {
             // -a - -b --> b - a
 
-            int cmp_with_other = compare_3way_unsigned(other);
-
-            if(cmp_with_other < 0) {
-                sub2swap_unsigned(chunks, other.chunks);
-                negate();
-            }
-            else if(cmp_with_other == 0) {
-                *this = 0;  // REVIEW: see the other four cases
-            }
-            else {
-                sub2_unsigned(chunks, other.chunks);
-            }
-
-            sub2swap_unsigned(chunks, other.chunks);
+            subfrom_abs(other);
         }
     }
 
@@ -391,7 +391,7 @@ void intbig_t::operator-=(const intbig_t& other)
     if(cmp_with_other < -1) {
         // a - b --> -(b - a)
 
-        sub2swap_unsigned(chunks, other.chunks);
+        subfrom_abs(other);
         negate();
     }
     else if(cmp_with_other == 0) {
@@ -399,30 +399,11 @@ void intbig_t::operator-=(const intbig_t& other)
         // Base case should work on this, but it's unnecessary
 
         *this = 0;
-
-        // REVIEW: check if modifying this object is any faster than move-assign:
-        // REVIEW: we also currently lose the vector reserve buffer
-//        chunks.resize(0);
-//        is_neg = false;
     }
     else {
-        // Handle zero operands separately
-        if(other.chunks.empty()) {
-            // a - 0 --> a (no-op)
-        }
-        else if(chunks.empty()) {
-            // 0 - b --> -b
+        // a - b
 
-            chunks = other.chunks;
-            negate();  // So that zero stays a zero
-        }
-        else {
-            // The base case:
-            //   - both operands are positive;
-            //   - a >= b, so the result is positive
-
-            sub2_unsigned(chunks, other.chunks);
-        }
+        sub_abs(other);
     }
 }
 

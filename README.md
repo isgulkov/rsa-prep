@@ -216,6 +216,20 @@ Some of them complicate implementing the compound assignments:
 
 Calculating into a temporary is a waste of cycles, and passing $b$ not by `const&` or making the fields mutable is just sloppy programming.
 
+> **TODO**: replace all occurrences of `*this = 0;` with something like `clear()`
+
+> **TODO**: better looking replacement for `negate();` after an operation:
+>
+> ```cpp
+> private:
+> 	void set_neg(bool neg);
+> 	// or
+> 	void set_neg();
+> 	void unset_neg();
+> ```
+>
+> These should also do the zero check. `negate` may use them.
+
 . . .
 
 
