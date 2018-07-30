@@ -247,16 +247,12 @@ Yeah!
 
 
 
-* in-place add the ab `*this` and `other
-
 > **TODO**: private method for checking for zero instead of `chunks.empty()`?
 >
 > ```cpp
 > private:
 > 	bool is_zero() const;
 > ```
-
-
 
 ##### Multiplication
 
@@ -355,9 +351,9 @@ as well as some additional methods:
 
 - [ ] *explicit* conversions to `int`s of various sizes (throw `range_error` if doesn't fit);
 
-- [ ] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
+- [x] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
 
-- [ ] `operator bool()` — **questionable**, [here's a discussion](https://www.artima.com/cppsource/safebool.html);
+- [ ] faster versions of some `operator`s (most importantly, `==` and `!=`) working on `int64_t` without conversion
 
 - [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
 
