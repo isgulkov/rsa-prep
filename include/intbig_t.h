@@ -55,8 +55,7 @@ public:
     bool operator!=(const intbig_t& other) const;
 
 private:
-    static int compare_3way_unsigned(const std::vector<uint64_t>& a_chunks,
-                                      const std::vector<uint64_t>& b_chunks);
+    int compare_3way_unsigned(const intbig_t& other) const;
     int compare_3way(const intbig_t& other) const;
 
 public:

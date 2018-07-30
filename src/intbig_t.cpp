@@ -97,27 +97,26 @@ bool intbig_t::operator!=(const intbig_t& other) const
     return is_neg != other.is_neg || chunks != other.chunks;
 }
 
-int intbig_t::compare_3way_unsigned(const std::vector<uint64_t>& a_chunks,
-                                     const std::vector<uint64_t>& b_chunks)
+int intbig_t::compare_3way_unsigned(const intbig_t& other) const
 {
     // No leading zeroes are allowed, so longer value is necessarily larger
-    if(a_chunks.size() < b_chunks.size()) {
+    if(chunks.size() < other.chunks.size()) {
         return -1;
     }
-    else if(a_chunks.size() > b_chunks.size()) {
+    else if(chunks.size() > other.chunks.size()) {
         return 1;
     }
 
     // From most significant to least significant
-    for(ssize_t i = a_chunks.size() - 1; i >= 0; i--) {
+    for(ssize_t i = chunks.size() - 1; i >= 0; i--) {
         /*
          * Can't simply return a - b here -- it may not fit neither int nor int64_t
          */
 
         // REVIEW: const uint64_t&
         // REVIEW: a way to make their signed difference fit some type?
-        const uint64_t our_chunk = a_chunks[i];
-        const uint64_t their_chunk = b_chunks[i];
+        const uint64_t our_chunk = chunks[i];
+        const uint64_t their_chunk = other.chunks[i];
 
         if(our_chunk < their_chunk) {
             return -1;
@@ -140,7 +139,7 @@ int intbig_t::compare_3way(const intbig_t& other) const
         return other.is_neg - is_neg;
     }
 
-    return (is_neg ? -1 : 1) * compare_3way_unsigned(chunks, other.chunks);
+    return (is_neg ? -1 : 1) * compare_3way_unsigned(other);
 }
 
 bool intbig_t::operator<(const intbig_t& other) const
