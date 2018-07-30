@@ -311,8 +311,6 @@ void intbig_t::sub_abs(const intbig_t& other)
 
 void intbig_t::subfrom_abs(const intbig_t& other)
 {
-    // a <- abs(b) - abs(a)
-
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
@@ -336,7 +334,6 @@ void intbig_t::subfrom_abs(const intbig_t& other)
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    // Handle non-positive operands separately
     if(is_neg || other.is_neg) {
         if(!is_neg) {
             // a + -b --> a - b
@@ -364,10 +361,7 @@ void intbig_t::operator+=(const intbig_t& other)
 
 void intbig_t::operator-=(const intbig_t& other)
 {
-    // Handle non-positive operands separately
     if(is_neg || other.is_neg) {
-        // TODO: eliminate the need of copying
-
         if(!is_neg) {
             // a - -b --> a + b
 
@@ -385,24 +379,8 @@ void intbig_t::operator-=(const intbig_t& other)
             subfrom_abs(other);
         }
     }
-
-    int cmp_with_other = compare_3way(other);
-
-    // Handle non-positive result separately
-    if(cmp_with_other < -1) {
-        // a - b --> -(b - a)
-
-        subfrom_abs(other);
-        negate();
-    }
-    else if(cmp_with_other == 0) {
-        // a - b --> 0
-        // Base case should work on this, but it's unnecessary
-
-        *this = 0;
-    }
     else {
-        // a - b
+        // The base case: both operands are positive
 
         sub_abs(other);
     }
