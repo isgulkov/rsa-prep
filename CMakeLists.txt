@@ -35,14 +35,22 @@ if (BUILD_TESTS)
   enable_testing()
 
   # - intbig_t
-  add_executable(test_intbig_t test/test_intbig_t.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t.cpp")
-  target_link_libraries(test_intbig_t
+  add_executable(test_intbig_t_additive test/test_intbig_t_additive.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_additive.cpp")
+  target_link_libraries(test_intbig_t_additive
           gtest gtest_main
           intbig_t
-  )
-  target_include_directories(test_intbig_t PRIVATE vendor/infint)
-  add_test(test_intbig_t test_intbig_t)
+          )
+  target_include_directories(test_intbig_t_additive PRIVATE vendor/infint)
+  add_test(test_intbig_t_additive test_intbig_t_additive)
+
+  add_executable(test_intbig_t_comparisons test/test_intbig_t_comparisons.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_comparisons.cpp")
+  target_link_libraries(test_intbig_t_comparisons
+          gtest gtest_main
+          intbig_t
+          )
+  add_test(test_intbig_t_comparisons test_intbig_t_comparisons)
 
   # all tests
   add_executable(test_all test/main.cpp "${TEST_SRCS}")
@@ -50,9 +58,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
   )
-  # TODO: can I make every single test a library? So that `test_*` links to one of them and this one to all?
-  # TODO: https://cmake.org/cmake/help/v3.5/command/add_library.html#id6
-  # TODO: https://cmake.org/cmake/help/v3.5/manual/cmake-buildsystem.7.html#interface-libraries
+  target_include_directories(test_all PRIVATE vendor/infint)
 
   # TODO: https://stackoverflow.com/a/28305481:
   # TODO:   make sense of what the PRIVATE and PUBLIC do in `target_include_directories`

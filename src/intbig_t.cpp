@@ -332,8 +332,6 @@ namespace {
             std::logic_error("it's less, you fuck!");
         }
 
-        size_t pi = acc.size(), dor = x.size();
-
         bool carry = false;
 
         for(size_t i = 0; i < (!in_reverse ? x.size() : acc.size()); i++) {

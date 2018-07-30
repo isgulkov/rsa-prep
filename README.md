@@ -173,7 +173,7 @@ bool overflow(uint64_t x, uint64_t y) {
 }
 ```
 
-Additionally, the addition of carry needs to be accounted for:
+Additionally, the carry needs to be accounted for:
 
 ```cpp
     if(!carry) {
@@ -192,52 +192,69 @@ Also, the `vector` lengths should be checked and updated appropriately:
 - before addition — to equalise the lengths of the operands *(when adding in-place)*;
 - after addition — to add a new digit if carry was left.
 
-Using these two base cases to the operations over integers, though, is a whole new ordeal.
+In terms of one another, the operations are extended onto integers:
 
-Addition transforms depending on signs of the operands:
+- four cases addition:
 
-- $a + (-b) \rarr a - b$;
-- $(-a) + b \rarr b - a$;
-- $(-a) + (-b) \rarr - (a + b)$.
+  - $a + b$;
+  - $a + (-b) \rarr a - b \rarr [maybe\ -(b - a)]$;
+  - $(-a) + b \rarr b - a \rarr [maybe\ -(a - b)]$;
+  - $(-a) + (-b) \rarr - (a + b)$;
 
-For subtraction, the result's sign also matters:
+- and subtraction:
+  - $a - b \rarr [maybe\ -(b - a)]$;
+  - $a - (-b) \rarr a + b$;
+  - $(-a) - b \rarr -(a + b)$;
+  - $(-a) - (-b) \rarr b - a \rarr [maybe\ (b - a)]$;
 
-- $a - (-b) \rarr a + b$;
-- $(-a) - b \rarr -(a + b)$;
-- $(-a) - (-b) \rarr b - a$;
-- otherwise, if $a < b$, then $a - b \rarr b - a$.
+  *(let's say that $a$ and $b$ here are the absolute values of the arguments)*.
 
-Most of these transformations are just calls between functions, which is minimal overhead.
+Now, all this is just simple arithmetics and function calls, but to implement all this without unnecessary overhead, some consideraions need to be taken:
 
-Some of them complicate implementing the compound assignments:
+- unlike variable $b$ above, the actual parameter `b` you can't just be passed with another sign:
 
-- where the right operand is used with another sign;
-- where the operands are swapped.
+  - creating its negated copy (`-b`) is just wasteful;
 
-Calculating into a temporary is a waste of cycles, and passing $b$ not by `const&` or making the fields mutable is just sloppy programming.
+  - "change the sign, then change it back" won't work either, as it's passed by `const&` (should be, at least!);
 
-> **TODO**: replace all occurrences of `*this = 0;` with something like `clear()`
+    thus, for any expression above where $b$ changes its sign, you have to manually traffic this information somehow;
 
-> **TODO**: better looking replacement for `negate();` after an operation:
->
-> ```cpp
-> private:
-> 	void set_neg(bool neg);
-> 	// or
-> 	void set_neg();
-> 	void unset_neg();
-> ```
->
-> These should also do the zero check. `negate` may use them.
->
-> Also, private method for checking for zero instead of `chunks.empty()`:
+- for copying operators `+` and `-`, same applies to `a`;
+
+- for in-place operators `+=` and `-=`, every expression where the operands swap places is a call of separate method — can't just call the $b$'s method as $b$'s method computes into $b$.
+
+Then you try to optimize around some of these obstacles and it all turns into a mush of `if`s. Anyway, here's the hierarchy I finally organized:
+
+- copying versions:
+
+  these just create a copy of `*this` and call the corresponding in-place version on it;
+
+- in-place versions:
+
+  for every of the four combinations of signs, they express the operation as another one *on the absolute values of the numbers*, possibly with a sign flip afterwards;
+
+- absolute versions (`private`):
+
+  these compute into `*this` the result of one of the three operations on the absolute values: $a + b$, $a - b$, $b - a$ (including the sign — the old sign is discarded);
+
+- helper functions *in the `.cpp` file*:
+
+  these perform the three operations directly on `vector` representations, using the assumptions that we've started with — so, no signs involved.
+
+
+
+Yeah!
+
+
+
+* in-place add the ab `*this` and `other
+
+> **TODO**: private method for checking for zero instead of `chunks.empty()`?
 >
 > ```cpp
 > private:
 > 	bool is_zero() const;
 > ```
-
-. . .
 
 
 
