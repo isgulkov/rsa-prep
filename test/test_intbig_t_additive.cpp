@@ -29,11 +29,10 @@
  *   - [x] on a chunk's edge:
  *         - 1 00(64)00 00(64)00
  *         -   11(64)11 11(64)11
- *   - [ ] sequential composition:
- *         - [ ] within 1 chunk
- *         - [ ] with growth
- *         - [ ] with alternating growth and shrinkage
- *         - [ ] same, several ops interleaved
+ *   - [x] composition:
+ *         - [x] within 1 chunk
+ *         - [x] with growth
+ *         - [x] with alternating growth and shrinkage
  *
  * For copying:
  *   - [ ] that one in fact returns a copy
@@ -59,6 +58,11 @@
  *
  * TODO: this whole file should be reorganized -- test data, function structs and all
  * TODO: unify the single and composable structs? like, their get_reference methods are basically identical
+ *
+ * BUG: In composable tests, ASSERT_ only exits from the method, while the test itself continues (pointlessly) on,
+ * BUG: which produces a lot of console output and makes the program run like a dog with one leg.
+ * BUG: This is gtest's documented behavior — both EXPECTs and ASSERTs only return from the current function.
+ * TODO: find a way to circumvent this -- e.g. by probagating a bool, thowing exception or anything
  *
  * REVIEW: type on the operation, then parametrize on the values instead of running loops?
  * REVIEW: that'd be a shitload of tests, though
@@ -450,7 +454,7 @@ protected:
 
         GetParam().apply_impl(current, x);
 
-        EXPECT_EQ(
+        ASSERT_EQ(
                 current.to_string(), ref
         ) << " after arg. " << x << " on iteration " << i_iter;
 
@@ -478,64 +482,79 @@ INSTANTIATE_TEST_CASE_P(Sub,
                         ::testing::Values(Sub_composable)
 );
 
-TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
+namespace {
+// since C++20: std::generate
+std::vector<std::string> gen_increments(int64_t x, int64_t b)
 {
+    std::vector<std::string> increments(20);
+
     InfInt increment = 11;
 
-    for(int i = 0; i < 20; i++) {
-        assert_advance(increment.toString());
+    for(auto it = increments.begin(); it != increments.end(); it++) {
+        *it = increment.toString();
 
-        increment *= 17;
-        increment -= 19;
+        increment *= x;
+        increment += b;
+    }
+
+    return increments;
+}
+
+const std::vector<std::string> small_increments = gen_increments(11, -19);
+
+const std::vector<std::string> large_increments = gen_increments(17171, -18);
+}
+
+TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
+{
+    // TODO: check against alternative reference -- this may very well be the Vasyan's fault
+
+    for(std::string inc : small_increments) {
+        assert_advance(inc);
     }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeOneChunk)
 {
-    // TODO
+    for(std::string inc : small_increments) {
+        assert_advance("-" + inc);
+    }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveManyChunks)
 {
-//    intbig_t test;
-//    InfInt control;
-//
-//    for(int i = 0; i < 40; i++) {
-//        // Will go out of uint64_t range in about 8 iterations
-//
-//        int64_t x = 1ULL << 61;
-//
-//        if(x % 10 == 0) {
-//            x = 0;
-//        }
-//
-//        control += x;
-//        test += intbig_t(x);
-//
-//        ASSERT_EQ(control.toString(), test.to_string())
-//                                    << i << ": " << "+" << x << " = " << control << " " << test.to_string();
-//    }
+    for(std::string inc : large_increments) {
+        assert_advance(inc);
+    }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeManyChunks)
 {
-    // TODO
+    for(std::string inc : large_increments) {
+        assert_advance("-" + inc);
+    }
 }
 
 TEST_P(IntBigTComposedBinaryOp, OscilatingManyChunks)
 {
-    // TODO
+    for(std::string inc : large_increments) {
+        assert_advance(inc);
+    }
+
+    for(std::string inc : large_increments) {
+        assert_advance("-1" + inc);
+    }
+
+    for(std::string inc : large_increments) {
+        assert_advance("2" + inc);
+    }
+
+    for(std::string inc : large_increments) {
+        assert_advance("-4" + inc);
+    }
 }
 
-TEST(IntBigTBinaryOpComposedAll, WithinOneChunk)
-{
-    // TODO
-}
-
-TEST(IntBigTBinaryOpComposedAll, ManyChunks)
-{
-    // TODO
-}
+// TODO: rework or amend the unary tests below
 
 TEST(IntBigTCopying, UnaryPlusReturnsCopy) {
     intbig_t x = 1337;
