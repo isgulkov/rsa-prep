@@ -59,10 +59,8 @@
  * TODO: this whole file should be reorganized -- test data, function structs and all
  * TODO: unify the single and composable structs? like, their get_reference methods are basically identical
  *
- * BUG: In composable tests, ASSERT_ only exits from the method, while the test itself continues (pointlessly) on,
- * BUG: which produces a lot of console output and makes the program run like a dog with one leg.
- * BUG: This is gtest's documented behavior — both EXPECTs and ASSERTs only return from the current function.
- * TODO: find a way to circumvent this -- e.g. by probagating a bool, thowing exception or anything
+ * TODO: propagate ASSERT failures with ASSERT_NO_FATAL_FAILURE everywhere appropriate
+ * TODO: (the output of multiple errors makes some failing tests run very slow)
  *
  * REVIEW: type on the operation, then parametrize on the values instead of running loops?
  * REVIEW: that'd be a shitload of tests, though
@@ -70,7 +68,7 @@
 
 namespace
 {
-struct BinaryOpSingleTester
+struct BinaryOpSingleTester  // TODO: better name for this and the other "...Tester"
 {
     std::string op_name;
     std::function<intbig_t(const std::string&, const std::string&)> get_result;
@@ -510,47 +508,47 @@ TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
     // TODO: check against alternative reference -- this may very well be the Vasyan's fault
 
     for(std::string inc : small_increments) {
-        assert_advance(inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeOneChunk)
 {
     for(std::string inc : small_increments) {
-        assert_advance("-" + inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveManyChunks)
 {
     for(std::string inc : large_increments) {
-        assert_advance(inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
 TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeManyChunks)
 {
     for(std::string inc : large_increments) {
-        assert_advance("-" + inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
 TEST_P(IntBigTComposedBinaryOp, OscilatingManyChunks)
 {
     for(std::string inc : large_increments) {
-        assert_advance(inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 
     for(std::string inc : large_increments) {
-        assert_advance("-1" + inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance("-1" + inc));
     }
 
     for(std::string inc : large_increments) {
-        assert_advance("2" + inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance("2" + inc));
     }
 
     for(std::string inc : large_increments) {
-        assert_advance("-4" + inc);
+        ASSERT_NO_FATAL_FAILURE(assert_advance("-4" + inc));
     }
 }
 
