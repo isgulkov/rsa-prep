@@ -278,7 +278,6 @@ Implement most of the appropriate C++ opeartors:
 
 - Increment, decrement: `++a`, `--a`, `a++`, `a--`;
 - Arithmetic: `+a`, `-a`, `a + b`, `a - b`, `a * b`, `a / b`, `a % b`, `~a`, `a & b`, `a | b`, `a ^ b`, `a << b`, `a >> b`;
-- Logical: `!a`;
 - Comparison: `a == b`, `a != b`, `a < b`, `a > b`, `a <= b`, `a >= b`;
 
 >  **Note**: standard overloading rules:
@@ -310,6 +309,8 @@ as well as some additional methods:
 - Factory methods:
 
   - [ ] `static intbig_t from_decimal(const std::string& decimal)`;
+  - [ ] `static intbig_t of(int64_t x)` (replace the implicit with it);
+  - [ ] `static intbig_t from_hex(const std::string& hex)` (this can be done hella efficiently, no multiplicative shit);
 
 - [x] Rule of 5; **— turns out, I don't need to define them manually given the member types**;
 
@@ -353,13 +354,17 @@ as well as some additional methods:
 
 - [x] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
 
-- [ ] faster versions of some `operator`s (most importantly, `==` and `!=`) working on `int64_t` without conversion
+- faster versions of some `operator`s working on `int64_t` without conversion:
+
+  - [ ] `==` and `!=`;
+  - [ ] `=`;
+  - [ ] arithmetic (additive, at least);
 
 - [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
 
 Notes:
 
-- `%`, `/`, `%=` and `/=` — **for string coversions only**: don't waste time putting any efficient algorithms there — for modulo $p$ the game will most likely be completely different *(don't forget to warn in the doc comments!)*;
+- `%`, `/`, `%=` and `/=` — **for string coversions only**: don't waste time putting the efficient algorithms there — for modulo $p$ the game will most likely be completely different *(don't forget to warn in the doc comments!)*;
 
 <sup>1</sup> — when will I finally start getting this overload right without StackOverflow?
 

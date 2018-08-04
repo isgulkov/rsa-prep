@@ -131,18 +131,24 @@ const std::vector<std::string> large_positive = {
 
 const std::vector<std::string> large_negative = prepend_minus(large_positive);
 
-const std::vector<std::string> precise_power = {
+const std::vector<std::string> precise_power_positive = {
         "18446744073709551616",  // 2^64
-        "-18446744073709551616",
-        "6277101735386680763835789423207666416102355444464034512896",  // 2^192 = 2^(64 * 3)
-        "-6277101735386680763835789423207666416102355444464034512896"
+        "6277101735386680763835789423207666416102355444464034512896"  // 2^192 = 2^(64 * 3)
 };
 
-const std::vector<std::string> just_below_power = {
+const std::vector<std::string> precise_power_negative = {
+        "-18446744073709551616",  // -2^64
+        "-6277101735386680763835789423207666416102355444464034512896"  // -2^192 = -2^(64 * 3)
+};
+
+const std::vector<std::string> just_below_power_positive = {
         "18446744073709551615",  // 2^64 - 1
-        "-18446744073709551615",
-        "6277101735386680763835789423207666416102355444464034512895",  // 2^192 - 1
-        "-6277101735386680763835789423207666416102355444464034512895"
+        "6277101735386680763835789423207666416102355444464034512895"  // 2^192 - 1
+};
+
+const std::vector<std::string> just_below_power_negative = {
+        "-18446744073709551615",  // -(2^64 - 1)
+        "-6277101735386680763835789423207666416102355444464034512895"  // -(2^192 - 1)
 };
 
 // since C++20: std::generate
@@ -394,24 +400,28 @@ TEST_P(IntBigTAdditiveSingle, MixedSignsLarge)
     assertAll_paired(TestData::large_positive, TestData::large_negative);
 }
 
-TEST_P(IntBigTAdditiveSingle, PowerBoundaryUnderPosOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryUnderPositive)
 {
-    assertAll_pairedWith(TestData::just_below_power, "1");
+    assertAll_pairedWith(TestData::just_below_power_positive, "1");
+    assertAll_pairedWith(TestData::just_below_power_positive, "-1");
 }
 
-TEST_P(IntBigTAdditiveSingle, PowerBoundaryUnderNegOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryUnderNegative)
 {
-    assertAll_pairedWith(TestData::just_below_power, "-1");
+    assertAll_pairedWith(TestData::just_below_power_negative, "1");
+    assertAll_pairedWith(TestData::just_below_power_negative, "-1");
 }
 
-TEST_P(IntBigTAdditiveSingle, PowerBoundaryOverPosOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryOverPositive)
 {
-    assertAll_pairedWith(TestData::precise_power, "1");
+    assertAll_pairedWith(TestData::precise_power_positive, "1");
+    assertAll_pairedWith(TestData::precise_power_positive, "-1");
 }
 
-TEST_P(IntBigTAdditiveSingle, PowerBoundaryOverNegOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryOverNegative)
 {
-    assertAll_pairedWith(TestData::precise_power, "-1");
+    assertAll_pairedWith(TestData::precise_power_negative, "1");
+    assertAll_pairedWith(TestData::precise_power_negative, "-1");
 }
 
 }

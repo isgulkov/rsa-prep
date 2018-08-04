@@ -79,7 +79,6 @@ private:
     // Set this number to zero (for when two equal numbers are subtracted)
     // TODO: restore the explanation that the base case can handle it, but blah blah blah
     void clear();
-    // TODO: (->doc) implement =(int64_t)
 
     // this = |this| + |other|
     void add_abs(const intbig_t& other);
@@ -98,6 +97,14 @@ public:
 
     intbig_t operator+(const intbig_t& other) const;
     intbig_t operator-(const intbig_t& other) const;
+
+    /*
+     * TODO:
+     *   - make tests pass
+     *   - change sign from bool to int (see doc)
+     *   - resolve the dilemma of the two "sub2" functions
+     *   - it works!
+     */
 };
 
 #endif //RSA_PREP_INTBIG_T_H

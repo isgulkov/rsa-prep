@@ -1,20 +1,30 @@
 #include <iostream>
+#include <vector>
 
 #include "intbig_t.h"
+#include "InfInt.h"
 
 int main()
 {
-    intbig_t x = 10LL;
+    const std::string s = "6277101735386680763835789423207666416102355444464034512895";
 
-    std::cout << x << std::endl;
+    intbig_t a = intbig_t::from_decimal(s);
+    InfInt b = s;
 
-    x += 1LL;
+    std::cout << s << std::endl;
+    std::cout << a.to_string() << std::endl;
+    std::cout << b.toString() << std::endl;
+    std::cout << std::endl;
 
-    std::cout << x.to_string() << std::endl;
+    std::cout << "6277101735386680763835789423207666416102355444464034512894" << std::endl;
+    std::cout << (a - 1).to_string() << std::endl;
+    std::cout << (b - 1).toString() << std::endl;
+    std::cout << std::endl;
 
-    x = -10LL;
-
-    std::cout << x << std::endl;
+    std::cout << "6277101735386680763835789423207666416102355444464034512896" << std::endl;
+    std::cout << (a + 1).to_string() << std::endl;
+    std::cout << (b + 1).toString() << std::endl;
+    std::cout << std::endl;
 
     return 0;
 }
