@@ -490,7 +490,7 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     }
 }
 
-void intbig_t::operator+=(const intbig_t& other)
+intbig_t& intbig_t::operator+=(const intbig_t& other)
 {
     if(sign == -1) {
         if(other.sign == -1) {
@@ -524,9 +524,11 @@ void intbig_t::operator+=(const intbig_t& other)
             add_abs(other);
         }
     }
+
+    return *this;
 }
 
-void intbig_t::operator-=(const intbig_t& other)
+intbig_t& intbig_t::operator-=(const intbig_t& other)
 {
     if(sign == -1) {
         if(other.sign == -1) {
@@ -560,6 +562,8 @@ void intbig_t::operator-=(const intbig_t& other)
             sub_abs(other);
         }
     }
+
+    return *this;
 }
 
 intbig_t intbig_t::operator+(const intbig_t& other) const

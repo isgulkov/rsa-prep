@@ -605,6 +605,27 @@ TEST(IntBigTAdditiveSubShrinkage, SubEqual)
 
 }
 
+namespace AssignReturns
+{
+
+TEST(IntBigTAdditiveAssignReturns, AddAssign)
+{
+    intbig_t x = 10;
+
+    ASSERT_EQ((x += 11) += 99, 120);
+    ASSERT_EQ(x, 120);
+}
+
+TEST(IntBigTAdditiveAssignReturns, SubAssign)
+{
+    intbig_t x = 120;
+
+    ASSERT_EQ((x -= 11) -= 99, 10);
+    ASSERT_EQ(x, 10);
+}
+
+}
+
 // Negation tests
 namespace UnaryNegateTest
 {

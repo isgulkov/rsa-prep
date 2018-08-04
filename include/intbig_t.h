@@ -87,19 +87,11 @@ private:
     void subfrom_abs(const intbig_t& other);
 
 public:
-    void operator+=(const intbig_t& other);
-    void operator-=(const intbig_t& other);
+    intbig_t& operator+=(const intbig_t& other);
+    intbig_t& operator-=(const intbig_t& other);
 
     intbig_t operator+(const intbig_t& other) const;
     intbig_t operator-(const intbig_t& other) const;
-
-    /*
-     * TODO:
-     *   - make the compound assignments return lvalue reference to *this
-     *     - add (two) tests for this
-     *     - employ it in the old tests
-     *   - it works!
-     */
 };
 
 #endif //RSA_PREP_INTBIG_T_H

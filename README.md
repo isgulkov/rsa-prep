@@ -287,14 +287,6 @@ Implement most of the appropriate C++ opeartors:
 - Arithmetic: `+a`, `-a`, `a + b`, `a - b`, `a * b`, `a / b`, `a % b`, `~a`, `a & b`, `a | b`, `a ^ b`, `a << b`, `a >> b`;
 - Comparison: `a == b`, `a != b`, `a < b`, `a > b`, `a <= b`, `a >= b`;
 
->  **Note**: standard overloading rules:
->
-> - compound assignments should return `intbig_t&` (for further assignments);
->
-> - binary operators accepting other types (i.e. not `intbig_t`), including cases where in an implicit conversion is desired, should be declared outside class (most frequently with `friend` keyword);
->
->   these changes are better applied (and tested) in bulk when all operators are done.
-
 as well as some additional methods:
 
 - Constructors:
@@ -373,6 +365,7 @@ as well as some additional methods:
 
   - [ ] `==` and `!=`;
   - [ ] `=`;
+  - [ ] other comparisons;
   - [ ] arithmetic (additive, at least);
 
 - [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
