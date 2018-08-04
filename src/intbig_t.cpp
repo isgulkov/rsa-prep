@@ -386,10 +386,20 @@ namespace {
             }
 
             if(!carry) {
-                carry = chunk > acc[i];
+                if(!in_reverse) {
+                    carry = chunk > acc[i];
+                }
+                else {
+                    carry = chunk > x[i];
+                }
             }
             else {
-                carry = chunk >= acc[i];
+                if(!in_reverse) {
+                    carry = chunk >= acc[i];
+                }
+                else {
+                    carry = chunk >= x[i];
+                }
             }
 
             acc[i] = chunk;
@@ -398,7 +408,7 @@ namespace {
         // TODO: extract the sizes as const size_t variables
         for(size_t i = (!in_reverse ? x.size() : acc.size()); i < (!in_reverse ? acc.size() : x.size()); i++) {
             if(in_reverse) {
-                acc.push_back(x[i]);
+                acc.push_back(x[i] - carry);
             }
 
             if(carry) {
@@ -471,7 +481,7 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        sub2from_unsigned(chunks, other.chunks);
+        sub2from_unsigned_(chunks, other.chunks, true);
         is_neg = false;
     }
     else if(cmp_with_other == 0) {
