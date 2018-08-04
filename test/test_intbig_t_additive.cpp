@@ -35,6 +35,14 @@
  *         - [x] with growth
  *         - [x] with alternating growth and shrinkage
  *
+ * For just the subtraction:
+ *   - "large shrinkage"
+ *     ones specially constructed so that the result has many digits less than the minuend
+ *     the proper shrinkage (i.e. no leading zeroes) should be then checked somehow
+ *     - [ ] for a - b
+ *     - [ ] for b - a
+ *     - [ ] zero-result cases for both
+ *
  * For negations:
  *   - [x] some non-zero values
  *   - [x] zero

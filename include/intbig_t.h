@@ -101,9 +101,8 @@ public:
 
     /*
      * TODO:
-     *   - make tests pass
+     *   - refactor the shit out of the three "sub2" functions
      *   - change sign from bool to int (see doc)
-     *   - resolve the dilemma of the two "sub2" functions
      *   - it works!
      */
 };

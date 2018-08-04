@@ -304,22 +304,22 @@ namespace {
          *   acc = acc - x
          *
          * Pre: acc >= x
+         *
+         * NOTE: while the two versions of this method look like they can be easily refactored into one, they actually
+         * have very little in common, so the result would consist completely of ifs.
          */
 
-        // TODO: after sufficient testing, remove or put into #ifndef NDEBUG
         if(acc.size() < x.size()) {
+            // REMOVE: remove or #ifndef NDEBUG
             std::logic_error("it's less, you fuck!");
         }
 
         bool carry = false;
 
-        // TODO: index of the "first leading zero": set to (i + 1) on non-zeroes
-//        size_t i_first_lz = 0;
-
         for(size_t i = 0; i < x.size(); i++) {
             uint64_t acc_chunk = acc[i] - carry - x[i];
 
-            // Set carry if overflow occured
+            // Set carry if overflow has occurred
             if(!carry) {
                 carry = acc_chunk > acc[i];
             }
@@ -336,104 +336,69 @@ namespace {
 
             carry = (acc[i] == UINT64_MAX);
         }
-        // TODO: how do you do ^this for sub2from?
 
-        // TODO: after sufficient testing, remove or put into #ifndef NDEBUG
-        // TODO: as well as "i < acc.size()" from loop's condition -- it serves no other purpose
         if(carry) {
             /*
              * This should never happen, so the check is just wasteful; but nobody wants an infinite loop in their
              * unit tests
+             *
+             * REMOVE: remove or #ifndef NDEBUG this check and "i < acc.size()" from loop's condition
              */
+
             std::logic_error("you lost your carry!");
         }
 
-        while(acc.back() == 0) {
+        // REVIEW: optimize to single resize() call after adding tests for shrinkage
+        if(acc.back() == 0) {
             acc.pop_back();
         }
-        // REMOVE: after testing, replace this filth and implement the proper way:
-//        if(acc.back() == 0) {
-//            acc.resize(i_first_lz);
-//        }
     }
 
-    void sub2from_unsigned_(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x, bool in_reverse)
+    void sub2from_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
     {
         /*
-         * In-place subtract the two unsigned big integers, but with reverse order of the operands:
+         * In-place subtract the two unsigned big integers:
          *   acc = x - acc
          *
-         * Pre: x <= acc
+         * Pre: x >= acc
          */
 
-        // REMOVE: refactor these two, then either specialize this one or replace the other one with it
-
-        //
-        if(acc.size() != x.size() && acc.size() < x.size() == in_reverse) {
+        if(x.size() < acc.size()) {
+            // REMOVE: remove or #ifndef NDEBUG
             std::logic_error("it's less, you fuck!");
         }
 
         bool carry = false;
 
-        for(size_t i = 0; i < (!in_reverse ? x.size() : acc.size()); i++) {
-            uint64_t chunk;
-
-            if(!in_reverse) {
-                chunk = acc[i] - x[i] - carry;
-            }
-            else {
-                chunk = x[i] - acc[i] - carry;
-            }
+        for(size_t i = 0; i < acc.size(); i++) {
+            uint64_t chunk = x[i] - acc[i] - carry;
 
             if(!carry) {
-                if(!in_reverse) {
-                    carry = chunk > acc[i];
-                }
-                else {
-                    carry = chunk > x[i];
-                }
+                carry = chunk > x[i];
             }
             else {
-                if(!in_reverse) {
-                    carry = chunk >= acc[i];
-                }
-                else {
-                    carry = chunk >= x[i];
-                }
+                carry = chunk >= x[i];
             }
 
             acc[i] = chunk;
         }
 
         // TODO: extract the sizes as const size_t variables
-        for(size_t i = (!in_reverse ? x.size() : acc.size()); i < (!in_reverse ? acc.size() : x.size()); i++) {
-            if(in_reverse) {
-                acc.push_back(x[i] - carry);
-            }
+        for(size_t i = acc.size(); i < x.size(); i++) {
+            acc.push_back(x[i] - carry);
 
-            if(carry) {
-                carry = (acc[i] == UINT64_MAX);
-            }
+            carry = carry && (acc[i] == UINT64_MAX);
         }
 
         if(carry) {
-            std::logic_error("you lost your carry! " + std::string(in_reverse ? "fuck" : "my life"));
+            // REMOVE: see the other method
+            std::logic_error("you lost your carry!");
         }
 
+        // REVIEW: see the other method
         while(acc.back() == 0) {
             acc.pop_back();
         }
-        // REMOVE: after testing, replace this filth and implement the proper way:
-//        if(acc.back() == 0) {
-//            acc.resize(i_first_lz);
-//        }
-    }
-    void sub2from_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
-    {
-        sub2from_unsigned_(acc, x, true);
-
-        // REMOVE:
-//        sub2from_unsigned_(acc, x, false);
     }
 }
 
@@ -462,6 +427,7 @@ void intbig_t::sub_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
+        // REVIEW: don't call compare twice on these forwarding calls? E.g. merge the two methods into one
         subfrom_abs(other);
         negate();
     }
@@ -481,7 +447,7 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        sub2from_unsigned_(chunks, other.chunks, true);
+        sub2from_unsigned(chunks, other.chunks);
         is_neg = false;
     }
     else if(cmp_with_other == 0) {
