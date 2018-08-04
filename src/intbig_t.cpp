@@ -429,16 +429,15 @@ namespace {
 
 void intbig_t::add_abs(const intbig_t& other)
 {
-    if(other.chunks.empty()) {
-        return;
-    }
+    is_neg = false;
 
-    if(chunks.empty()) {
-        chunks = other.chunks;
-    }
-    else {
-        add2_unsigned(chunks, other.chunks);
-        is_neg = false;
+    if(!other.chunks.empty()) {
+        if(chunks.empty()) {
+            chunks = other.chunks;
+        }
+        else {
+            add2_unsigned(chunks, other.chunks);
+        }
     }
 }
 
