@@ -95,7 +95,6 @@ public:
 
     /*
      * TODO:
-     *   - change sign repr. from bool to int (see doc)
      *   - add subtraction shrinkage tests
      *   - optimize vector resize in subtraction (if possible)
      *   - refactor the two "sub2" functions and their method counterparts some more

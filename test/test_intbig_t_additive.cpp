@@ -179,6 +179,11 @@ std::vector<std::string> gen_increments(int64_t x, int64_t b)
 const std::vector<std::string> small_increments = gen_increments(11, -19);
 
 const std::vector<std::string> large_increments = gen_increments(17171, -18);
+
+const std::pair<std::string, std::string> large_different_by_one = {
+        "3161839487167763594107724496196279505125213113747786694642261808083621393592765616154012046788175944497933563312415963469",
+        "3161839487167763594107724496196279505125213113747786694642261808083621393592765616154012046788175944497933563312415963468"
+};
 }
 
 // Representations of the binary operators for the value-parametrized tests
@@ -529,6 +534,50 @@ TEST_P(IntBigTAdditiveComposed, OscilatingManyChunks)
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-4" + inc));
     }
+}
+
+}
+
+// Tests for whether subtraction shrinks the result's representation properly (i.e. removes leading zeroes)
+namespace SubShrinkage
+{
+
+TEST(IntBigTAdditiveSubShrinkage, SubAssignForward)
+{
+    intbig_t one = intbig_t::from_decimal(TestData::large_different_by_one.first);
+    one -= intbig_t::from_decimal(TestData::large_different_by_one.second);
+
+    EXPECT_EQ(one, 1);
+    EXPECT_FALSE(one > 1);
+}
+
+TEST(IntBigTAdditiveSubShrinkage, SubAssignBackward)
+{
+    intbig_t one = intbig_t::from_decimal(TestData::large_different_by_one.second);
+    one -= intbig_t::from_decimal(TestData::large_different_by_one.first);
+
+    EXPECT_EQ(one, -1);
+    EXPECT_FALSE(one < -1);
+}
+
+TEST(IntBigTAdditiveSubShrinkage, SubForward)
+{
+    intbig_t one = intbig_t::from_decimal(
+            TestData::large_different_by_one.first
+    ) - intbig_t::from_decimal(TestData::large_different_by_one.second);
+
+    EXPECT_EQ(one, 1);
+    EXPECT_FALSE(one > 1);
+}
+
+TEST(IntBigTAdditiveSubShrinkage, SubBackward)
+{
+    intbig_t one = intbig_t::from_decimal(
+            TestData::large_different_by_one.second
+    ) - intbig_t::from_decimal(TestData::large_different_by_one.first);
+
+    EXPECT_EQ(one, -1);
+    EXPECT_FALSE(one < -1);
 }
 
 }
