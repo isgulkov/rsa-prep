@@ -465,13 +465,13 @@ struct cl_byte {
 
 ## Links
 
-1. [Googletest Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md)
+1. google test:
 
-   [Advanced googletest Topics](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md);
-
-   1. [Teaching googletest How to Print Your Values](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#teaching-googletest-how-to-print-your-values);
-   2. [Predicate Assertions for Better Error Messages](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#predicate-assertions-for-better-error-messages);
-   3. [Value-Parameterized Tests](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#value-parameterized-tests);
+   1. [Googletest Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md);
+   2. [Advanced googletest Topics](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md):
+      1. [Teaching googletest How to Print Your Values](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#teaching-googletest-how-to-print-your-values);
+      2. [Predicate Assertions for Better Error Messages](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#predicate-assertions-for-better-error-messages);
+      3. [Value-Parameterized Tests](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#value-parameterized-tests);
 
 2. [Длинная арифметика — e-maxx.ru](http://e-maxx.ru/algo/big_integer);
 
@@ -600,6 +600,11 @@ struct cl_byte {
          (if I'm replacing `vector`, it doesn't neccessarily need to be nearly as complex as some of these: only a few methods needed, only one use-case considered);
 
          (some of them boast improving the `memmove` assumptions which are suboptimal in `std::vector` — does this apply to `uint64_t`, though?);
+
+      8. `itoa`/`atoi` for big integers:
+
+         1. [`itoa` benchmarks](https://github.com/amdn/itoa-benchmark) (for regular ints);
+         2. [gay `dtoa` benchmarks](https://github.com/miloyip/dtoa-benchmark) (for regular doubles);
 
 5. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 

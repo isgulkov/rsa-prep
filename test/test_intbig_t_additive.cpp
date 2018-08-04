@@ -12,9 +12,10 @@
  *
  * |               | In-place | Copying  |
  * | ------------- | -------- | ---------|
- * | addition      |  +=      |  +       |
- * | subtraction   |  -=      |  - (bin) |
- * | negation      |  negate  |  - (un)  |
+ * | addition      |  +=      |  + (b)   |
+ * | subtraction   |  -=      |  - (b)   |
+ * | negation      |  negate  |  - (u)   |
+ * |               |          |  + (u)   |
  *
  * For the binaries:
  *   - [x] "cases":
@@ -34,20 +35,13 @@
  *         - [x] with growth
  *         - [x] with alternating growth and shrinkage
  *
- * For copying:
- *   - [ ] that one in fact returns a copy
- *
- * For in-place:
- *   - [ ] that one in fact returns the same instance
- *         TODO: implement this first
- *   - [ ] including when it becomes zero from non-zero
- *   - [ ] including when it stays zero from being zero
- *
  * For negations:
  *   - [ ] some non-zero values
  *   - [ ] zero
  *
  * Have I missed something? Have I included something dumb?
+ *
+ * NOTE: it's not tested whether each copying operator actually copies stuff as this is enforced by their return types
  *
  * Note that result comparisons are done through decimal string representation as the most "representative": most
  * human-readable and (arguably) most brittle. Tests specific to `from_decimal` and `to_decimal`, as well as other
@@ -102,43 +96,53 @@ protected:
         ) << msg << " (" << x << " " << y << ")";
     }
 
-    void expectAll_labelledPairs(const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>& data)
+    void assert_likeReference(const std::string& x, const std::string& y, const std::string& msg="")
+    {
+        ASSERT_EQ(
+                get_result(x, y).to_string(),
+                get_reference(x, y)
+        ) << msg << " (" << x << " " << y << ")";
+    }
+
+    void assertAll_labelledPairs(const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>& data)
     {
         for(const auto& datum : data) {
-            expect_likeReference(
-                    datum.second.first,
-                    datum.second.second,
-                    datum.first
+            ASSERT_NO_FATAL_FAILURE(
+                    assert_likeReference(
+                        datum.second.first,
+                        datum.second.second,
+                        datum.first
+                )
             );
         }
     }
 
-    void expectAll_pairedWith(const std::vector<std::string>& xs, const std::string& y)
+    void assertAll_pairedWith(const std::vector<std::string>& xs, const std::string& y)
     {
         for(const auto& x : xs) {
-            expect_likeReference(x, y);
+            ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, y));
         }
     }
 
-    void expectAll_pairedWith(const std::string& x, const std::vector<std::string>& ys)
+    void assertAll_pairedWith(const std::string& x, const std::vector<std::string>& ys)
     {
         for(const auto& y : ys) {
-            expect_likeReference(x, y);
+            ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, y));
         }
     }
 
-    void expectAll_paired(const std::vector<std::string>& xs, const std::vector<std::string>& ys)
+    void assertAll_paired(const std::vector<std::string>& xs, const std::vector<std::string>& ys)
     {
         for(auto ix = xs.begin(), iy = ys.begin(); ix != xs.end() && iy != ys.end(); ix++, iy++) {
-            expect_likeReference(*ix, *iy);
+            ASSERT_NO_FATAL_FAILURE(assert_likeReference(*ix, *iy));
         }
     }
 
-    void expectAll_allPairs(const std::vector<std::string>& xs)
+    void assertAll_allPairs(const std::vector<std::string>& xs)
     {
         for(const auto& x : xs) {
             for(const auto& y : xs) {
-                expect_likeReference(x, y);
+                ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, y));
             }
         }
     }
@@ -228,7 +232,7 @@ const std::vector<std::pair<std::string, std::pair<std::string, std::string>>> o
 
 TEST_P(IntBigTSingleBinaryOp, OperandSignCases)
 {
-    expectAll_labelledPairs(IntBigTTestData::operand_sign_cases);
+    assertAll_labelledPairs(IntBigTTestData::operand_sign_cases);
 }
 
 namespace IntBigTTestData
@@ -239,18 +243,18 @@ const std::vector<std::string> few_both_opposite = { "48093441235234523452789014
 
 TEST_P(IntBigTSingleBinaryOp, ZeroOperandLeft)
 {
-    expectAll_pairedWith(IntBigTTestData::few_both, "0");
+    assertAll_pairedWith(IntBigTTestData::few_both, "0");
 }
 
 TEST_P(IntBigTSingleBinaryOp, ZeroOperandRight)
 {
-    expectAll_pairedWith("0", IntBigTTestData::few_both);
+    assertAll_pairedWith("0", IntBigTTestData::few_both);
 }
 
 TEST_P(IntBigTSingleBinaryOp, ZeroResult)
 {
-    expectAll_paired(IntBigTTestData::few_both, IntBigTTestData::few_both_opposite);
-    expectAll_paired(IntBigTTestData::few_both_opposite, IntBigTTestData::few_both);
+    assertAll_paired(IntBigTTestData::few_both, IntBigTTestData::few_both_opposite);
+    assertAll_paired(IntBigTTestData::few_both_opposite, IntBigTTestData::few_both);
 
     expect_likeReference("0", "0");
 }
@@ -314,34 +318,34 @@ const std::vector<std::string> large_negative = prepend_minus(large_positive);
 
 TEST_P(IntBigTSingleBinaryOp, PositiveSmall)
 {
-    expectAll_allPairs(IntBigTTestData::small_positive);
+    assertAll_allPairs(IntBigTTestData::small_positive);
 }
 
 TEST_P(IntBigTSingleBinaryOp, PositiveLarge)
 {
-    expectAll_allPairs(IntBigTTestData::large_positive);
+    assertAll_allPairs(IntBigTTestData::large_positive);
 }
 
 TEST_P(IntBigTSingleBinaryOp, NegativeSmall)
 {
-    expectAll_allPairs(IntBigTTestData::small_negative);
+    assertAll_allPairs(IntBigTTestData::small_negative);
 }
 
 TEST_P(IntBigTSingleBinaryOp, NegativeLarge)
 {
-    expectAll_allPairs(IntBigTTestData::large_negative);
+    assertAll_allPairs(IntBigTTestData::large_negative);
 }
 
 TEST_P(IntBigTSingleBinaryOp, MixedSignsSmall)
 {
-    expectAll_paired(IntBigTTestData::small_negative, IntBigTTestData::small_positive);
-    expectAll_paired(IntBigTTestData::small_positive, IntBigTTestData::small_negative);
+    assertAll_paired(IntBigTTestData::small_negative, IntBigTTestData::small_positive);
+    assertAll_paired(IntBigTTestData::small_positive, IntBigTTestData::small_negative);
 }
 
 TEST_P(IntBigTSingleBinaryOp, MixedSignsLarge)
 {
-    expectAll_paired(IntBigTTestData::large_negative, IntBigTTestData::large_positive);
-    expectAll_paired(IntBigTTestData::large_positive, IntBigTTestData::large_negative);
+    assertAll_paired(IntBigTTestData::large_negative, IntBigTTestData::large_positive);
+    assertAll_paired(IntBigTTestData::large_positive, IntBigTTestData::large_negative);
 }
 
 namespace IntBigTTestData {
@@ -362,22 +366,22 @@ const std::vector<std::string> just_below_power = {
 
 TEST_P(IntBigTSingleBinaryOp, PowerBoundaryUnderPosOne)
 {
-    expectAll_pairedWith(IntBigTTestData::just_below_power, "1");
+    assertAll_pairedWith(IntBigTTestData::just_below_power, "1");
 }
 
 TEST_P(IntBigTSingleBinaryOp, PowerBoundaryUnderNegOne)
 {
-    expectAll_pairedWith(IntBigTTestData::just_below_power, "-1");
+    assertAll_pairedWith(IntBigTTestData::just_below_power, "-1");
 }
 
 TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverPosOne)
 {
-    expectAll_pairedWith(IntBigTTestData::precise_power, "1");
+    assertAll_pairedWith(IntBigTTestData::precise_power, "1");
 }
 
 TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverNegOne)
 {
-    expectAll_pairedWith(IntBigTTestData::precise_power, "-1");
+    assertAll_pairedWith(IntBigTTestData::precise_power, "-1");
 }
 
 namespace {
@@ -559,24 +563,18 @@ TEST(IntBigTCopying, UnaryPlusReturnsCopy) {
     intbig_t y = +x;
 
     y += 1;
-    ASSERT_EQ(x, 1337);
-    ASSERT_EQ(y, 1338);
 
-    x += 2;
-    ASSERT_EQ(x, 1339);
-    ASSERT_EQ(y, 1338);
+    EXPECT_NE(x, y);
 }
 
 TEST(IntBigTCopying, UnaryPlusReturnsSameValue) {
     intbig_t x = 1337;
 
-    ASSERT_EQ(x, +x);
-    ASSERT_EQ(+x, 1337);
+    EXPECT_EQ(x, +x);
 
-    intbig_t y = +x;
+    intbig_t y;
 
-    ASSERT_EQ(y, x);
-    ASSERT_EQ(y, 1337);
+    EXPECT_EQ(x, +y);
 }
 
 TEST(IntBigTCopying, UnaryMinusReturnsCopy) {
@@ -613,24 +611,11 @@ TEST(IntBigTCopying, UnaryMinusOfZeroReturnsSameValue) {
     ASSERT_EQ(-x, 0);
 }
 
-TEST(IntBigTInPlace, NegateReturnsSameObject) {
-    intbig_t x = 1337;
-    intbig_t& y = x.negate().negate();
-
-    y += 1;
-    ASSERT_EQ(x, 1338);
-    ASSERT_EQ(y, 1338);
-
-    x += 2;
-    ASSERT_EQ(x, 1340);
-    ASSERT_EQ(y, 1340);
-}
-
 TEST(IntBigTInPlace, NegateNegatesTheValue) {
     intbig_t x = 1337;
 
-    ASSERT_EQ("-" + x.to_string(), x.negate().to_string());
-    ASSERT_EQ(x, -1337);
+    EXPECT_EQ("-" + x.to_string(), x.negate().to_string());
+    EXPECT_EQ(x, -1337);
 }
 
 TEST(IntBigTInPlace, NegatePreservesZero) {
