@@ -36,8 +36,8 @@
  *         - [x] with alternating growth and shrinkage
  *
  * For negations:
- *   - [ ] some non-zero values
- *   - [ ] zero
+ *   - [x] some non-zero values
+ *   - [x] zero
  *
  * Have I missed something? Have I included something dumb?
  *
@@ -47,8 +47,7 @@
  * human-readable and (arguably) most brittle. Tests specific to `from_decimal` and `to_decimal`, as well as other
  * representations, should be in a separate file.  (e.g. don't intentionally feed it invalid data and shit)
  *
- * TODO: make AdditiveBinaryOp a type parameter instead of value one
- *
+ * TODO: make AdditiveBinaryOp a type parameter instead of value one, like in the negate tests?
  * TODO: consider employing an alternative, more respected reference -- this one doesn't inspire too much confidence
  *
  * REVIEW: make some of the elementwise asserts expects still? e.g. in the "Cases" tests
@@ -168,7 +167,7 @@ const std::vector<std::string> small_increments = gen_increments(11, -19);
 const std::vector<std::string> large_increments = gen_increments(17171, -18);
 }
 
-// Representations of the binary operators for the data-parametrized tests
+// Representations of the binary operators for the value-parametrized tests
 namespace BinaryOps
 {
 struct AdditiveBinaryOp
@@ -239,10 +238,10 @@ const AdditiveBinaryOp Sub_op = {
 }
 
 // Tests based on single, isolated application of an operator
-namespace BinarySingleTest
+namespace SingleTest
 {
 
-class SingleOpTestCase : public ::testing::TestWithParam<BinaryOps::AdditiveBinaryOp>
+class IntBigTAdditiveSingle : public ::testing::TestWithParam<BinaryOps::AdditiveBinaryOp>
 {
 protected:
     intbig_t get_result(const std::string& x, const std::string& y)
@@ -321,41 +320,41 @@ protected:
 };
 
 INSTANTIATE_TEST_CASE_P(AddAssign,
-                        SingleOpTestCase,
+                        IntBigTAdditiveSingle,
                         ::testing::Values(BinaryOps::AddAssign_op)
 );
 
 INSTANTIATE_TEST_CASE_P(Add,
-                        SingleOpTestCase,
+                        IntBigTAdditiveSingle,
                         ::testing::Values(BinaryOps::Add_op)
 );
 
 INSTANTIATE_TEST_CASE_P(SubAssign,
-                        SingleOpTestCase,
+                        IntBigTAdditiveSingle,
                         ::testing::Values(BinaryOps::SubAssign_op)
 );
 
 INSTANTIATE_TEST_CASE_P(Sub,
-                        SingleOpTestCase,
+                        IntBigTAdditiveSingle,
                         ::testing::Values(BinaryOps::Sub_op)
 );
 
-TEST_P(SingleOpTestCase, OperandSignCases)
+TEST_P(IntBigTAdditiveSingle, OperandSignCases)
 {
     assertAll_labelledPairs(TestData::operand_sign_cases);
 }
 
-TEST_P(SingleOpTestCase, ZeroOperandLeft)
+TEST_P(IntBigTAdditiveSingle, ZeroOperandLeft)
 {
     assertAll_pairedWith(TestData::few_both, "0");
 }
 
-TEST_P(SingleOpTestCase, ZeroOperandRight)
+TEST_P(IntBigTAdditiveSingle, ZeroOperandRight)
 {
     assertAll_pairedWith("0", TestData::few_both);
 }
 
-TEST_P(SingleOpTestCase, ZeroResult)
+TEST_P(IntBigTAdditiveSingle, ZeroResult)
 {
     assertAll_paired(TestData::few_both, TestData::few_both_opposite);
     assertAll_paired(TestData::few_both_opposite, TestData::few_both);
@@ -363,54 +362,54 @@ TEST_P(SingleOpTestCase, ZeroResult)
     expect_likeReference("0", "0");
 }
 
-TEST_P(SingleOpTestCase, PositiveSmall)
+TEST_P(IntBigTAdditiveSingle, PositiveSmall)
 {
     assertAll_allPairs(TestData::small_positive);
 }
 
-TEST_P(SingleOpTestCase, PositiveLarge)
+TEST_P(IntBigTAdditiveSingle, PositiveLarge)
 {
     assertAll_allPairs(TestData::large_positive);
 }
 
-TEST_P(SingleOpTestCase, NegativeSmall)
+TEST_P(IntBigTAdditiveSingle, NegativeSmall)
 {
     assertAll_allPairs(TestData::small_negative);
 }
 
-TEST_P(SingleOpTestCase, NegativeLarge)
+TEST_P(IntBigTAdditiveSingle, NegativeLarge)
 {
     assertAll_allPairs(TestData::large_negative);
 }
 
-TEST_P(SingleOpTestCase, MixedSignsSmall)
+TEST_P(IntBigTAdditiveSingle, MixedSignsSmall)
 {
     assertAll_paired(TestData::small_negative, TestData::small_positive);
     assertAll_paired(TestData::small_positive, TestData::small_negative);
 }
 
-TEST_P(SingleOpTestCase, MixedSignsLarge)
+TEST_P(IntBigTAdditiveSingle, MixedSignsLarge)
 {
     assertAll_paired(TestData::large_negative, TestData::large_positive);
     assertAll_paired(TestData::large_positive, TestData::large_negative);
 }
 
-TEST_P(SingleOpTestCase, PowerBoundaryUnderPosOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryUnderPosOne)
 {
     assertAll_pairedWith(TestData::just_below_power, "1");
 }
 
-TEST_P(SingleOpTestCase, PowerBoundaryUnderNegOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryUnderNegOne)
 {
     assertAll_pairedWith(TestData::just_below_power, "-1");
 }
 
-TEST_P(SingleOpTestCase, PowerBoundaryOverPosOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryOverPosOne)
 {
     assertAll_pairedWith(TestData::precise_power, "1");
 }
 
-TEST_P(SingleOpTestCase, PowerBoundaryOverNegOne)
+TEST_P(IntBigTAdditiveSingle, PowerBoundaryOverNegOne)
 {
     assertAll_pairedWith(TestData::precise_power, "-1");
 }
@@ -418,10 +417,10 @@ TEST_P(SingleOpTestCase, PowerBoundaryOverNegOne)
 }
 
 // Tests based on applying one or more operators multiple times while checking the intermediate result
-namespace BinaryComposedTest
+namespace ComposedTest
 {
 
-class ComposedOpTestCase : public ::testing::TestWithParam<BinaryOps::AdditiveBinaryOp>
+class IntBigTAdditiveComposed : public ::testing::TestWithParam<BinaryOps::AdditiveBinaryOp>
 {
 protected:
     intbig_t current;
@@ -448,54 +447,54 @@ protected:
 };
 
 INSTANTIATE_TEST_CASE_P(AddAssign,
-                        ComposedOpTestCase,
+                        IntBigTAdditiveComposed,
                         ::testing::Values(BinaryOps::AddAssign_op)
 );
 
 INSTANTIATE_TEST_CASE_P(Add,
-                        ComposedOpTestCase,
+                        IntBigTAdditiveComposed,
                         ::testing::Values(BinaryOps::Add_op)
 );
 
 INSTANTIATE_TEST_CASE_P(SubAssign,
-                        ComposedOpTestCase,
+                        IntBigTAdditiveComposed,
                         ::testing::Values(BinaryOps::SubAssign_op)
 );
 
 INSTANTIATE_TEST_CASE_P(Sub,
-                        ComposedOpTestCase,
+                        IntBigTAdditiveComposed,
                         ::testing::Values(BinaryOps::Sub_op)
 );
 
-TEST_P(ComposedOpTestCase, MonotonicPositiveOneChunk)
+TEST_P(IntBigTAdditiveComposed, MonotonicPositiveOneChunk)
 {
     for(std::string inc : TestData::small_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
-TEST_P(ComposedOpTestCase, MonotonicNegativeOneChunk)
+TEST_P(IntBigTAdditiveComposed, MonotonicNegativeOneChunk)
 {
     for(std::string inc : TestData::small_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
-TEST_P(ComposedOpTestCase, MonotonicPositiveManyChunks)
+TEST_P(IntBigTAdditiveComposed, MonotonicPositiveManyChunks)
 {
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
-TEST_P(ComposedOpTestCase, MonotonicNegativeManyChunks)
+TEST_P(IntBigTAdditiveComposed, MonotonicNegativeManyChunks)
 {
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
-TEST_P(ComposedOpTestCase, OscilatingManyChunks)
+TEST_P(IntBigTAdditiveComposed, OscilatingManyChunks)
 {
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
@@ -516,82 +515,130 @@ TEST_P(ComposedOpTestCase, OscilatingManyChunks)
 
 }
 
-// TODO: rework or amend the unary tests below
-
-TEST(IntBigTCopying, UnaryPlusReturnsCopy)
+// Negation tests
+namespace UnaryNegateTest
 {
-    intbig_t x = 1337;
-    intbig_t y = +x;
 
-    y += 1;
+struct Negate_return
+{
+    static void apply(intbig_t& x)
+    {
+        x = x.negate();
+    }
+};
 
-    EXPECT_NE(x, y);
+struct Negate_sameVal
+{
+    static void apply(intbig_t& x)
+    {
+        x.negate();
+    }
+};
+
+struct Minus_op
+{
+    static void apply(intbig_t& x)
+    {
+        x = -x;
+    }
+};
+
+template<typename NegateOp>
+class IntBigTNegate : public ::testing::Test
+{
+public:
+    void assert_negatedEq(const std::string& x, const std::string& negated_x)
+    {
+        intbig_t a = intbig_t::from_decimal(x);
+        NegateOp::apply(a);
+
+        ASSERT_EQ(a.to_string(), negated_x);
+    }
+
+    void assert_plusTurnsMinus(const std::string& x, const std::string& y)
+    {
+        intbig_t a = intbig_t::from_decimal(x);
+        intbig_t b = intbig_t::from_decimal(y);
+
+        std::string result = (a - b).to_string();
+
+        NegateOp::apply(b);
+
+        ASSERT_EQ((a + b).to_string(), result);
+    }
+
+    void assert_minusTurnsPlus(const std::string& x, const std::string& y)
+    {
+        intbig_t a = intbig_t::from_decimal(x);
+        intbig_t b = intbig_t::from_decimal(y);
+
+        std::string result = (a + b).to_string();
+
+        NegateOp::apply(b);
+
+        ASSERT_EQ((a - b).to_string(), result);
+    }
+};
+
+using NegateOpTypes = ::testing::Types<Negate_return, Negate_sameVal, Minus_op>;
+TYPED_TEST_CASE(IntBigTNegate, NegateOpTypes);
+
+TYPED_TEST(IntBigTNegate, SmallPositive)
+{
+    this->assert_negatedEq("10", "-10");
+    this->assert_negatedEq("999", "-999");
+
+    this->assert_plusTurnsMinus("25", "4");
+    this->assert_minusTurnsPlus("48", "15");
 }
 
-TEST(IntBigTCopying, UnaryPlusReturnsSameValue)
+TYPED_TEST(IntBigTNegate, LargePositive)
+{
+    std::string large = TestData::large_positive.back();
+
+    this->assert_negatedEq(large, "-" + large);
+}
+
+TYPED_TEST(IntBigTNegate, SmallNegative)
+{
+    this->assert_negatedEq("-10", "10");
+    this->assert_negatedEq("-999", "999");
+
+    this->assert_plusTurnsMinus("25", "-4");
+    this->assert_minusTurnsPlus("48", "-15");
+}
+
+TYPED_TEST(IntBigTNegate, LargeNegative)
+{
+    std::string large = TestData::large_positive.back();
+
+    this->assert_negatedEq("-" + large, large);
+}
+
+TYPED_TEST(IntBigTNegate, ZeroStaysZero)
+{
+    this->assert_negatedEq("0", "0");
+
+    this->assert_plusTurnsMinus("25", "0");
+    this->assert_minusTurnsPlus("48", "0");
+}
+
+}
+
+// The single test for the unary plus
+TEST(IntBigTUnaryPlus, UnaryPlusReturnsSameValue)
 {
     intbig_t x = 1337;
 
     EXPECT_EQ(x, +x);
 
-    intbig_t y;
+    intbig_t y = -1337;
 
-    EXPECT_EQ(x, +y);
-}
+    EXPECT_EQ(y, +y);
 
-TEST(IntBigTCopying, UnaryMinusReturnsCopy)
-{
-    // TODO: needs +=/-= for negatives
+    intbig_t z;
 
-    intbig_t x = 1337;
-    intbig_t y = -x;
-
-    y += 1;
-    ASSERT_EQ(x, 1337);
-    ASSERT_EQ(y, -1336);
-
-    x += 2;
-    ASSERT_EQ(x, 1339);
-    ASSERT_EQ(y, -1336);
-}
-
-TEST(IntBigTCopying, UnaryMinusReturnsOppositeValue)
-{
-    intbig_t x = 1337;
-
-    ASSERT_EQ((-x).to_string(), "-" + x.to_string());
-    ASSERT_EQ(-x, -1337);
-
-    intbig_t y = -x;
-
-    ASSERT_EQ(y.to_string(), "-" + x.to_string());
-    ASSERT_EQ(y, -1337);
-}
-
-TEST(IntBigTCopying, UnaryMinusOfZeroReturnsSameValue)
-{
-    intbig_t x = 0;
-
-    ASSERT_EQ((-x), x);
-    ASSERT_EQ(-x, 0);
-}
-
-TEST(IntBigTInPlace, NegateNegatesTheValue)
-{
-    intbig_t x = 1337;
-
-    EXPECT_EQ("-" + x.to_string(), x.negate().to_string());
-    EXPECT_EQ(x, -1337);
-}
-
-TEST(IntBigTInPlace, NegatePreservesZero)
-{
-    intbig_t x = 0;
-    intbig_t y = 0;
-
-    ASSERT_EQ(x.negate(), y);
-
-    ASSERT_EQ(y.to_string(), y.negate().to_string());
+    EXPECT_EQ(z, -z);
 }
 
 }
