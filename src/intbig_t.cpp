@@ -530,7 +530,7 @@ void intbig_t::operator-=(const intbig_t& other)
         }
     }
     else {
-        if(!is_neg) {
+        if(!other.is_neg) {
             // -a - b --> -(a + b)
 
             add_abs(other);
