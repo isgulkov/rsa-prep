@@ -95,8 +95,6 @@ public:
 
     /*
      * TODO:
-     *   - add subtraction shrinkage tests
-     *   - optimize vector resize in subtraction (if possible)
      *   - refactor the two "sub2" functions and their method counterparts some more
      *   - make the compound assignments return lvalue reference to *this
      *     - add (two) tests for this

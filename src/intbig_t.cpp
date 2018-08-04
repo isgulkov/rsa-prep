@@ -420,16 +420,15 @@ namespace {
 
 void intbig_t::add_abs(const intbig_t& other)
 {
-    if(!other.chunks.empty()) {
-        if(chunks.empty()) {
-            chunks = other.chunks;
-        }
-        else {
-            add2_unsigned(chunks, other.chunks);
-        }
-    }
+    /*
+     * In-place add the absolute values:
+     *   this = |this| + |other|
+     *
+     * Pre: both `this` and `other` are non-zero
+     */
 
-    sign = !chunks.empty();
+    add2_unsigned(chunks, other.chunks);
+    sign = 1;
 }
 
 void intbig_t::clear()
@@ -440,16 +439,23 @@ void intbig_t::clear()
 
 void intbig_t::sub_abs(const intbig_t& other)
 {
+    /*
+     * In-place subtract the absolute values:
+     *   this = |this| - |other|
+     *
+     * Pre: both `this` and `other` are non-zero
+     *
+     * REVIEW: somehow merge these two methods into one?
+     */
+
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        // REVIEW: don't call compare twice on these forwarding calls? E.g. merge the two methods into one
-        subfrom_abs(other);
-        negate();
+        sub2from_unsigned(chunks, other.chunks);
+        sign = -1;
     }
     else if(cmp_with_other == 0) {
         // This is just an optimization -- the base case could handle this fine
-
         clear();
     }
     else {
@@ -460,6 +466,13 @@ void intbig_t::sub_abs(const intbig_t& other)
 
 void intbig_t::subfrom_abs(const intbig_t& other)
 {
+    /*
+     * In-place subtract the absolute values:
+     *   this = |other| - |this|
+     *
+     * Pre: both `this` and `other` are non-zero
+     */
+
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
@@ -470,71 +483,79 @@ void intbig_t::subfrom_abs(const intbig_t& other)
         clear();
     }
     else {
-        sub_abs(other);
-        negate();
+        sub2_unsigned(chunks, other.chunks);
+        sign = -1;
     }
 }
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    // TODO: handle zeroes here
-
-    if(sign != -1) {
-        if(other.sign != -1) {
-            // The base case:
-            // a + b
-
-            add_abs(other);
-        }
-        else {
-            // a + -b --> a - b
-
-            sub_abs(other);
-        }
-    }
-    else {
-        if(other.sign != -1) {
-            // -a + b --> b - a
-
-            subfrom_abs(other);
-        }
-        else {
+    if(sign == -1) {
+        if(other.sign == -1) {
             // -a + -b --> -(a + b)
 
             add_abs(other);
             negate();
+        }
+        else if(other.sign == 1) {
+            // -a + b --> b - a
+
+            subfrom_abs(other);
+        }
+    }
+    else if(sign == 0) {
+        if(other.sign != 0) {
+            add_abs(other);
+            sign = other.sign;
+        }
+    }
+    else {
+        if(other.sign == -1) {
+            // a + -b --> a - b
+
+            sub_abs(other);
+        }
+        else if(other.sign == 1) {
+            // The base case:
+            // a + b
+
+            add_abs(other);
         }
     }
 }
 
 void intbig_t::operator-=(const intbig_t& other)
 {
-    // TODO: handle zeroes here
+    if(sign == -1) {
+        if(other.sign == -1) {
+            // -a - -b --> b - a
 
-    if(sign != -1) {
-        if(other.sign != -1) {
-            // The base case:
-            // a - b
-
-            sub_abs(other);
+            subfrom_abs(other);
         }
-        else {
-            // a - -b --> a + b
-
-            add_abs(other);
-        }
-    }
-    else {
-        if(other.sign != -1) {
+        else if(other.sign == 1) {
             // -a - b --> -(a + b)
 
             add_abs(other);
             negate();
         }
-        else {
-            // -a - -b --> b - a
+    }
+    else if(sign == 0) {
+        if(other.sign != 0) {
+            add_abs(other);
+            sign = -other.sign;
+        }
+    }
+    else {
+        if(other.sign == -1) {
+            // a - -b --> a + b
 
-            subfrom_abs(other);
+            add_abs(other);
+        }
+        else if(other.sign == 1) {
+            // The base case:
+            // a - b
+
+            sub_abs(other);
         }
     }
 }
