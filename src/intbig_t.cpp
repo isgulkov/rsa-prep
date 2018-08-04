@@ -325,10 +325,11 @@ namespace {
          * have very little in common, so the result would consist completely of ifs.
          */
 
+#ifndef NDEBUG
         if(acc.size() < x.size()) {
-            // REMOVE: remove or #ifndef NDEBUG
-            std::logic_error("it's less, you fuck!");
+            std::logic_error("Negative result -- this should't happen");
         }
+#endif
 
         bool carry = false;
 
@@ -347,24 +348,24 @@ namespace {
         }
 
         // Collect the remaining carry, if any
-        for(size_t i = x.size(); carry && i < acc.size(); i++) {
+        for(size_t i = x.size(); carry; i++) {
+#ifndef NDEBUG
+            if(i == acc.size()) {
+                break;
+            }
+#endif
             acc[i] -= carry;
 
             carry = (acc[i] == UINT64_MAX);
         }
 
+#ifndef NDEBUG
         if(carry) {
-            /*
-             * This should never happen, so the check is just wasteful; but nobody wants an infinite loop in their
-             * unit tests
-             *
-             * REMOVE: remove or #ifndef NDEBUG this check and "i < acc.size()" from loop's condition
-             */
-
-            std::logic_error("you lost your carry!");
+            std::logic_error("Runaway carry -- this should't happen");
         }
+#endif
 
-        // REVIEW: optimize to single resize() call after adding tests for shrinkage
+        // REVIEW: can't this be done better (maintaining a variable through both loops doesn't seem like it)
         while(acc.back() == 0) {
             acc.pop_back();
         }
@@ -379,10 +380,11 @@ namespace {
          * Pre: x >= acc
          */
 
+#ifndef NDEBUG
         if(x.size() < acc.size()) {
-            // REMOVE: remove or #ifndef NDEBUG
-            std::logic_error("it's less, you fuck!");
+            std::logic_error("Negative result -- this should't happen");
         }
+#endif
 
         bool carry = false;
 
@@ -399,17 +401,17 @@ namespace {
             acc[i] = chunk;
         }
 
-        // TODO: extract the sizes as const size_t variables
         for(size_t i = acc.size(); i < x.size(); i++) {
             acc.push_back(x[i] - carry);
 
             carry = carry && (acc[i] == UINT64_MAX);
         }
 
+#ifndef NDEBUG
         if(carry) {
-            // REMOVE: see the other method
-            std::logic_error("you lost your carry!");
+            std::logic_error("Runaway carry -- this should't happen");
         }
+#endif
 
         // REVIEW: see the other method
         while(acc.back() == 0) {

@@ -95,7 +95,6 @@ public:
 
     /*
      * TODO:
-     *   - refactor the two "sub2" functions and their method counterparts some more
      *   - make the compound assignments return lvalue reference to *this
      *     - add (two) tests for this
      *     - employ it in the old tests
