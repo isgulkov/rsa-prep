@@ -49,6 +49,7 @@ public:
     static intbig_t from_decimal(const std::string& decimal);
 
     std::string to_string() const;
+    std::string to_hex() const;
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
     bool operator==(const intbig_t& other) const;

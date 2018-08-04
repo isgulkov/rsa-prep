@@ -12,18 +12,21 @@ int main()
     InfInt b = s;
 
     std::cout << s << std::endl;
-    std::cout << a.to_string() << std::endl;
     std::cout << b.toString() << std::endl;
+    std::cout << a.to_string() << std::endl;
+    std::cout << a.to_hex() << std::endl;
     std::cout << std::endl;
 
     std::cout << "6277101735386680763835789423207666416102355444464034512894" << std::endl;
-    std::cout << (a - 1).to_string() << std::endl;
     std::cout << (b - 1).toString() << std::endl;
+    std::cout << (a - 1).to_string() << std::endl;
+    std::cout << (a - 1).to_hex() << std::endl;
     std::cout << std::endl;
 
     std::cout << "6277101735386680763835789423207666416102355444464034512896" << std::endl;
-    std::cout << (a + 1).to_string() << std::endl;
     std::cout << (b + 1).toString() << std::endl;
+    std::cout << (a + 1).to_string() << std::endl;
+    std::cout << (a + 1).to_hex() << std::endl;
     std::cout << std::endl;
 
     return 0;

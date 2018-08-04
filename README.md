@@ -312,7 +312,11 @@ as well as some additional methods:
   - [ ] `static intbig_t of(int64_t x)` (replace the implicit with it);
   - [ ] `static intbig_t from_hex(const std::string& hex)` (this can be done hella efficiently, no multiplicative shit);
 
-- [x] Rule of 5; **— turns out, I don't need to define them manually given the member types**;
+- A custom literal? Like:
+
+  - [ ] `"99843217232349984321723234"_big` or `99843217232349984321723234_big`;
+
+- [x] Rule of 5 **— turns out, I don't need to define them manually given the member types**;
 
 - [ ] either provide a `swap` or ensure that `std::swap` works (and why);
 
@@ -320,7 +324,11 @@ as well as some additional methods:
 
   - [ ] `std::string to_string() const`;
 
-    **TODO**: rename into `to_decimal`;
+    **TODO**: rename into (or make alias of?) `to_decimal`;
+
+  - [ ] `std::string to_decimal() const`;
+
+  - [ ] `std::string to_hex() const`;
 
   - [ ] `operator<<(std::ostream& os, $)`<sup>1</sup>;
 
