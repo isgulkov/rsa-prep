@@ -70,7 +70,7 @@ struct BinaryOpSingleTester  // TODO: better name for this and the other "...Tes
 };
 }
 
-class IntBigTSingleBinaryOp : public ::testing::TestWithParam<BinaryOpSingleTester>
+class IntBigTAdditiveBinarySingle : public ::testing::TestWithParam<BinaryOpSingleTester>
 {
 protected:
     intbig_t get_result(const std::string& x, const std::string& y)
@@ -197,22 +197,22 @@ const BinaryOpSingleTester Sub_single = {
 }
 
 INSTANTIATE_TEST_CASE_P(AddAssign,
-                        IntBigTSingleBinaryOp,
+                        IntBigTAdditiveBinarySingle,
                         ::testing::Values(AddAssign_single)
 );
 
 INSTANTIATE_TEST_CASE_P(Add,
-                        IntBigTSingleBinaryOp,
+                        IntBigTAdditiveBinarySingle,
                         ::testing::Values(Add_single)
 );
 
 INSTANTIATE_TEST_CASE_P(SubAssign,
-                        IntBigTSingleBinaryOp,
+                        IntBigTAdditiveBinarySingle,
                         ::testing::Values(SubAssign_single)
 );
 
 INSTANTIATE_TEST_CASE_P(Sub,
-                        IntBigTSingleBinaryOp,
+                        IntBigTAdditiveBinarySingle,
                         ::testing::Values(Sub_single)
 );
 
@@ -230,7 +230,7 @@ const std::vector<std::pair<std::string, std::pair<std::string, std::string>>> o
 };
 }
 
-TEST_P(IntBigTSingleBinaryOp, OperandSignCases)
+TEST_P(IntBigTAdditiveBinarySingle, OperandSignCases)
 {
     assertAll_labelledPairs(IntBigTTestData::operand_sign_cases);
 }
@@ -241,17 +241,17 @@ const std::vector<std::string> few_both = { "-48093441235234523452789014750", "-
 const std::vector<std::string> few_both_opposite = { "48093441235234523452789014750", "1", "-10", "-1999" };
 }
 
-TEST_P(IntBigTSingleBinaryOp, ZeroOperandLeft)
+TEST_P(IntBigTAdditiveBinarySingle, ZeroOperandLeft)
 {
     assertAll_pairedWith(IntBigTTestData::few_both, "0");
 }
 
-TEST_P(IntBigTSingleBinaryOp, ZeroOperandRight)
+TEST_P(IntBigTAdditiveBinarySingle, ZeroOperandRight)
 {
     assertAll_pairedWith("0", IntBigTTestData::few_both);
 }
 
-TEST_P(IntBigTSingleBinaryOp, ZeroResult)
+TEST_P(IntBigTAdditiveBinarySingle, ZeroResult)
 {
     assertAll_paired(IntBigTTestData::few_both, IntBigTTestData::few_both_opposite);
     assertAll_paired(IntBigTTestData::few_both_opposite, IntBigTTestData::few_both);
@@ -316,33 +316,33 @@ const std::vector<std::string> large_positive = {
 const std::vector<std::string> large_negative = prepend_minus(large_positive);
 }
 
-TEST_P(IntBigTSingleBinaryOp, PositiveSmall)
+TEST_P(IntBigTAdditiveBinarySingle, PositiveSmall)
 {
     assertAll_allPairs(IntBigTTestData::small_positive);
 }
 
-TEST_P(IntBigTSingleBinaryOp, PositiveLarge)
+TEST_P(IntBigTAdditiveBinarySingle, PositiveLarge)
 {
     assertAll_allPairs(IntBigTTestData::large_positive);
 }
 
-TEST_P(IntBigTSingleBinaryOp, NegativeSmall)
+TEST_P(IntBigTAdditiveBinarySingle, NegativeSmall)
 {
     assertAll_allPairs(IntBigTTestData::small_negative);
 }
 
-TEST_P(IntBigTSingleBinaryOp, NegativeLarge)
+TEST_P(IntBigTAdditiveBinarySingle, NegativeLarge)
 {
     assertAll_allPairs(IntBigTTestData::large_negative);
 }
 
-TEST_P(IntBigTSingleBinaryOp, MixedSignsSmall)
+TEST_P(IntBigTAdditiveBinarySingle, MixedSignsSmall)
 {
     assertAll_paired(IntBigTTestData::small_negative, IntBigTTestData::small_positive);
     assertAll_paired(IntBigTTestData::small_positive, IntBigTTestData::small_negative);
 }
 
-TEST_P(IntBigTSingleBinaryOp, MixedSignsLarge)
+TEST_P(IntBigTAdditiveBinarySingle, MixedSignsLarge)
 {
     assertAll_paired(IntBigTTestData::large_negative, IntBigTTestData::large_positive);
     assertAll_paired(IntBigTTestData::large_positive, IntBigTTestData::large_negative);
@@ -364,22 +364,22 @@ const std::vector<std::string> just_below_power = {
 };
 }
 
-TEST_P(IntBigTSingleBinaryOp, PowerBoundaryUnderPosOne)
+TEST_P(IntBigTAdditiveBinarySingle, PowerBoundaryUnderPosOne)
 {
     assertAll_pairedWith(IntBigTTestData::just_below_power, "1");
 }
 
-TEST_P(IntBigTSingleBinaryOp, PowerBoundaryUnderNegOne)
+TEST_P(IntBigTAdditiveBinarySingle, PowerBoundaryUnderNegOne)
 {
     assertAll_pairedWith(IntBigTTestData::just_below_power, "-1");
 }
 
-TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverPosOne)
+TEST_P(IntBigTAdditiveBinarySingle, PowerBoundaryOverPosOne)
 {
     assertAll_pairedWith(IntBigTTestData::precise_power, "1");
 }
 
-TEST_P(IntBigTSingleBinaryOp, PowerBoundaryOverNegOne)
+TEST_P(IntBigTAdditiveBinarySingle, PowerBoundaryOverNegOne)
 {
     assertAll_pairedWith(IntBigTTestData::precise_power, "-1");
 }
@@ -439,7 +439,7 @@ const std::vector<BinaryOpComposableTester> composable_ops = {
 };
 }
 
-class IntBigTComposedBinaryOp : public ::testing::TestWithParam<BinaryOpComposableTester>
+class IntBigTAdditiveBinaryComposed : public ::testing::TestWithParam<BinaryOpComposableTester>
 {
 protected:
     intbig_t current;
@@ -465,22 +465,22 @@ protected:
 };
 
 INSTANTIATE_TEST_CASE_P(AddAssign,
-                        IntBigTComposedBinaryOp,
+                        IntBigTAdditiveBinaryComposed,
                         ::testing::Values(AddAssign_composable)
 );
 
 INSTANTIATE_TEST_CASE_P(Add,
-                        IntBigTComposedBinaryOp,
+                        IntBigTAdditiveBinaryComposed,
                         ::testing::Values(Add_composable)
 );
 
 INSTANTIATE_TEST_CASE_P(SubAssign,
-                        IntBigTComposedBinaryOp,
+                        IntBigTAdditiveBinaryComposed,
                         ::testing::Values(SubAssign_composable)
 );
 
 INSTANTIATE_TEST_CASE_P(Sub,
-                        IntBigTComposedBinaryOp,
+                        IntBigTAdditiveBinaryComposed,
                         ::testing::Values(Sub_composable)
 );
 
@@ -507,7 +507,7 @@ const std::vector<std::string> small_increments = gen_increments(11, -19);
 const std::vector<std::string> large_increments = gen_increments(17171, -18);
 }
 
-TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
+TEST_P(IntBigTAdditiveBinaryComposed, MonotonicPositiveOneChunk)
 {
     // TODO: check against alternative reference -- this may very well be the Vasyan's fault
 
@@ -516,28 +516,28 @@ TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveOneChunk)
     }
 }
 
-TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeOneChunk)
+TEST_P(IntBigTAdditiveBinaryComposed, MonotonicNegativeOneChunk)
 {
     for(std::string inc : small_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
-TEST_P(IntBigTComposedBinaryOp, MonotonicPositiveManyChunks)
+TEST_P(IntBigTAdditiveBinaryComposed, MonotonicPositiveManyChunks)
 {
     for(std::string inc : large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
-TEST_P(IntBigTComposedBinaryOp, MonotonicNegativeManyChunks)
+TEST_P(IntBigTAdditiveBinaryComposed, MonotonicNegativeManyChunks)
 {
     for(std::string inc : large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
-TEST_P(IntBigTComposedBinaryOp, OscilatingManyChunks)
+TEST_P(IntBigTAdditiveBinaryComposed, OscilatingManyChunks)
 {
     for(std::string inc : large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
