@@ -317,20 +317,17 @@ namespace {
 //        size_t i_first_lz = 0;
 
         for(size_t i = 0; i < x.size(); i++) {
-            acc[i] -= carry;
-            acc[i] -= x[i];
-
-            // This could result in early overflow:
-//            acc[i] -= x[i] + carry;
-            // REVIEW: can't this still be done in one statement?
+            uint64_t acc_chunk = acc[i] - carry - x[i];
 
             // Set carry if overflow occured
             if(!carry) {
-                carry = acc[i] > x[i];
+                carry = acc_chunk > acc[i];
             }
             else {
-                carry = acc[i] >= x[i];
+                carry = acc_chunk >= acc[i];
             }
+
+            acc[i] = acc_chunk;
         }
 
         // Collect the remaining carry, if any
