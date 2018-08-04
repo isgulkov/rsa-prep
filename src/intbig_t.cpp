@@ -19,13 +19,28 @@
  */
 constexpr size_t INITIAL_RESERVATION = 20;
 
-intbig_t::intbig_t(bool is_neg, std::vector<uint64_t>&& chunks) : is_neg(is_neg),
-                                                                  chunks(std::move(chunks))
+intbig_t::intbig_t(int sign, std::vector<uint64_t>&& chunks) : sign(sign), chunks(std::move(chunks))
 {
     chunks.reserve(INITIAL_RESERVATION);
 }
 
-intbig_t::intbig_t(int64_t x) : is_neg(x < 0)
+namespace
+{
+int sign_of(int64_t x)
+{
+    if(x < 0) {
+        return -1;
+    }
+    else if(x == 0) {
+        return 0;
+    }
+    else {
+        return 1;
+    }
+}
+}
+
+intbig_t::intbig_t(int64_t x) : sign(sign_of(x))
 {
     chunks.reserve(INITIAL_RESERVATION);
 
@@ -43,7 +58,7 @@ intbig_t intbig_t::from_decimal(const std::string& decimal)
 
     InfInt TWO_64 = InfInt(UINT64_MAX) + 1;
 
-    bool is_neg = fifth_leg < 0;
+    int sign = fifth_leg < 0 ? -1 : (fifth_leg == 0 ? 0 : 1);
     std::vector<uint64_t> chunks;
 
     if(fifth_leg < 0) {
@@ -56,7 +71,7 @@ intbig_t intbig_t::from_decimal(const std::string& decimal)
         fifth_leg /= TWO_64;
     }
 
-    return { is_neg, std::move(chunks) };
+    return { sign, std::move(chunks) };
 }
 
 std::string intbig_t::to_string() const
@@ -75,7 +90,7 @@ std::string intbig_t::to_string() const
         x += chunks[(chunks.size() - 1) - i_back] & (HALF_CHUNK - 1);
     }
 
-    if(is_neg) {
+    if(sign < 0) {
         x *= -1;
     }
 
@@ -115,7 +130,7 @@ std::string intbig_t::to_hex() const
         return "[  0]";
     }
 
-    std::string result = is_neg ? "-" : " ";
+    std::string result = sign < 0 ? "-" : " ";
 
     for(ssize_t i = chunks.size() - 1; i >= 0; i--) {
         result += " " + uint64_as_hex(chunks[i]);
@@ -131,12 +146,12 @@ std::ostream& operator<<(std::ostream& os, const intbig_t& value)
 
 bool intbig_t::operator==(const intbig_t& other) const
 {
-    return is_neg == other.is_neg && chunks == other.chunks;
+    return sign == other.sign && chunks == other.chunks;
 }
 
 bool intbig_t::operator!=(const intbig_t& other) const
 {
-    return is_neg != other.is_neg || chunks != other.chunks;
+    return sign != other.sign || chunks != other.chunks;
 }
 
 int intbig_t::compare_3way_unsigned(const intbig_t& other) const
@@ -175,13 +190,16 @@ int intbig_t::compare_3way(const intbig_t& other) const
 {
     // Since C++20, there's <=>
 
-    if(is_neg != other.is_neg) {
-        // This is legal: bool gets casted to int values 1 and 0
-        // https://en.cppreference.com/w/cpp/language/implicit_conversion#Integral_promotion
-        return other.is_neg - is_neg;
+    if(sign != other.sign) {
+        /*
+         * -1 -  1 --> -2
+         * -1 -  0 --> -1
+         *  0 -  1 --> -1
+         */
+        return sign - other.sign;
     }
 
-    return (is_neg ? -1 : 1) * compare_3way_unsigned(other);
+    return sign * compare_3way_unsigned(other);
 }
 
 bool intbig_t::operator<(const intbig_t& other) const
@@ -244,16 +262,14 @@ intbig_t intbig_t::operator+() const
 intbig_t intbig_t::operator-() const
 {
     return intbig_t(
-            !is_neg && !chunks.empty(),  // Preserve false for zero
+            -sign,  // Preserve false for zero
             std::vector<uint64_t>(chunks)  // Explicitly copy the vector for the && parameter
     );
 }
 
 intbig_t& intbig_t::negate()
 {
-    if(!chunks.empty()) {
-        is_neg = !is_neg;
-    }
+    sign = -sign;
 
     return *this;
 }
@@ -404,8 +420,6 @@ namespace {
 
 void intbig_t::add_abs(const intbig_t& other)
 {
-    is_neg = false;
-
     if(!other.chunks.empty()) {
         if(chunks.empty()) {
             chunks = other.chunks;
@@ -414,12 +428,14 @@ void intbig_t::add_abs(const intbig_t& other)
             add2_unsigned(chunks, other.chunks);
         }
     }
+
+    sign = !chunks.empty();
 }
 
 void intbig_t::clear()
 {
     chunks.resize(0);
-    is_neg = false;
+    sign = 0;
 }
 
 void intbig_t::sub_abs(const intbig_t& other)
@@ -438,7 +454,7 @@ void intbig_t::sub_abs(const intbig_t& other)
     }
     else {
         sub2_unsigned(chunks, other.chunks);
-        is_neg = false;
+        sign = 1;
     }
 }
 
@@ -448,7 +464,7 @@ void intbig_t::subfrom_abs(const intbig_t& other)
 
     if(cmp_with_other < 0) {
         sub2from_unsigned(chunks, other.chunks);
-        is_neg = false;
+        sign = 1;
     }
     else if(cmp_with_other == 0) {
         clear();
@@ -461,8 +477,10 @@ void intbig_t::subfrom_abs(const intbig_t& other)
 
 void intbig_t::operator+=(const intbig_t& other)
 {
-    if(!is_neg) {
-        if(!other.is_neg) {
+    // TODO: handle zeroes here
+
+    if(sign != -1) {
+        if(other.sign != -1) {
             // The base case:
             // a + b
 
@@ -475,7 +493,7 @@ void intbig_t::operator+=(const intbig_t& other)
         }
     }
     else {
-        if(!other.is_neg) {
+        if(other.sign != -1) {
             // -a + b --> b - a
 
             subfrom_abs(other);
@@ -491,8 +509,10 @@ void intbig_t::operator+=(const intbig_t& other)
 
 void intbig_t::operator-=(const intbig_t& other)
 {
-    if(!is_neg) {
-        if(!other.is_neg) {
+    // TODO: handle zeroes here
+
+    if(sign != -1) {
+        if(other.sign != -1) {
             // The base case:
             // a - b
 
@@ -505,7 +525,7 @@ void intbig_t::operator-=(const intbig_t& other)
         }
     }
     else {
-        if(!other.is_neg) {
+        if(other.sign != -1) {
             // -a - b --> -(a + b)
 
             add_abs(other);

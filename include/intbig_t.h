@@ -10,9 +10,10 @@ class intbig_t
     /**
      * Internal representation:
      *
-     *   - `is_neg`: the number's sign
-     *       - `true` for negative numbers;
-     *       - `false` otherwise (including 0).
+     *   - `sign`: the number's sign:
+     *       - -1 -- negative;
+     *       -  1 -- positive;
+     *       -  0 -- zero.
      *
      *   - `chunks`: the number's absolute value
      *       - in base 2^64, so with 64-bit integers as digits
@@ -21,7 +22,7 @@ class intbig_t
      *       - with no leading zeroes (thus, empty for 0).
      */
 
-    bool is_neg = false;
+    int sign = 0;
     std::vector<uint64_t> chunks;
 
 public:
@@ -40,9 +41,10 @@ public:
 //    ~intbig_t() = default;
 
 private:
-    intbig_t(bool is_neg, std::vector<uint64_t>&& chunks);
+    intbig_t(int sign, std::vector<uint64_t>&& chunks);
 
 public:
+    // TODO: replace with `static of(int64_t x)`
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     intbig_t(int64_t x);
 
@@ -70,16 +72,12 @@ public:
     intbig_t& negate();
 
 private:
-    /*
-     * Apply operations just on the absolute values of the numbers
-     * This is done in-place (so, no temporaries), the result is stored in this
-     *
-     * NOTE: while only the absolute values are considered, the result may is signed
-     */
-
     // Set this number to zero (for when two equal numbers are subtracted)
-    // TODO: restore the explanation that the base case can handle it, but blah blah blah
     void clear();
+
+    /*
+     * Apply operations just to the absolute values of the two numbers (in-place, with signed result)
+     */
 
     // this = |this| + |other|
     void add_abs(const intbig_t& other);
@@ -92,17 +90,18 @@ public:
     void operator+=(const intbig_t& other);
     void operator-=(const intbig_t& other);
 
-    // TODO: Make the compounds return intbig_t&, and don't forget to:
-    // TODO:   - employ it in the old tests (e.g. composables);
-    // TODO:   - add (two) new tests for this behavior.
-
     intbig_t operator+(const intbig_t& other) const;
     intbig_t operator-(const intbig_t& other) const;
 
     /*
      * TODO:
-     *   - refactor the shit out of the three "sub2" functions
-     *   - change sign from bool to int (see doc)
+     *   - change sign repr. from bool to int (see doc)
+     *   - add subtraction shrinkage tests
+     *   - optimize vector resize in subtraction (if possible)
+     *   - refactor the two "sub2" functions and their method counterparts some more
+     *   - make the compound assignments return lvalue reference to *this
+     *     - add (two) tests for this
+     *     - employ it in the old tests
      *   - it works!
      */
 };
