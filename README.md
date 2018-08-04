@@ -108,7 +108,7 @@ TODO
 The number is internally represented with two data members:
 
 ```cpp
-    bool is_neg = false;
+    int sign = 0;
     std::vector<uint64_t> chunks;
 ```
 
@@ -118,7 +118,7 @@ The number is internally represented with two data members:
 > - adopt [GMP's "limb" metaphor](https://gmplib.org/manual/Nomenclature-and-Types.html#Nomenclature-and-Types) (it is even more disorientating, though, and I don't like how it sounds);
 > - "figure" (seems to sound like bad English, though).
 
-- `is_neg` — the number's sign: `true` for negative numbers, `false` otherwise;
+- `sign` — the number's sign: `-1` for negative numbers, `1` for positive, `0` for zero;
 
 - `chunks` — the number's absolute value:
 
@@ -128,15 +128,17 @@ The number is internally represented with two data members:
 
   - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
 
-> **TODO**: eliminate all the `is_neg ? -1 : 0` stuff by storing `int sign` instead of `bool is_neg`? The memory overhead will be the same due to alignment by `vector`'s `size_t` fields, the computation most likely same as well
+> **TODO**: use a smaller or larger type for `sign` (it takes 8 bytes right now anyway)
+>
+> **TODO**: if it's smaller than `size_t`, put it at the end so theoretically something smaller than it can be aligned after the object?
+>
+> **TODO**: benchmark `int`-signed implementation against `bool`-signed one
 
-Note that for the number zero a unique representation, — `{ .is_neg=false, chunks={} }`, — is enforced. All other possibilities are illegal (i.e. invalid states of the `intbig_t` objects).
+Note that the number zero has a unique representation: `{ .sign=0, chunks={} }`. All other "zero-valued" states are invalid.
 
-If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `bool` field.
+If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `sign` field.
 
-Not all dynamic arrays explicitly store their size, though (e.g. `std::vector` doesn't), and it's unclear whether this would bring any performance benefits.
-
-> **TODO**: put the bool at the end so theoretically something smaller than 8 bytes can be put after the object?
+Not all dynamic arrays explicitly store their size, though (e.g. most `std::vector` implementations don't), and it's unclear whether this would bring any benefits other than save a couple bytes of memory (which for our application are irrelevant).
 
 > **TODO**: Find the value for passing into `chunks.reserve()` that will allow 4096-bit modular operations with no further reallocations.
 >
@@ -161,10 +163,10 @@ c_i = (a_i \pm b_i + carry)\ mod\ N,
 $$
 where $carry$ is $0$ if the previous digit's computation didn't overflow, and $\pm 1$ if it did.
 
-For `uint64_t` calculations, the $N = 2^{64}$ remainder gets taken naturally (which is [specified in the C++ standard](https://en.cppreference.com/w/cpp/language/operator_arithmetic#Overflows)), and overflow of these operations is detected quite easily, given either of the operands. E.g., for addition:
+For `uint64_t` calculations, the $N = 2^{64}$ remainder gets taken naturally (which is [specified in the C++ standard](https://en.cppreference.com/w/cpp/language/operator_arithmetic#Overflows)), and overflow of these operations is detected quite easily, given either of the operands for addition or the minuend for subtraction. E.g., for addition:
 
 ```cpp
-bool overflow(uint64_t x, uint64_t y) {
+bool add_overflows(uint64_t x, uint64_t y) {
 	uint64_t s = x + y;
 
     return s < x;
@@ -192,22 +194,22 @@ Also, the `vector` lengths should be checked and updated appropriately:
 - before addition — to equalise the lengths of the operands *(when adding in-place)*;
 - after addition — to add a new digit if carry was left.
 
-In terms of one another, the operations are extended onto integers:
+The operations are then extended onto integers in terms of each other:
 
 - four cases addition:
 
   - $a + b$;
-  - $a + (-b) \rarr a - b \rarr [maybe\ -(b - a)]$;
-  - $(-a) + b \rarr b - a \rarr [maybe\ -(a - b)]$;
+  - $a + (-b) \rarr a - b \ [\rarr -(b - a)]$;
+  - $(-a) + b \rarr b - a \ [\rarr -(a - b)]$;
   - $(-a) + (-b) \rarr - (a + b)$;
 
 - and subtraction:
-  - $a - b \rarr [maybe\ -(b - a)]$;
+  - $a - b \ [\rarr -(b - a)]$;
   - $a - (-b) \rarr a + b$;
   - $(-a) - b \rarr -(a + b)$;
-  - $(-a) - (-b) \rarr b - a \rarr [maybe\ (b - a)]$;
+  - $(-a) - (-b) \rarr b - a \ [\rarr (b - a)]$;
 
-  *(let's say that $a$ and $b$ here are the absolute values of the arguments)*.
+  *(here, $a$ and $b$ here are the absolute values of the integer arguments)*.
 
 Now, all this is just simple arithmetics and function calls, but to implement all this without unnecessary overhead, some consideraions need to be taken:
 
@@ -233,6 +235,8 @@ Then you try to optimize around some of these obstacles and it all turns into a 
 
   for every of the four combinations of signs, they express the operation as another one *on the absolute values of the numbers*, possibly with a sign flip afterwards;
 
+  handle cases where one or both operands are zero;
+
 - absolute versions (`private`):
 
   these compute into `*this` the result of one of the three operations on the absolute values: $a + b$, $a - b$, $b - a$ (including the sign — the old sign is discarded);
@@ -253,6 +257,9 @@ Yeah!
 > private:
 > 	bool is_zero() const;
 > ```
+> **TODO**: some way to test the internal representation (zero, leading zeroes, etc.)?
+>
+> **TODO**: avoid one unnecessary copy in the copying subtraction (might need to introduce `sub3` everywhere)
 
 ##### Multiplication
 
