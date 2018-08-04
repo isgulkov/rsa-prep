@@ -560,6 +560,18 @@ TEST(IntBigTAdditiveSubShrinkage, SubAssignBackward)
     EXPECT_FALSE(one < -1);
 }
 
+TEST(IntBigTAdditiveSubShrinkage, SubAssignEqual)
+{
+    const std::string large = TestData::large_positive.back();
+
+    intbig_t zero = intbig_t::from_decimal(large);
+    zero -= intbig_t::from_decimal(large);
+
+    EXPECT_EQ(zero, 0);
+    EXPECT_FALSE(zero < 0);
+    EXPECT_FALSE(zero > 0);
+}
+
 TEST(IntBigTAdditiveSubShrinkage, SubForward)
 {
     intbig_t one = intbig_t::from_decimal(
@@ -578,6 +590,17 @@ TEST(IntBigTAdditiveSubShrinkage, SubBackward)
 
     EXPECT_EQ(one, -1);
     EXPECT_FALSE(one < -1);
+}
+
+TEST(IntBigTAdditiveSubShrinkage, SubEqual)
+{
+    const std::string large = TestData::large_positive.back();
+
+    intbig_t zero = intbig_t::from_decimal(large) - intbig_t::from_decimal(large);
+
+    EXPECT_EQ(zero, 0);
+    EXPECT_FALSE(zero < 0);
+    EXPECT_FALSE(zero > 0);
 }
 
 }
