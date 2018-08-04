@@ -365,7 +365,7 @@ namespace {
         }
 
         // REVIEW: optimize to single resize() call after adding tests for shrinkage
-        if(acc.back() == 0) {
+        while(acc.back() == 0) {
             acc.pop_back();
         }
     }
