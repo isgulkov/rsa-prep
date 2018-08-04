@@ -289,26 +289,10 @@ Implement most of the appropriate C++ opeartors:
 
 as well as some additional methods:
 
-- Constructors:
-
-  - [x] `intbig_t()` *(zero)*;
-
-  - [x] `intbig_t(int64_t)` *(integer's value)* — implicit conversion;
-
-  - [ ] `intbig_t(const std::string& decimal)` *(decimal representation's value)*
-
-    **questionable**:
-
-    - on one hand, things like `x * "100000"` and `y = "100"` are irritating to operate without;
-    - on the other hand, this may cause mayhem in the expressions;
-    - also on the other hand, there's already the factory method;
-    - on the third hand, far from every string will parse and potentially cause a silent bug;
-    - ...
-
 - Factory methods:
 
   - [ ] `static intbig_t from_decimal(const std::string& decimal)`;
-  - [ ] `static intbig_t of(int64_t x)` (replace the implicit with it);
+  - [ ] `static intbig_t of(int64_t x)` (**TODO**: replace the implicit with this);
   - [ ] `static intbig_t from_hex(const std::string& hex)` (this can be done hella efficiently, no multiplicative shit);
 
 - A custom literal? Like:
@@ -355,18 +339,21 @@ as well as some additional methods:
 
     **Note**: consider copying 8 bytes at a time with `reinterpret_cast<uint64_t*>` (check if `std::strings` are contiguous, though);
 
-- [ ] return a copy of the underlying vector?;
-
 - [ ] *explicit* conversions to `int`s of various sizes (throw `range_error` if doesn't fit);
 
 - [x] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
 
-- faster versions of some `operator`s working on `int64_t` without conversion:
+- faster  versions of some `operator`s working on `int64_t` without conversion:
 
   - [ ] `==` and `!=`;
+
   - [ ] `=`;
+
   - [ ] other comparisons;
+
   - [ ] arithmetic (additive, at least);
+
+    *as out-of-class `friend` functions where applicable;*
 
 - [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
 
@@ -419,17 +406,13 @@ typedef intbig_t_alloc<> intbig_t;
 
 So don't do it early!
 
-##### Small number optimization
+##### Small size optimization
 
-In general, an SSO<sup>1</sup>-like optimization, i.e. if numbers $< 2^{64}$ didn't have a vector and were stored completely on the stack, seems to apply perfectly here due to the "law of small numbers"<sup>2</sup>.
+In general, an SSO for numbers e.g. $< 2^{64}$ seems to apply perfectly here due to the "law of small numbers".
 
-For working with 1024- or 4096-bit numbers, though, this is questionable. Will the allocation speedup even be noticeable? Will the locality improve significantly? Half a kilobyte is 1/16th of L1 already.
+For working with 1024- or 4096-bit numbers, though, this is questionable. Will the allocation speedup even be noticeable? Will the locality improvement matter? Half a kilobyte is $\frac{1}{16}$ of the L1 already.
 
-Moreover, the modular multiplication algorithm will probably both require a temporary and operate in a number longer than the operands.
-
-<sup>1</sup> — *short string optimization*; [here](https://www.youtube.com/watch?v=kPR8h4-qZdk) is a great CppCon talk related to it (never mind the guy's wierd tone and body language — you'd look the same if you took as much Aderall as he does).
-
-<sup>2</sup> — the observations that in most programs, numbers are small: like, 90+% are $< 100$, about 20% are zero — who knows where I heard that, but seems reasonable.
+Moreover, the modular multiplication algorithm will probably both require a temporary, maybe even one larger than the operands.
 
 ##### Expression templates
 
