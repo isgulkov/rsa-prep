@@ -64,7 +64,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 Might eventually get around to some of these.
 
 1. Both encryption schemes: `RSAES-OAEP` and `RSAES-PKCS-v1_5`;
-2. One of the hashes well-supported by RSA signature software (SHA-1 or SHA-256);
+2. One of the hashes well-supported by RSA signature software (SHA-256);
 3. Signature schemes: `RSASSA-PSS`, `RSASSA-PKCS1-v1_5`;
 
 ##### Compatibility with real-world applications
