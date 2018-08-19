@@ -74,7 +74,7 @@ intbig_t intbig_t::from_decimal(const std::string& decimal)
     return { sign, std::move(chunks) };
 }
 
-std::string intbig_t::to_string() const
+std::string intbig_t::to_string(int base) const
 {
     // REMOVE: temporary, until proper string conversions are implemented
 
@@ -122,7 +122,7 @@ std::string uint64_as_hex(uint64_t x)
 
 }
 
-std::string intbig_t::to_hex() const
+std::string intbig_t::to_hex_chunks() const
 {
     // REMOVE: dev version -- make more usable and possibly roundtrip-convertible
 
@@ -580,4 +580,58 @@ intbig_t intbig_t::operator-(const intbig_t& other) const
     result -= other;
 
     return result;
+}
+
+void intbig_t::inc_abs()
+{
+    for(uint64_t& chunk : chunks) {
+        if(++chunk != 0) {
+            return;
+        }
+    }
+
+    chunks.push_back(1);
+}
+
+void intbig_t::dec_abs()
+{
+    for(uint64_t& chunk : chunks) {
+        if(chunk-- != 0) {
+            return;
+        }
+    }
+
+//    chunks.pop_back();
+}
+
+intbig_t& intbig_t::operator++()
+{
+    if(sign == -1) {
+        dec_abs();
+    }
+    else if(sign == 0) {
+        chunks.push_back(1);
+        sign = 1;
+    }
+    else {
+        inc_abs();
+    }
+
+    return *this;
+}
+
+intbig_t& intbig_t::operator--()
+{
+    if(sign == -1) {
+        inc_abs();
+    }
+    else if(sign == 0) {
+        chunks.push_back(1);
+        sign = -1;
+    }
+    else {
+        dec_abs();
+    }
+
+    return *this;
 }

@@ -34,6 +34,30 @@ namespace IntBigTAdditiveUn
 namespace TestData
 {
 
+// TODO: extract this test data into a common file
+
+std::vector<std::string> prepend_minus(const std::vector<std::string>& xs)
+{
+    std::vector<std::string> negatives(xs.size());
+
+    std::transform(xs.begin(), xs.end(), negatives.begin(), [](const std::string& x) {
+        return "-" + x;
+    });
+
+    return negatives;
+}
+
+const std::vector<std::string> small_positive = {
+        "1",
+        "2",
+        "10",
+        "25",
+        "15231",
+        "10832543123"
+};
+
+const std::vector<std::string> small_negative = prepend_minus(small_positive);
+
 // NOTE: 2^64 is about 10^19
 const std::vector<std::string> large_positive = {
         "87972214896678166229" // NOLINT(misc-suspicious-missing-comma)
@@ -63,6 +87,28 @@ const std::vector<std::string> large_positive = {
         "19824378316354308866"
         "35848181009425536864"
         "67651698652459"
+};
+
+const std::vector<std::string> large_negative = prepend_minus(large_positive);
+
+const std::vector<std::string> precise_power_positive = {
+        "18446744073709551616",  // 2^64
+        "6277101735386680763835789423207666416102355444464034512896"  // 2^192 = 2^(64 * 3)
+};
+
+const std::vector<std::string> precise_power_negative = {
+        "-18446744073709551616",  // -2^64
+        "-6277101735386680763835789423207666416102355444464034512896"  // -2^192 = -2^(64 * 3)
+};
+
+const std::vector<std::string> just_below_power_positive = {
+        "18446744073709551615",  // 2^64 - 1
+        "6277101735386680763835789423207666416102355444464034512895"  // 2^192 - 1
+};
+
+const std::vector<std::string> just_below_power_negative = {
+        "-18446744073709551615",  // -(2^64 - 1)
+        "-6277101735386680763835789423207666416102355444464034512895"  // -(2^192 - 1)
 };
 
 }
@@ -191,6 +237,112 @@ TEST(IntBigTUnaryPlus, UnaryPlusReturnsSameValue)
     intbig_t z;
 
     EXPECT_EQ(z, -z);
+}
+
+struct AddUnOp
+{
+    const std::string op_name;
+    const std::function<intbig_t(const std::string&)> get_impl;
+//    const std::function<intbig_t(intbig_t&)> apply_impl;
+    const std::function<std::string(const std::string&)> get_ref;
+};
+
+class IntBigTAddUnSingle : public ::testing::TestWithParam<AddUnOp>
+{
+protected:
+    void assert_likeReference(const std::string& x, const std::string& msg = "")
+    {
+        ASSERT_EQ(
+                GetParam().get_impl(x).to_string(),
+                GetParam().get_ref(x)
+        ) << msg << " (" << x << ")";
+    }
+
+    void assertAll_likeReference(const std::vector<std::string>& xs)
+    {
+        for(const std::string& x : xs) {
+            ASSERT_NO_FATAL_FAILURE(
+                    assert_likeReference(x)
+            );
+        }
+    }
+};
+
+const AddUnOp IncPrefix_op = {
+        "++value",
+        [](const std::string& x) {
+            return ++intbig_t::from_decimal(x);
+        },
+        [](const std::string& x) {
+            return (++InfInt(x)).toString();
+        }
+};
+
+const AddUnOp DecPrefix_op = {
+        "--value",
+        [](const std::string& x) {
+            return --intbig_t::from_decimal(x);
+        },
+        [](const std::string& x) {
+            return (--InfInt(x)).toString();
+        }
+};
+
+INSTANTIATE_TEST_CASE_P(
+        IncPrefix,
+        IntBigTAddUnSingle,
+        ::testing::Values(IncPrefix_op)
+);
+
+INSTANTIATE_TEST_CASE_P(
+        DecPrefix,
+        IntBigTAddUnSingle,
+        ::testing::Values(DecPrefix_op)
+);
+
+TEST_P(IntBigTAddUnSingle, SmallPositive)
+{
+    assertAll_likeReference(TestData::small_positive);
+}
+
+TEST_P(IntBigTAddUnSingle, ZeroArgument)
+{
+    assert_likeReference("0");
+}
+
+TEST_P(IntBigTAddUnSingle, SmallNegative)
+{
+    assertAll_likeReference(TestData::small_negative);
+}
+
+TEST_P(IntBigTAddUnSingle, LargePositive)
+{
+    assertAll_likeReference(TestData::large_positive);
+}
+
+TEST_P(IntBigTAddUnSingle, LargeNegative)
+{
+    assertAll_likeReference(TestData::large_negative);
+}
+
+TEST_P(IntBigTAddUnSingle, PowerBoundaryUnderPositive)
+{
+    assertAll_likeReference(TestData::just_below_power_positive);
+}
+
+TEST_P(IntBigTAddUnSingle, PowerBoundaryUnderNegative)
+{
+    assertAll_likeReference(TestData::just_below_power_negative);
+}
+
+TEST_P(IntBigTAddUnSingle, PowerBoundaryOverPositive)
+{
+    assertAll_likeReference(TestData::precise_power_positive);
+}
+
+TEST_P(IntBigTAddUnSingle, PowerBoundaryOverNegative)
+{
+    assertAll_likeReference(TestData::precise_power_negative);
 }
 
 }

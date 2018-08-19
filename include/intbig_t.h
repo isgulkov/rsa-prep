@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream> // For the i/o methods
 
 class intbig_t
 {
@@ -44,16 +45,39 @@ private:
     intbig_t(int sign, std::vector<uint64_t>&& chunks);
 
 public:
-    // TODO: replace with `static of(int64_t x)`
+    // TODO: replace this:
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     intbig_t(int64_t x);
 
+    // TODO: with this:
+    static intbig_t of(const int64_t x);
+    // TODO: replace this
     static intbig_t from_decimal(const std::string& decimal);
+    // TODO: with this:
+    static intbig_t from(const std::string& s, int base = 10);
 
-    std::string to_string() const;
-    std::string to_hex() const;
+    std::string to_string(int base = 10) const;
+    // TODO: much better names for these
+    std::string to_hex_chunks() const;
+    std::string to_bin_chunks() const;
+    // TODO: / (showing number as its chunks)
+
+    friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
+    // NOTE: PKCS#1 conversions
+    static intbig_t from_bytes(std::string& bytes);
+    static intbig_t from_bytes(std::istream& stream);
+
+    size_t num_bytes() const;
+    std::string to_bytes();
+    void to_bytes(std::ostream& stream);
+    // NOTE: / PKCS#1 conversions
+
+    // TODO: is ever useful:
+    size_t num_bits() const;
+
+    //
     bool operator==(const intbig_t& other) const;
     bool operator!=(const intbig_t& other) const;
 
@@ -92,6 +116,14 @@ public:
 
     intbig_t operator+(const intbig_t& other) const;
     intbig_t operator-(const intbig_t& other) const;
+
+private:
+    void inc_abs();
+    void dec_abs();
+
+public:
+    intbig_t& operator++();
+    intbig_t& operator--();
 };
 
 #endif //RSA_PREP_INTBIG_T_H
