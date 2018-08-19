@@ -1,5 +1,4 @@
 #include <vector>
-#include <random>
 
 #include "gtest/gtest.h"
 #include "InfInt.h"
@@ -14,14 +13,18 @@
  * | ------------- | --------- | --------- |
  * | negation      |  negate   |  -        |
  * |               |           |  +        |
- * | inc./dec.     |  ++/--    | ++(int)   |
- * |               |           | / --(int) |
+ * | increment     |  ++x      |  x++      |
+ * | decrement     |  --x      |  x--      |
  *
  * For negations:
  *   - [x] some non-zero values
  *   - [x] zero
  *
- * TODO: consider employing an alternative, more respected reference -- this one doesn't inspire too much confidence
+ * For '++/--'s:
+ *   - [x] sizes and signs;
+ *   - [x] boundaries;
+ *   - [x] compositions, including going over the sign boundary;
+ *   - [x] whether the postfix ones really return a copy (i.e. the old value).
  *
  * REVIEW: type on the operation, then parametrize on the values instead of running loops?
  * REVIEW: that'd be a shitload of individual tests, though; wouldn't be able to fail early, too
@@ -30,7 +33,6 @@
 namespace IntBigTAdditiveUn
 {
 
-// Test data for the whole file go here
 namespace TestData
 {
 
@@ -243,8 +245,68 @@ struct AddUnOp
 {
     const std::string op_name;
     const std::function<intbig_t(const std::string&)> get_impl;
-//    const std::function<intbig_t(intbig_t&)> apply_impl;
+    const std::function<void(intbig_t&)> apply_impl;
     const std::function<std::string(const std::string&)> get_ref;
+};
+
+const AddUnOp IncPrefix_op = {
+        "++value",
+        [](const std::string& x) {
+            return ++intbig_t::from_decimal(x);
+        },
+        [](intbig_t& x) {
+            ++x;
+        },
+        [](const std::string& x) {
+            return (++InfInt(x)).toString();
+        }
+};
+
+const AddUnOp DecPrefix_op = {
+        "--value",
+        [](const std::string& x) {
+            return --intbig_t::from_decimal(x);
+        },
+        [](intbig_t& x) {
+            --x;
+        },
+        [](const std::string& x) {
+            return (--InfInt(x)).toString();
+        }
+};
+
+const AddUnOp IncPostfix_op = {
+        "value++",
+        [](const std::string& x) {
+            intbig_t a = intbig_t::from_decimal(x);
+            a++;
+            return a;
+        },
+        [](intbig_t& x) {
+            x++;
+        },
+        [](const std::string& x) {
+            InfInt a = x;
+            a++;
+            return a.toString();
+        }
+};
+
+const AddUnOp DecPostfix_op = {
+        "value--",
+        [](const std::string& x) {
+            intbig_t a = intbig_t::from_decimal(x);
+            a--;
+            return a;
+        },
+        [](intbig_t& x) {
+            x--;
+        },
+        [](const std::string& x) {
+            InfInt a = x;
+            a--;
+            return a.toString();
+        }
 };
 
 class IntBigTAddUnSingle : public ::testing::TestWithParam<AddUnOp>
@@ -268,26 +330,6 @@ protected:
     }
 };
 
-const AddUnOp IncPrefix_op = {
-        "++value",
-        [](const std::string& x) {
-            return ++intbig_t::from_decimal(x);
-        },
-        [](const std::string& x) {
-            return (++InfInt(x)).toString();
-        }
-};
-
-const AddUnOp DecPrefix_op = {
-        "--value",
-        [](const std::string& x) {
-            return --intbig_t::from_decimal(x);
-        },
-        [](const std::string& x) {
-            return (--InfInt(x)).toString();
-        }
-};
-
 INSTANTIATE_TEST_CASE_P(
         IncPrefix,
         IntBigTAddUnSingle,
@@ -298,6 +340,18 @@ INSTANTIATE_TEST_CASE_P(
         DecPrefix,
         IntBigTAddUnSingle,
         ::testing::Values(DecPrefix_op)
+);
+
+INSTANTIATE_TEST_CASE_P(
+        IncPostfix,
+        IntBigTAddUnSingle,
+        ::testing::Values(IncPostfix_op)
+);
+
+INSTANTIATE_TEST_CASE_P(
+        DecPostfix,
+        IntBigTAddUnSingle,
+        ::testing::Values(DecPostfix_op)
 );
 
 TEST_P(IntBigTAddUnSingle, SmallPositive)
@@ -343,6 +397,62 @@ TEST_P(IntBigTAddUnSingle, PowerBoundaryOverPositive)
 TEST_P(IntBigTAddUnSingle, PowerBoundaryOverNegative)
 {
     assertAll_likeReference(TestData::precise_power_negative);
+}
+
+TEST(IntBigTAddUnPostfix, IncPostfixReturnsOldValue)
+{
+    intbig_t x = intbig_t::from_decimal("10");
+
+    ASSERT_EQ((x++).to_string(), "10");
+    ASSERT_EQ(x.to_string(), "11");
+}
+
+TEST(IntBigTAddUnPostfix, DecPostfixReturnsOldValue)
+{
+    intbig_t x = intbig_t::from_decimal("10");
+
+    ASSERT_EQ((x--).to_string(), "10");
+    ASSERT_EQ(x.to_string(), "9");
+}
+
+class IntBigTAddUnComposed : public ::testing::TestWithParam<std::vector<int>>
+{
+protected:
+    intbig_t x;
+
+    void SetUp()
+    {
+        x = intbig_t();
+    }
+
+    void assert_likeReference(const AddUnOp& op)
+    {
+        std::string ref = op.get_ref(x.to_string());
+
+        op.apply_impl(x);
+
+        ASSERT_EQ(x.to_string(), ref);
+    }
+
+    void assertMultiple_likeReference(const AddUnOp& op, int n_times)
+    {
+        for(int i = 0; i < n_times; i++) {
+            ASSERT_NO_FATAL_FAILURE(assert_likeReference(op));
+        }
+    }
+};
+
+TEST_F(IntBigTAddUnComposed, MultipleZeroCrossings)
+{
+    ASSERT_NO_FATAL_FAILURE(assertMultiple_likeReference(IncPrefix_op, 10));
+
+    ASSERT_NO_FATAL_FAILURE(assertMultiple_likeReference(DecPostfix_op, 15));
+
+    ASSERT_NO_FATAL_FAILURE(assertMultiple_likeReference(IncPostfix_op, 20));
+
+    ASSERT_NO_FATAL_FAILURE(assertMultiple_likeReference(DecPrefix_op, 25));
+
+    ASSERT_NO_FATAL_FAILURE(assertMultiple_likeReference(IncPrefix_op, 30));
 }
 
 }

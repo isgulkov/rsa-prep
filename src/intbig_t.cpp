@@ -597,11 +597,17 @@ void intbig_t::dec_abs()
 {
     for(uint64_t& chunk : chunks) {
         if(chunk-- != 0) {
-            return;
+            break;
         }
     }
 
-//    chunks.pop_back();
+    if(!chunks.back()) {
+        chunks.pop_back();
+    }
+
+    if(chunks.empty()) {
+        sign = 0;
+    }
 }
 
 intbig_t& intbig_t::operator++()
@@ -634,4 +640,22 @@ intbig_t& intbig_t::operator--()
     }
 
     return *this;
+}
+
+const intbig_t intbig_t::operator++(int)
+{
+    intbig_t old_value = *this;
+
+    operator++();
+
+    return old_value;
+}
+
+const intbig_t intbig_t::operator--(int)
+{
+    intbig_t old_value = *this;
+
+    operator--();
+
+    return old_value;
 }

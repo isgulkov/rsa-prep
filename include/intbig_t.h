@@ -45,13 +45,13 @@ private:
     intbig_t(int sign, std::vector<uint64_t>&& chunks);
 
 public:
-    // TODO: replace this:
+    // TODO: Replace this:
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     intbig_t(int64_t x);
 
     // TODO: with this:
     static intbig_t of(const int64_t x);
-    // TODO: replace this
+    // TODO: Also, replace this
     static intbig_t from_decimal(const std::string& decimal);
     // TODO: with this:
     static intbig_t from(const std::string& s, int base = 10);
@@ -91,6 +91,7 @@ public:
     bool operator>=(const intbig_t& other) const;
     bool operator >(const intbig_t& other) const;
 
+    //
     intbig_t operator+() const;
     intbig_t operator-() const;
     intbig_t& negate();
@@ -124,6 +125,11 @@ private:
 public:
     intbig_t& operator++();
     intbig_t& operator--();
+
+    // REVIEW: Should these really return const? clang-Tidy says so, but the original commit where they add this check
+    // REVIEW: references a dead link on some sketchy CMU site. Not on web.archive.org, nowhere on Google.
+    const intbig_t operator++(int);
+    const intbig_t operator--(int);
 };
 
 #endif //RSA_PREP_INTBIG_T_H
