@@ -40,15 +40,6 @@ if (BUILD_TESTS)
   enable_testing()
 
   # - intbig_t
-  add_executable(test_intbig_t_additive test/test_intbig_t_additive.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_additive.cpp")
-  target_link_libraries(test_intbig_t_additive
-          gtest gtest_main
-          intbig_t
-          )
-  target_include_directories(test_intbig_t_additive PRIVATE vendor/infint)
-  add_test(test_intbig_t_additive test_intbig_t_additive)
-
   add_executable(test_intbig_t_comparisons test/test_intbig_t_comparisons.cpp)
   set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_comparisons.cpp")
   target_link_libraries(test_intbig_t_comparisons
@@ -56,6 +47,24 @@ if (BUILD_TESTS)
           intbig_t
           )
   add_test(test_intbig_t_comparisons test_intbig_t_comparisons)
+
+  add_executable(test_intbig_t_add_bin test/test_intbig_t_add_bin.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_add_bin.cpp")
+  target_link_libraries(test_intbig_t_add_bin
+          gtest gtest_main
+          intbig_t
+          )
+  target_include_directories(test_intbig_t_add_bin PRIVATE vendor/infint)
+  add_test(test_intbig_t_add_bin test_intbig_t_add_bin)
+
+  add_executable(test_intbig_t_add_un test/test_intbig_t_add_un.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_add_un.cpp")
+  target_link_libraries(test_intbig_t_add_un
+          gtest gtest_main
+          intbig_t
+          )
+  target_include_directories(test_intbig_t_add_un PRIVATE vendor/infint)
+  add_test(test_intbig_t_add_un test_intbig_t_add_un)
 
   # - sha256
   add_executable(test_sha256 test/test_sha256.cpp)

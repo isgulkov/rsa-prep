@@ -7,15 +7,13 @@
 #include "intbig_t.h"
 
 /*
- * Tests for the "additive" operations
+ * Tests for the "additive" binary operations
  * (which are pretty interconnected conceptually and implementation-wise)
  *
- * |               | In-place | Copying  |
- * | ------------- | -------- | ---------|
- * | addition      |  +=      |  + (b)   |
- * | subtraction   |  -=      |  - (b)   |
- * | negation      |  negate  |  - (u)   |
- * |               |          |  + (u)   |
+ * |               | In-place  | Copying   |
+ * | ------------- | --------- | --------- |
+ * | addition      |  +=       |  + (b)    |
+ * | subtraction   |  -=       |  - (b)    |
  *
  * For the binaries:
  *   - [x] "cases":
@@ -43,10 +41,6 @@
  *     - [ ] for b - a
  *     - [ ] zero-result cases for both
  *
- * For negations:
- *   - [x] some non-zero values
- *   - [x] zero
- *
  * Have I missed something? Have I included something dumb?
  *
  * NOTE: it's not tested whether each copying operator actually copies stuff as this is enforced by their return types
@@ -64,7 +58,7 @@
  * REVIEW: that'd be a shitload of individual tests, though; wouldn't be able to fail early, too
  */
 
-namespace IntBigTAdditive
+namespace IntBigTAdditiveBin
 {
 
 // Test data for the whole file go here
@@ -624,132 +618,6 @@ TEST(IntBigTAdditiveAssignReturns, SubAssign)
     ASSERT_EQ(x, 10);
 }
 
-}
-
-// Negation tests
-namespace UnaryNegateTest
-{
-
-struct Negate_return
-{
-    static void apply(intbig_t& x)
-    {
-        x = x.negate();
-    }
-};
-
-struct Negate_sameVal
-{
-    static void apply(intbig_t& x)
-    {
-        x.negate();
-    }
-};
-
-struct Minus_op
-{
-    static void apply(intbig_t& x)
-    {
-        x = -x;
-    }
-};
-
-template<typename NegateOp>
-class IntBigTNegate : public ::testing::Test
-{
-public:
-    void assert_negatedEq(const std::string& x, const std::string& negated_x)
-    {
-        intbig_t a = intbig_t::from_decimal(x);
-        NegateOp::apply(a);
-
-        ASSERT_EQ(a.to_string(), negated_x);
-    }
-
-    void assert_plusTurnsMinus(const std::string& x, const std::string& y)
-    {
-        intbig_t a = intbig_t::from_decimal(x);
-        intbig_t b = intbig_t::from_decimal(y);
-
-        std::string result = (a - b).to_string();
-
-        NegateOp::apply(b);
-
-        ASSERT_EQ((a + b).to_string(), result);
-    }
-
-    void assert_minusTurnsPlus(const std::string& x, const std::string& y)
-    {
-        intbig_t a = intbig_t::from_decimal(x);
-        intbig_t b = intbig_t::from_decimal(y);
-
-        std::string result = (a + b).to_string();
-
-        NegateOp::apply(b);
-
-        ASSERT_EQ((a - b).to_string(), result);
-    }
-};
-
-using NegateOpTypes = ::testing::Types<Negate_return, Negate_sameVal, Minus_op>;
-TYPED_TEST_CASE(IntBigTNegate, NegateOpTypes);
-
-TYPED_TEST(IntBigTNegate, SmallPositive)
-{
-    this->assert_negatedEq("10", "-10");
-    this->assert_negatedEq("999", "-999");
-
-    this->assert_plusTurnsMinus("25", "4");
-    this->assert_minusTurnsPlus("48", "15");
-}
-
-TYPED_TEST(IntBigTNegate, LargePositive)
-{
-    std::string large = TestData::large_positive.back();
-
-    this->assert_negatedEq(large, "-" + large);
-}
-
-TYPED_TEST(IntBigTNegate, SmallNegative)
-{
-    this->assert_negatedEq("-10", "10");
-    this->assert_negatedEq("-999", "999");
-
-    this->assert_plusTurnsMinus("25", "-4");
-    this->assert_minusTurnsPlus("48", "-15");
-}
-
-TYPED_TEST(IntBigTNegate, LargeNegative)
-{
-    std::string large = TestData::large_positive.back();
-
-    this->assert_negatedEq("-" + large, large);
-}
-
-TYPED_TEST(IntBigTNegate, ZeroStaysZero)
-{
-    this->assert_negatedEq("0", "0");
-
-    this->assert_plusTurnsMinus("25", "0");
-    this->assert_minusTurnsPlus("48", "0");
-}
-
-}
-
-// The single test for the unary plus
-TEST(IntBigTUnaryPlus, UnaryPlusReturnsSameValue)
-{
-    intbig_t x = 1337;
-
-    EXPECT_EQ(x, +x);
-
-    intbig_t y = -1337;
-
-    EXPECT_EQ(y, +y);
-
-    intbig_t z;
-
-    EXPECT_EQ(z, -z);
 }
 
 }
