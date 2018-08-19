@@ -105,7 +105,7 @@ void apply_sha2_padding(std::string& msg)
 
     // Append the bit length, big-endian
     for(size_t i = msg.size() - 1, b_length = length * 8; b_length; b_length >>= 8) {
-        msg[i--] = (char)(b_length % 0xFF);
+        msg[i--] = (char)(b_length & 0xFFU);
     }
 }
 
@@ -120,15 +120,17 @@ const uint32_t ks[] = {
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
+const sha256_hash init_hash = {
+        { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 }
+};
+
 sha256_hash sha256_words(std::string msg)
 {
     // TODO: make these non-copying by only adding padding to the last block
 
     apply_sha2_padding(msg);
 
-    sha256_hash hash = {
-            0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-    };
+    sha256_hash hash = init_hash;
 
     for(size_t i_block = 0; i_block < msg.size() / 64; i_block++) {
         msg_block b = decomposed_block(msg.c_str() + 64 * i_block);

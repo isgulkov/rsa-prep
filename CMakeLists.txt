@@ -57,11 +57,20 @@ if (BUILD_TESTS)
           )
   add_test(test_intbig_t_comparisons test_intbig_t_comparisons)
 
+  # - sha256
+  add_executable(test_sha256 test/test_sha256.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_sha256.cpp")
+  target_link_libraries(test_sha256
+          gtest gtest_main
+          sha256
+          )
+  add_test(test_sha256 test_sha256)
+
   # all tests
   add_executable(test_all test/main.cpp "${TEST_SRCS}")
   target_link_libraries(test_all
           gtest gtest_main
-          intbig_t
+          intbig_t sha256
   )
   target_include_directories(test_all PRIVATE vendor/infint)
 
