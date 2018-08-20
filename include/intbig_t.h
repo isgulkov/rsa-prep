@@ -134,6 +134,7 @@ public:
     const intbig_t operator++(int);
     const intbig_t operator--(int);
 
+    // TODO: merge the three bitwise logic methods into one!
     //
     intbig_t& operator&=(const intbig_t& other);
     intbig_t& operator|=(const intbig_t& other);
