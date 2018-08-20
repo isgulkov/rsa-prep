@@ -776,3 +776,19 @@ intbig_t& intbig_t::operator>>=(int64_t n)
 
     return *this;
 }
+
+intbig_t intbig_t::operator<<(int64_t n) const
+{
+    intbig_t result = intbig_t(*this);
+    result <<= n;
+
+    return result;
+}
+
+intbig_t intbig_t::operator>>(int64_t n) const
+{
+    intbig_t result = intbig_t(*this);
+    result >>= n;
+
+    return result;
+}

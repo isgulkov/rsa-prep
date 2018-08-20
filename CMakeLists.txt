@@ -72,7 +72,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_add_un PRIVATE vendor/infint)
+  target_include_directories(test_intbig_t_bitwise PRIVATE vendor/infint)
   add_test(test_intbig_t_bitwise test_intbig_t_bitwise)
 
   # - sha256

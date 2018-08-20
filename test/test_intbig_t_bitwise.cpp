@@ -23,9 +23,10 @@
  *   - [x] shifts of zero;
  *   - [x] shift by negative results in symmetric shift by absolute;
  *   - [x] shifts of negatives behave like corresponding shifts of their absolutes;
- *           - [x] except that right shift is idempotent for -1 instead of 0.
+ *           - [x] except that right shift is idempotent for -1 instead of 0;
+ *   - [x] something basic for the copying shifts.
  *
- * TODO: add at least a couple tests for << and >>
+ *
  */
 
 namespace TestData
@@ -232,6 +233,75 @@ TEST_P(IntBigTBitwiseShifts, NegLargeByPosVarious)
     ASSERT_NO_FATAL_FAILURE(
             assertAll_paired(
                     TestData::large_negative, TestData::positive_shifts
+            )
+    );
+}
+
+class IntBigTBitwiseCopyingShifts : public ::testing::TestWithParam<ShiftDir>
+{
+protected:
+    void assert_likeReference(const std::string& s, int n)
+    {
+        intbig_t x = intbig_t::from_decimal(s);
+        InfInt y = s;
+
+        if(GetParam() == ShiftDir::LEFT) {
+            for(int i = 0; i < n; i++) {
+                y *= 2;
+            }
+        }
+        else if(GetParam() == ShiftDir::RIGHT) {
+            for(int i = 0; i < n; i++) {
+                if(y >= 0) {
+                    y /= 2;
+                }
+                else {
+                    y /= 2;
+
+                    if(y == 0) {
+                        y = "-1";
+                    }
+                }
+            }
+        }
+        else {
+            FAIL() << "Unknown direction: " << GetParam();
+        }
+
+        ASSERT_EQ(
+                (GetParam() == ShiftDir::LEFT ? x << n : x >> n).to_string(),
+                y.toString()
+        ) << intbig_t::from_decimal(s).to_hex_chunks() << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
+    }
+
+    void assertAll_paired(const std::vector<std::string>& xs, const std::vector<int>& ns)
+    {
+        for(const std::string& x : xs) {
+            for(const int n : ns) {
+                ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, n));
+            }
+        }
+    }
+};
+
+INSTANTIATE_TEST_CASE_P(LeftShift, IntBigTBitwiseCopyingShifts, ::testing::Values(ShiftDir::LEFT));
+
+INSTANTIATE_TEST_CASE_P(RightShift, IntBigTBitwiseCopyingShifts, ::testing::Values(ShiftDir::RIGHT));
+
+TEST_P(IntBigTBitwiseCopyingShifts, PosSmallByPosVarious)
+{
+    ASSERT_NO_FATAL_FAILURE(
+            assertAll_paired(
+                    TestData::small_positive, TestData::positive_shifts
+            )
+    );
+}
+
+TEST_P(IntBigTBitwiseCopyingShifts, PosLargeByPosVarious)
+{
+    ASSERT_NO_FATAL_FAILURE(
+            assertAll_paired(
+                    TestData::large_positive, TestData::positive_shifts
             )
     );
 }
