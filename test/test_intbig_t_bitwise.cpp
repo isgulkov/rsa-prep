@@ -1,5 +1,6 @@
 #include <vector>
 #include <functional>
+#include <cmath>
 
 #include "gtest/gtest.h"
 
@@ -276,4 +277,41 @@ TEST_P(IntBigTBitwiseOps, VariedMixedSign)
 TEST_P(IntBigTBitwiseOps, VariedNegative)
 {
     ASSERT_NO_FATAL_FAILURE(assertAll_paired(TestData::varied_negative, TestData::varied_negative));
+}
+
+TEST(IntBigTBitwiseInverse, UsableAsBitmask)
+{
+    const intbig_t x = intbig_t::of(0x0AAAAAAAAAAAAAAA);
+
+    ASSERT_EQ(
+            ((~x) & intbig_t::of(0x7FFFFFFFFFFFFFFF)).to_hex_chunks(),
+            "  7555555555555555"
+    );
+
+    const intbig_t y = intbig_t::of(0x0000FF0F0000FF00);
+
+    ASSERT_EQ(
+            ((~y) & intbig_t::of(0x7FFFFFFFFFFFFFFF)).to_hex_chunks(),
+            "  7FFF00F0FFFF00FF"
+    );
+
+    const intbig_t z = intbig_t::of(0x7FFFFF0FFFFFFFFF);
+
+    ASSERT_EQ(
+            ((~z & intbig_t::of(0x7FFFFFFFFFFFFFFF)) | intbig_t::of(0)).to_hex_chunks(),
+            "  000000F000000000"
+    );
+}
+
+TEST(IntBigTBitwiseInverse, IsOnesComplement)
+{
+    for(const std::string& s : TestData::varied_positive) {
+        const intbig_t x = intbig_t::from_decimal(s);
+
+        ASSERT_EQ((x + ~x).to_hex_chunks(), intbig_t::of(-1).to_hex_chunks()) << s;
+        ASSERT_EQ((~~x).to_hex_chunks(), x.to_hex_chunks()) << s;
+        ASSERT_EQ((x & ~x).to_hex_chunks(), intbig_t::of(0).to_hex_chunks()) << s;
+        ASSERT_EQ((x | ~x).to_hex_chunks(), intbig_t::of(-1).to_hex_chunks()) << s;
+        ASSERT_EQ((x ^ ~x).to_hex_chunks(), intbig_t::of(-1).to_hex_chunks()) << s;
+    }
 }

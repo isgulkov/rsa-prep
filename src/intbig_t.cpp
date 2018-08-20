@@ -51,6 +51,11 @@ intbig_t::intbig_t(int64_t x) : sign(sign_of(x))
     }
 }
 
+intbig_t intbig_t::of(const int64_t x)
+{
+    return intbig_t(x);
+}
+
 intbig_t intbig_t::from_decimal(const std::string& decimal)
 {
     // REMOVE: temporary, until proper string conversions are implemented
@@ -450,10 +455,12 @@ void intbig_t::add_abs(const intbig_t& other)
     sign = 1;
 }
 
-void intbig_t::clear()
+intbig_t& intbig_t::clear()
 {
     chunks.resize(0);
     sign = 0;
+
+    return *this;
 }
 
 void intbig_t::sub_abs(const intbig_t& other)
@@ -793,17 +800,11 @@ intbig_t intbig_t::operator>>(int64_t n) const
     return result;
 }
 
-intbig_t& intbig_t::operator&=(const intbig_t& other)
+intbig_t& intbig_t::apply_bitwise(const intbig_t& other, const std::function<uint64_t(uint64_t, uint64_t)>& f_bitwise)
 {
-    if(chunks.empty()) {
-        return *this;
-    }
-    else if(other.chunks.empty()) {
-        clear(); // TODO: <--- return *this from this method, as well as several others?
-        return *this;
-    }
+    bool neg_result = f_bitwise(sign == -1 ? 1 : 0, other.sign == -1 ? 1 : 0) != 0;
 
-    if(sign != -1 && other.sign != -1) {
+    if((sign == 1 && other.sign == 1 && f_bitwise(3, 5) == 1) || (sign == -1 && other.sign == -1 && f_bitwise(3, 5) == 7)) {
         chunks.resize(std::min(chunks.size(), other.chunks.size()));
     }
     else {
@@ -819,6 +820,7 @@ intbig_t& intbig_t::operator&=(const intbig_t& other)
             this_add = false;
         }
 
+        // REVIEW: Cut a corner or two when this condition is false?
         uint64_t other_chunk = i < other.chunks.size() ? other.chunks[i] : 0;
 
         // Handle `other` as 2's complement
@@ -826,22 +828,24 @@ intbig_t& intbig_t::operator&=(const intbig_t& other)
             other_add = false;
         }
 
-        chunks[i] &= other_chunk;
+        chunks[i] = f_bitwise(chunks[i], other_chunk);
 
         // In this case, `this` ends up 2's complement -- convert it back
-        if(sign == -1 && other.sign == -1) {
+        if(neg_result) {
             chunks[i] = ~chunks[i];
         }
     }
 
-    if(sign == -1 && other.sign == -1) {
+    if(neg_result) {
         // ...finish the conversion from 2's complement
         inc_abs();
+        sign = -1;
     }
     else {
         sign = 1;
     }
 
+    // TODO: Do this in one resize instead of this loop.
     while(!chunks.empty() && chunks.back() == 0) {
         chunks.pop_back();
     }
@@ -851,6 +855,20 @@ intbig_t& intbig_t::operator&=(const intbig_t& other)
     }
 
     return *this;
+}
+
+intbig_t& intbig_t::operator&=(const intbig_t& other)
+{
+    if(chunks.empty()) {
+        return *this;
+    }
+    else if(other.chunks.empty()) {
+        return clear();
+    }
+
+    return apply_bitwise(other, [](uint64_t x, uint64_t y) {
+        return x & y;
+    });
 }
 
 intbig_t& intbig_t::operator|=(const intbig_t& other)
@@ -862,50 +880,9 @@ intbig_t& intbig_t::operator|=(const intbig_t& other)
         return *this;
     }
 
-    chunks.resize(std::max(chunks.size(), other.chunks.size()));
-
-    // The "1"s that need to be added for conversion of terms into 2's complement
-    bool this_add = sign == -1, other_add = other.sign == -1;
-
-    for(size_t i = 0; i < chunks.size(); i++) {
-        // Handle `this` as 2's complement
-        if(sign == -1 && (chunks[i] = ~chunks[i] + this_add)) {
-            this_add = false;
-        }
-
-        uint64_t other_chunk = i < other.chunks.size() ? other.chunks[i] : 0;
-
-        // Handle `other` as 2's complement
-        if(other.sign == -1 && (other_chunk = ~other_chunk + other_add)) {
-            other_add = false;
-        }
-
-        chunks[i] |= other_chunk;
-
-        // In this case, `this` ends up 2's complement -- convert it back
-        if(sign == -1 || other.sign == -1) {
-            chunks[i] = ~chunks[i];
-        }
-    }
-
-    if(sign == -1 || other.sign == -1) {
-        // ...finish the conversion from 2's complement
-        inc_abs();
-        sign = -1;
-    }
-    else {
-        sign = 1;
-    }
-
-    while(!chunks.empty() && chunks.back() == 0) {
-        chunks.pop_back();
-    }
-
-    if(chunks.empty()) {
-        sign = 0;
-    }
-
-    return *this;
+    return apply_bitwise(other, [](uint64_t x, uint64_t y) {
+        return x | y;
+    });
 }
 
 intbig_t& intbig_t::operator^=(const intbig_t& other)
@@ -917,50 +894,9 @@ intbig_t& intbig_t::operator^=(const intbig_t& other)
         return *this;
     }
 
-    chunks.resize(std::max(chunks.size(), other.chunks.size()));
-
-    // The "1"s that need to be added for conversion of terms into 2's complement
-    bool this_add = sign == -1, other_add = other.sign == -1;
-
-    for(size_t i = 0; i < chunks.size(); i++) {
-        // Handle `this` as 2's complement
-        if(sign == -1 && (chunks[i] = ~chunks[i] + this_add)) {
-            this_add = false;
-        }
-
-        uint64_t other_chunk = i < other.chunks.size() ? other.chunks[i] : 0;
-
-        // Handle `other` as 2's complement
-        if(other.sign == -1 && (other_chunk = ~other_chunk + other_add)) {
-            other_add = false;
-        }
-
-        chunks[i] ^= other_chunk;
-
-        // In this case, `this` ends up 2's complement -- convert it back
-        if((sign == -1) != (other.sign == -1)) {
-            chunks[i] = ~chunks[i];
-        }
-    }
-
-    if((sign == -1) != (other.sign == -1)) {
-        // ...finish the conversion from 2's complement
-        inc_abs();
-        sign = -1;
-    }
-    else {
-        sign = 1;
-    }
-
-    while(!chunks.empty() && chunks.back() == 0) {
-        chunks.pop_back();
-    }
-
-    if(chunks.empty()) {
-        sign = 0;
-    }
-
-    return *this;
+    return apply_bitwise(other, [](uint64_t x, uint64_t y) {
+        return x ^ y;
+    });
 }
 
 intbig_t intbig_t::operator&(const intbig_t& other) const

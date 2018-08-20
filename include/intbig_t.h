@@ -101,7 +101,7 @@ public:
 
 private:
     // Set this number to zero (for when two equal numbers are subtracted)
-    void clear();
+    intbig_t& clear();
 
     /*
      * Apply operations just to the absolute values of the two numbers (in-place, with signed result)
@@ -134,8 +134,11 @@ public:
     const intbig_t operator++(int);
     const intbig_t operator--(int);
 
-    // TODO: merge the three bitwise logic methods into one!
     //
+private:
+    intbig_t& apply_bitwise(const intbig_t& other, const std::function<uint64_t(uint64_t, uint64_t)>& f_bitwise);
+
+public:
     intbig_t& operator&=(const intbig_t& other);
     intbig_t& operator|=(const intbig_t& other);
     intbig_t& operator^=(const intbig_t& other);
