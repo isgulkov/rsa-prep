@@ -147,6 +147,56 @@ BitwiseBinaryOp BitwiseAnd_op = {
         }
 };
 
+BitwiseBinaryOp BitwiseAndCopy_op = {
+        "BitwiseAndCopy",
+        [](const std::string& x, const std::string& y) {
+            intbig_t sx = intbig_t::from_decimal(x);
+            intbig_t sy = intbig_t::from_decimal(y);
+
+            return (sx & sy).to_hex_chunks();
+        },
+        [](const std::string& x, const std::string& y) {
+            return BitwiseAnd_op.get_ref(x, y);
+        }
+};
+
+BitwiseBinaryOp BitwiseOr_op = {
+        "BitwiseOr",
+        [](const std::string& x, const std::string& y) {
+            intbig_t sx = intbig_t::from_decimal(x);
+            intbig_t sy = intbig_t::from_decimal(y);
+
+            intbig_t sz = sx;
+            sz |= sy;
+
+            return sz.to_hex_chunks();
+        },
+        [](const std::string& x, const std::string& y) {
+            mpz_t gx{}, gy{}, gz{};
+
+            mpz_init_set_str(gx, x.c_str(), 10);
+            mpz_init_set_str(gy, y.c_str(), 10);
+
+            mpz_init(gz);
+            mpz_ior(gz, gx, gy);
+
+            return mpz_limbs_to_hex(gz);
+        }
+};
+
+BitwiseBinaryOp BitwiseOrCopy_op = {
+        "BitwiseOrCopy",
+        [](const std::string& x, const std::string& y) {
+            intbig_t sx = intbig_t::from_decimal(x);
+            intbig_t sy = intbig_t::from_decimal(y);
+
+            return (sx | sy).to_hex_chunks();
+        },
+        [](const std::string& x, const std::string& y) {
+            return BitwiseOr_op.get_ref(x, y);
+        }
+};
+
 class IntBigTBitwiseOps : public ::testing::TestWithParam<BitwiseBinaryOp>
 {
 protected:
@@ -169,6 +219,9 @@ protected:
 };
 
 INSTANTIATE_TEST_CASE_P(BitwiseAnd, IntBigTBitwiseOps, ::testing::Values(BitwiseAnd_op));
+INSTANTIATE_TEST_CASE_P(BitwiseAndCopy, IntBigTBitwiseOps, ::testing::Values(BitwiseAndCopy_op));
+INSTANTIATE_TEST_CASE_P(BitwiseOr, IntBigTBitwiseOps, ::testing::Values(BitwiseOr_op));
+INSTANTIATE_TEST_CASE_P(BitwiseOrCopy, IntBigTBitwiseOps, ::testing::Values(BitwiseOrCopy_op));
 
 TEST_P(IntBigTBitwiseOps, VariedPositive)
 {
