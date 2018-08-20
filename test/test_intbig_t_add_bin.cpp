@@ -6,7 +6,7 @@
 #include "intbig_t.h"
 
 /*
- * Tests for the "additive" binary operations
+ * Tests for the "additive" binary operators
  * (which are pretty interconnected conceptually and implementation-wise)
  *
  * |               | In-place  | Copying   |

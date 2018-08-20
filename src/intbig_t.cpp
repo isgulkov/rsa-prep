@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <algorithm>
 
 #include "intbig_t.h"
 
@@ -142,6 +143,22 @@ std::string intbig_t::to_hex_chunks() const
 std::ostream& operator<<(std::ostream& os, const intbig_t& value)
 {
     return os << value.to_string();
+}
+
+size_t intbig_t::num_bits() const
+{
+    // TODO: treat negatives as 2-complement
+    // TODO: is zero 0 bits or 1?
+
+    if(chunks.empty()) {
+        return 1;
+    }
+
+    size_t msb_bits = 0;
+
+    for(uint64_t chunk = chunks.back(); chunk != 0; chunk >>= 1, msb_bits++) { }
+
+    return msb_bits + (64 * (chunks.size() - 1));
 }
 
 bool intbig_t::operator==(const intbig_t& other) const
@@ -658,4 +675,104 @@ const intbig_t intbig_t::operator--(int)
     operator--();
 
     return old_value;
+}
+
+intbig_t& intbig_t::operator<<=(int64_t n)
+{
+    // TODO: move to docs:
+    // NOTE: shift of a 2-comp. negative works like it's applied to its absolute, except that >> stops at -1 (...111111)
+
+    if(n < 0) {
+        return operator>>=(-n);
+    }
+    else if(n == 0 || sign == 0) {
+        return *this;
+    }
+
+    const ssize_t n_whole_chunks = n / 64;
+
+    if(n_whole_chunks != 0) {
+        chunks.resize(chunks.size() + n_whole_chunks);
+
+        std::rotate(chunks.begin(), chunks.end() - n_whole_chunks, chunks.end());
+    }
+
+    n %= 64;
+
+    if(n != 0) {
+        const uint64_t other_n = 64 - (uint64_t)n;
+
+        if(chunks.back() >> other_n != 0) {
+            chunks.push_back(0);
+        }
+
+        for(ssize_t i = chunks.size() - 1; i >= n_whole_chunks; i--) {
+            chunks[i + 1] |= chunks[i] >> other_n;
+
+            chunks[i] <<= n;
+        }
+    }
+
+    return *this;
+}
+
+intbig_t& intbig_t::operator>>=(int64_t n)
+{
+    // TODO: likewise
+
+    if(n < 0) {
+        return operator<<=(-n);
+    }
+    else if(n == 0 || sign == 0) {
+        return *this;
+    }
+
+    const ssize_t n_whole_chunks = n / 64;
+
+    if(n_whole_chunks != 0) {
+        if(n_whole_chunks >= chunks.size()) {
+            if(sign == -1) {
+                chunks = { 1 };
+            }
+            else if(sign == 1) {
+                clear();
+            }
+
+            return *this; // TODO: <-- rearrange stuff so that there's only one of this statement
+        }
+
+        std::rotate(chunks.begin(), chunks.begin() + n_whole_chunks, chunks.end());
+
+        chunks.resize(chunks.size() - n_whole_chunks);
+    }
+
+    n %= 64;
+
+    if(n != 0) {
+        const uint64_t other_n = 64 - (uint64_t)n;
+
+        chunks[0] >>= n;
+
+        for(size_t i = 1; i < chunks.size(); i++) {
+            chunks[i - 1] |= chunks[i] << other_n;
+
+            chunks[i] >>= n;
+        }
+
+        if(chunks.back() == 0) {
+            chunks.pop_back();
+
+            if(chunks.empty()) {
+                if(sign == -1) {
+                    // TODO: eliminate redundant pop-then-push in this case
+                    chunks.push_back(1);
+                }
+                else {
+                    sign = 0;
+                }
+            }
+        }
+    }
+
+    return *this;
 }

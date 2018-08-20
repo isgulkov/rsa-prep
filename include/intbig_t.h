@@ -23,6 +23,9 @@ class intbig_t
      *       - with no leading zeroes (thus, empty for 0).
      */
 
+    // REMOVE:   !!!!!!!!!!
+public:
+    // REMOVE: / !!!!!!!!!!
     int sign = 0;
     std::vector<uint64_t> chunks;
 
@@ -74,7 +77,7 @@ public:
     void to_bytes(std::ostream& stream);
     // NOTE: / PKCS#1 conversions
 
-    // TODO: is ever useful:
+    // TODO: if ever useful:
     size_t num_bits() const;
 
     //
@@ -130,6 +133,35 @@ public:
     // REVIEW: references a dead link on some sketchy CMU site. Not on web.archive.org, nowhere on Google.
     const intbig_t operator++(int);
     const intbig_t operator--(int);
+
+    //
+    intbig_t& operator&=(const intbig_t& other);
+    intbig_t& operator|=(const intbig_t& other);
+    intbig_t& operator^=(const intbig_t& other);
+    intbig_t& operator<<=(int64_t n);
+    intbig_t& operator>>=(int64_t n);
+
+    intbig_t operator&(const intbig_t& other) const;
+    intbig_t operator|(const intbig_t& other) const;
+    intbig_t operator^(const intbig_t& other) const;
+    intbig_t operator<<(int64_t n) const;
+    intbig_t operator>>(int64_t n) const;
+
+    intbig_t operator~() const;
+
+    //
+    intbig_t& operator*=(const intbig_t& other);
+    intbig_t operator*(const intbig_t& other) const;
+
+    intbig_t& operator%=(const intbig_t& other);
+    intbig_t& operator/=(const intbig_t& other);
+
+    intbig_t operator%(const intbig_t& other) const;
+    intbig_t operator/(const intbig_t& other) const;
+//    std::pair<intbig_t, intbig_t> divmod(const intbig_t& other) const;
+
+    intbig_t& to_power(int64_t p);
+    intbig_t power(int64_t p) const;
 };
 
 #endif //RSA_PREP_INTBIG_T_H

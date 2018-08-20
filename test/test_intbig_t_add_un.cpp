@@ -6,8 +6,7 @@
 #include "intbig_t.h"
 
 /*
- * Tests for the unary "additive" operations
- * (which are pretty interconnected conceptually and implementation-wise)
+ * Tests for the unary "additive" operators
  *
  * |               | In-place  | Copying   |
  * | ------------- | --------- | --------- |

@@ -66,6 +66,15 @@ if (BUILD_TESTS)
   target_include_directories(test_intbig_t_add_un PRIVATE vendor/infint)
   add_test(test_intbig_t_add_un test_intbig_t_add_un)
 
+  add_executable(test_intbig_t_bitwise test/test_intbig_t_bitwise.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_bitwise.cpp")
+  target_link_libraries(test_intbig_t_bitwise
+          gtest gtest_main
+          intbig_t
+          )
+  target_include_directories(test_intbig_t_add_un PRIVATE vendor/infint)
+  add_test(test_intbig_t_bitwise test_intbig_t_bitwise)
+
   # - sha256
   add_executable(test_sha256 test/test_sha256.cpp)
   set(TEST_SRCS "${TEST_SRCS};test/test_sha256.cpp")
