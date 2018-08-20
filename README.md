@@ -128,6 +128,8 @@ The number is internally represented with two data members:
 
   - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
 
+> **TODO**: 2-complement representation, like Java's `BigInteger`?
+>
 > **TODO**: use a smaller or larger type for `sign` (it takes 8 bytes right now anyway)
 >
 > **TODO**: if it's smaller than `size_t`, put it at the end so theoretically something smaller than it can be aligned after the object?
@@ -335,15 +337,13 @@ as well as some additional methods:
 
   - [ ] as well as `size_t num_bits() const` — the length of the underlying number's binary representation, i.e. the 1-based position of its leftmost set bit (if a use is found);
 
-    **Note**: check if `std::string` is OK with zero bytes;
-
     **Note**: consider copying 8 bytes at a time with `reinterpret_cast<uint64_t*>` (check if `std::strings` are contiguous, though);
 
 - [ ] *explicit* conversions to `int`s of various sizes (throw `range_error` if doesn't fit);
 
 - [x] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
 
-- faster  versions of some `operator`s working on `int64_t` without conversion:
+- faster versions of some `operator`s working on `int64_t` without conversion:
 
   - [ ] `==` and `!=`;
 
@@ -519,61 +519,63 @@ struct cl_byte {
 
    10. Real implementations:
 
-      1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
+     1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
 
-         OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
+        OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
 
-         Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
+        Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
 
-      2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
+     2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
 
-         1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
+        1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
 
-            > Wei's original code was much simpler ...
-            >
+           > Wei's original code was much simpler ...
+           >
 
-         2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation;
+        2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation:
 
-         3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
+           1. has `ModularArithmetic` class representing a modulus with methods accepting regular integers;
+           2. [modular add/sub](https://www.cryptopp.com/docs/ref/integer_8cpp_source.html#l04494) are pretty straightforward derivatives of their non-modular versions;
+           3. [`RSAPrimeSelector`](https://www.cryptopp.com/docs/ref/rsa_8cpp_source.html#l00106) — seems to just check GCD of candidate with the public exponent, which is weird;
 
-         4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
+        3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
 
-      3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
+        4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
 
-         [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
+     3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
 
-         **May be up for a pull request after I'm finished with this!**
+        [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
 
-         > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
+        **May be up for a pull request after I'm finished with this!**
 
-         > Running doctests 1000x or until failure
+        > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
 
-         Found the users:
+        > Running doctests 1000x or until failure
 
-         > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
+        Found the users:
+
+        > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
 
 4. Other relevant algorithms:
 
-   1. Cormen et el.:
+   1. bitwise operators on neagtive MP integers ([2's complement](https://en.wikipedia.org/wiki/Two%27s_complement)):
+
+      1. [Two's Complement binary for Negative Integers](https://wiki.python.org/moin/BitwiseOperators#line-22);
+      2. implementation in [`longobject.c`](https://hg.python.org/cpython/file/628acf7dbc8d/Objects/longobject.c#l4171);
+      3. some fuck's [GitHub issue](https://github.com/libtom/libtommath/issues/32) and implementation in [his PHP slop](https://github.com/hikari-no-yume/php-src/blob/481bc1ea3986ab596b3a1860b1693cfa2769c845/Zend/zend_bigint_libtommath.c#L768);
+
+   2. Cormen et el.:
 
       1. 32: Number-Theoretic Algorithms, p. 926;
       2. 31.8: Primality testing *(incl. Miller-Rabin primality test)*, pp. 971–975;
 
-   2. St. Denis — BigNum Math: Implementing Cryptographic Multiple Precision Arithmetic,
+   3. St. Denis — BigNum Math: Implementing Cryptographic Multiple Precision Arithmetic,
 
       a book by the developer of [LibTomMath](https://www.libtom.net/LibTomMath/) and [LibTomCrypt](https://github.com/libtom/libtomcrypt) that are both written in C and the former reminds me a lot of GMP:
 
       1. [TeX source](https://github.com/libtom/libtommath/blob/develop/doc/tommath.src);
       2. [Generated PDF](https://github.com/libtom/libtommath/blob/432e3bd8eb40c4e5a40b688da6764d418b1804b2/tommath.pdf) (last version before deletion);
       3. pirated Amazon PDF looks the best, though;
-
-   3. SHA-256:
-
-      1. [FIPS PUB 180-4 Secure Hash Standard](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf) — specification draft;
-      2. [A JS implementation](https://www.movable-type.co.uk/scripts/sha256.html) with the "educational use" disclaimer;
-      3. OpenSSL: [`sha.h`](https://github.com/openssl/openssl/blob/26a7d938c9bf932a55cb5e4e02abb48fe395c5cd/include/openssl/sha.h), [`sha.c`](https://github.com/openssl/openssl/blob/26a7d938c9bf932a55cb5e4e02abb48fe395c5cd/crypto/sha/sha256.c);
-      4. GitHub yobichi: [`picosha2.h`](https://github.com/okdshin/PicoSHA2/blob/master/picosha2.h), [`sha256.cpp`](https://github.com/hlilje/sha-256/blob/master/sha256.cpp), [`sha256.py`](https://github.com/delqn/py-sha256/blob/master/sha256.py) — no shortage of those;
-      5. PyPy: [`_sha256.py`](https://bitbucket.org/pypy/pypy/src/tip/lib_pypy/_sha256.py?fileviewer=file-view-default);
 
    4. `std::vector` replacements:
 
@@ -602,6 +604,10 @@ struct cl_byte {
          1. [`itoa` benchmarks](https://github.com/amdn/itoa-benchmark) (for regular ints);
          2. [gay `dtoa` benchmarks](https://github.com/miloyip/dtoa-benchmark) (for regular doubles);
 
+   5. PRNGs:
+
+      1. [Diehard tests](<https://en.wikipedia.org/wiki/Diehard_tests);
+
 5. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 
    [Source File Organization for C++ Projects Part 2: Directories and Namespaces](https://arne-mertz.de/2016/06/organizing-directories-namespaces/);
@@ -627,6 +633,7 @@ struct cl_byte {
       2. [Visualizing Errors](https://jakevdp.github.io/PythonDataScienceHandbook/04.03-errorbars.html) *(uses some "styles" to make it look good)*;
       3. [Matplotlib: beautiful plots with style](http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/) *(some kind of explanation of these `maplotlib` styles)*;
    3. [incise.org: Hash Table Benchmarks](http://incise.org/hash-table-benchmarks.html) — doctor, my lines are worrying me 🌝;
+   4. [A benchmark report from criterion, a Haskell library](http://www.serpentine.com/criterion/fibber.html) — looks good;
 
 9. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, some of which he even benchmarks against our old friend `NTL`.
 

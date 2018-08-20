@@ -128,7 +128,7 @@ std::string intbig_t::to_hex_chunks() const
     // REMOVE: dev version -- make more usable and possibly roundtrip-convertible
 
     if(chunks.empty()) {
-        return "[  0]";
+        return "  0";
     }
 
     std::string result = sign < 0 ? "-" : " ";
@@ -791,4 +791,51 @@ intbig_t intbig_t::operator>>(int64_t n) const
     result >>= n;
 
     return result;
+}
+
+intbig_t& intbig_t::operator&=(const intbig_t& other)
+{
+    if(sign != -1 && other.sign != -1) {
+        chunks.resize(std::min(chunks.size(), other.chunks.size()));
+    }
+    else {
+        chunks.resize(std::max(chunks.size(), other.chunks.size()));
+    }
+
+    bool this_add = sign == -1, other_add = other.sign == -1;
+
+    for(size_t i = 0; i < chunks.size(); i++) {
+        if(sign == -1 && (chunks[i] = ~chunks[i] + this_add)) {
+            this_add = false;
+        }
+
+        uint64_t other_chunk = i < other.chunks.size() ? other.chunks[i] : 0;
+
+        if(other.sign == -1 && (other_chunk = ~other_chunk + other_add)) {
+            other_add = false;
+        }
+
+        chunks[i] &= other_chunk;
+
+        if(sign == -1 && other.sign == -1) {
+            chunks[i] = ~chunks[i];
+        }
+    }
+
+    if(sign == -1 && other.sign == -1) {
+        inc_abs();
+    }
+    else {
+        sign = 1;
+    }
+
+    while(!chunks.empty() && chunks.back() == 0) {
+        chunks.pop_back();
+    }
+
+    if(chunks.empty()) {
+        sign = 0;
+    }
+
+    return *this;
 }

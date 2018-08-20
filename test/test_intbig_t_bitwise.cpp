@@ -1,9 +1,14 @@
 #include <vector>
+#include <functional>
 
 #include "gtest/gtest.h"
-#include "InfInt.h"
 
 #include "intbig_t.h"
+
+extern "C" {
+#include "mini-gmp.h"
+#include "mini-gmp.c"
+}
 
 /*
  * Tests for the bitwise operators
@@ -13,18 +18,8 @@
  * | and         |  &=      |  &      |
  * | or          |  |=      |  |      |
  * | xor         |  ^=      |  ^      |
- * | left shift  |  <<=     |  <<     |
- * | right shift |  >>=     |  >>     |
  * | negate      |          |  ~      |
  *
- * For shifts:
- *   - [x] various shifts of large and small numbers;
- *   - [x] shifts resulting in zero;
- *   - [x] shifts of zero;
- *   - [x] shift by negative results in symmetric shift by absolute;
- *   - [x] shifts of negatives behave like corresponding shifts of their absolutes;
- *           - [x] except that right shift is idempotent for -1 instead of 0;
- *   - [x] something basic for the copying shifts.
  *
  *
  */
@@ -32,18 +27,16 @@
 namespace TestData
 {
 
-// TODO: extract this test data into a common file
+// TODO: extract all test data into a common file
 
-const std::vector<std::string> small_positive = {
+const std::vector<std::string> varied_positive = {
+        "0",
         "1",
         "2",
         "10",
         "25",
         "15231",
-        "10832543123"
-};
-
-const std::vector<std::string> large_positive = {
+        "10832543123",
         "87972214896678166229" // NOLINT(misc-suspicious-missing-comma)
         "8173139348",
         "78697751883288514847"
@@ -73,9 +66,7 @@ const std::vector<std::string> large_positive = {
         "67651698652459"
 };
 
-const std::vector<int> positive_shifts = { 0, 1, 8, 37, 63, 64, 65, 130, 1000 };
-
-std::vector<std::string> prepend_minus(const std::vector<std::string>& xs)
+std::vector<std::string> prepend_minus_(const std::vector<std::string>& xs)
 {
     std::vector<std::string> negatives(xs.size());
 
@@ -86,222 +77,111 @@ std::vector<std::string> prepend_minus(const std::vector<std::string>& xs)
     return negatives;
 }
 
-const std::vector<std::string> small_negative = prepend_minus(small_positive);
-const std::vector<std::string> large_negative = prepend_minus(large_positive);
+const std::vector<std::string> varied_negative = prepend_minus_(varied_positive);
 
 }
 
-enum ShiftDir { LEFT, RIGHT };
-
-class IntBigTBitwiseShifts : public ::testing::TestWithParam<ShiftDir>
+std::string uint64_to_hex(uint64_t x)
 {
-protected:
-    void assert_likeReference(const std::string& s, int n)
-    {
-        intbig_t x = intbig_t::from_decimal(s);
-        InfInt y = s;
+    std::string result(64 / 4, '0');
 
-        if(GetParam() == ShiftDir::LEFT) {
-            x <<= n;
+    for(ssize_t i = 64 / 4 - 1; x; i--) {
+        auto x_digit = uint8_t(x & 0xFU);
 
-            for(int i = 0; i < n; i++) {
-                y *= 2;
-            }
-        }
-        else if(GetParam() == ShiftDir::RIGHT) {
-            x >>= n;
+        x >>= 4;
 
-            for(int i = 0; i < n; i++) {
-                if(y >= 0) {
-                    y /= 2;
-                }
-                else {
-                    y /= 2;
-
-                    if(y == 0) {
-                        y = "-1";
-                    }
-                }
-            }
+        if(x_digit < 10) {
+            result[i] = '0' + x_digit;
         }
         else {
-            FAIL() << "Unknown direction: " << GetParam();
-        }
-
-        ASSERT_EQ(x.to_string(), y.toString()) << intbig_t::from_decimal(s).to_hex_chunks()
-                                               << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
-    }
-
-    void assertAll_paired(const std::vector<std::string>& xs, const std::vector<int>& ns)
-    {
-        for(const std::string& x : xs) {
-            for(const int n : ns) {
-                ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, n));
-            }
+            result[i] = (char)('A' - 10) + x_digit;
         }
     }
+
+    return result;
+}
+
+std::string mpz_limbs_to_hex(const mpz_t& x)
+{
+    if(mpz_sgn(x) == 0) {
+        return "  0";
+    }
+
+    std::string s = mpz_sgn(x) == -1 ? "-" : " ";
+
+    for(ssize_t i = mpz_size(x) - 1; i >= 0; i--) {
+        s += " " + uint64_to_hex(mpz_getlimbn(x, i));
+    }
+
+    return s;
+}
+
+struct BitwiseBinaryOp
+{
+    const std::string op_name;
+    const std::function<std::string(const std::string&, const std::string&)> get_impl;
+    const std::function<std::string(const std::string&, const std::string&)> get_ref;
 };
 
-INSTANTIATE_TEST_CASE_P(LeftShift, IntBigTBitwiseShifts, ::testing::Values(ShiftDir::LEFT));
+BitwiseBinaryOp BitwiseAnd_op = {
+        "BitwiseAnd",
+        [](const std::string& x, const std::string& y) {
+            intbig_t sx = intbig_t::from_decimal(x);
+            intbig_t sy = intbig_t::from_decimal(y);
 
-INSTANTIATE_TEST_CASE_P(RightShift, IntBigTBitwiseShifts, ::testing::Values(ShiftDir::RIGHT));
+            intbig_t sz = sx;
+            sz &= sy;
 
-TEST_P(IntBigTBitwiseShifts, PosSmallByPosVarious)
-{
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    TestData::small_positive, TestData::positive_shifts
-            )
-    );
-}
+            return sz.to_hex_chunks();
+        },
+        [](const std::string& x, const std::string& y) {
+            mpz_t gx{}, gy{}, gz{};
 
-TEST_P(IntBigTBitwiseShifts, PosLargeByPosVarious)
-{
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    TestData::large_positive, TestData::positive_shifts
-            )
-    );
-}
+            mpz_init_set_str(gx, x.c_str(), 10);
+            mpz_init_set_str(gy, y.c_str(), 10);
 
-TEST_P(IntBigTBitwiseShifts, PosByItsNumBits)
-{
-    for(const std::string& x : TestData::large_positive) {
-        int n_bits = (int)intbig_t::from_decimal(x).num_bits();
+            mpz_init(gz);
+            mpz_and(gz, gx, gy);
 
-        ASSERT_NO_FATAL_FAILURE(
-                assert_likeReference(x, n_bits)
-        );
-
-        ASSERT_NO_FATAL_FAILURE(
-                assert_likeReference(x, n_bits - 1)
-        );
-    }
-}
-
-TEST_P(IntBigTBitwiseShifts, ZeroByPosVarious)
-{
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    { "0" },
-                    { 0, 1, 8, 80 }
-            )
-    );
-}
-
-TEST(IntBigTBitwiseShifts, PosByNegativeResultsInSymmetric)
-{
-    for(const int n : TestData::positive_shifts) {
-        intbig_t x;
-
-        if(n % 2) {
-            x = intbig_t::from_decimal(TestData::small_positive[n % TestData::small_positive.size()]);
+            return mpz_limbs_to_hex(gz);
         }
-        else {
-            x = intbig_t::from_decimal(TestData::large_positive[n % TestData::large_positive.size()]);
-        }
+};
 
-        intbig_t y = x;
-        intbig_t z = x;
-
-        y <<= -n;
-        z >>= n;
-
-        ASSERT_EQ(y.to_string(), z.to_string()) << x.to_string() << " by " << n;
-
-        y = x;
-        z = x;
-
-        y >>= -n;
-        z <<= n;
-
-        ASSERT_EQ(y.to_string(), z.to_string()) << x.to_string() << " by " << n;
-    }
-}
-
-TEST_P(IntBigTBitwiseShifts, NegSmallByPosVarious)
-{
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    TestData::small_negative, TestData::positive_shifts
-            )
-    );
-}
-
-TEST_P(IntBigTBitwiseShifts, NegLargeByPosVarious)
-{
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    TestData::large_negative, TestData::positive_shifts
-            )
-    );
-}
-
-class IntBigTBitwiseCopyingShifts : public ::testing::TestWithParam<ShiftDir>
+class IntBigTBitwiseOps : public ::testing::TestWithParam<BitwiseBinaryOp>
 {
 protected:
-    void assert_likeReference(const std::string& s, int n)
+    void assert_likeReference(const std::string& x, const std::string& y)
     {
-        intbig_t x = intbig_t::from_decimal(s);
-        InfInt y = s;
-
-        if(GetParam() == ShiftDir::LEFT) {
-            for(int i = 0; i < n; i++) {
-                y *= 2;
-            }
-        }
-        else if(GetParam() == ShiftDir::RIGHT) {
-            for(int i = 0; i < n; i++) {
-                if(y >= 0) {
-                    y /= 2;
-                }
-                else {
-                    y /= 2;
-
-                    if(y == 0) {
-                        y = "-1";
-                    }
-                }
-            }
-        }
-        else {
-            FAIL() << "Unknown direction: " << GetParam();
-        }
-
         ASSERT_EQ(
-                (GetParam() == ShiftDir::LEFT ? x << n : x >> n).to_string(),
-                y.toString()
-        ) << intbig_t::from_decimal(s).to_hex_chunks() << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
+                GetParam().get_impl(x, y),
+                GetParam().get_ref(x, y)
+        ) << intbig_t::from_decimal(x).to_hex_chunks() << ", " << intbig_t::from_decimal(y).to_hex_chunks();
     }
 
-    void assertAll_paired(const std::vector<std::string>& xs, const std::vector<int>& ns)
+    void assertAll_paired(const std::vector<std::string>& xs, const std::vector<std::string>& ys)
     {
         for(const std::string& x : xs) {
-            for(const int n : ns) {
-                ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, n));
+            for(const std::string& y : ys) {
+                ASSERT_NO_FATAL_FAILURE(assert_likeReference(x, y));
             }
         }
     }
 };
 
-INSTANTIATE_TEST_CASE_P(LeftShift, IntBigTBitwiseCopyingShifts, ::testing::Values(ShiftDir::LEFT));
+INSTANTIATE_TEST_CASE_P(BitwiseAnd, IntBigTBitwiseOps, ::testing::Values(BitwiseAnd_op));
 
-INSTANTIATE_TEST_CASE_P(RightShift, IntBigTBitwiseCopyingShifts, ::testing::Values(ShiftDir::RIGHT));
-
-TEST_P(IntBigTBitwiseCopyingShifts, PosSmallByPosVarious)
+TEST_P(IntBigTBitwiseOps, VariedPositive)
 {
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    TestData::small_positive, TestData::positive_shifts
-            )
-    );
+    ASSERT_NO_FATAL_FAILURE(assertAll_paired(TestData::varied_positive, TestData::varied_positive));
 }
 
-TEST_P(IntBigTBitwiseCopyingShifts, PosLargeByPosVarious)
+TEST_P(IntBigTBitwiseOps, VariedMixedSign)
 {
-    ASSERT_NO_FATAL_FAILURE(
-            assertAll_paired(
-                    TestData::large_positive, TestData::positive_shifts
-            )
-    );
+    ASSERT_NO_FATAL_FAILURE(assertAll_paired(TestData::varied_positive, TestData::varied_negative));
+    ASSERT_NO_FATAL_FAILURE(assertAll_paired(TestData::varied_negative, TestData::varied_positive));
+}
+
+TEST_P(IntBigTBitwiseOps, VariedNegative)
+{
+    ASSERT_NO_FATAL_FAILURE(assertAll_paired(TestData::varied_negative, TestData::varied_negative));
 }
