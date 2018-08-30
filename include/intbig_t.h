@@ -53,9 +53,9 @@ public:
     // TODO: Replace this:
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     intbig_t(int64_t x);
-
     // TODO: with this:
-    static intbig_t of(const int64_t x);
+    static intbig_t of(int64_t x);
+
     // TODO: Also, replace this
     static intbig_t from_decimal(const std::string& decimal);
     // TODO: with this:
@@ -66,6 +66,7 @@ public:
     std::string to_hex_chunks() const;
     std::string to_bin_chunks() const;
     // TODO: / (showing number as its chunks)
+    // NOTE: just to_string(int base, bool sep_chunks = false)?
 
     friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
@@ -81,6 +82,7 @@ public:
 
     // TODO: if ever useful:
     size_t num_bits() const;
+    // size_t size() const -- number of limbs
 
     //
     bool operator==(const intbig_t& other) const;

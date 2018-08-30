@@ -1,7 +1,8 @@
-#include <stdexcept>
-#include <algorithm>
 
 #include "intbig_t.h"
+
+#include <stdexcept>
+#include <algorithm>
 
 // REMOVE: temporary, for the following:
 // REMOVE:  - to_string
@@ -684,46 +685,57 @@ const intbig_t intbig_t::operator--(int)
     return old_value;
 }
 
-intbig_t& intbig_t::operator<<=(int64_t n)
+intbig_t& intbig_t::operator<<=(const int64_t n)
 {
     // TODO: move to docs:
     // NOTE: shift of a 2-comp. negative works like it's applied to its absolute, except that >> stops at -1 (...111111)
+
+    // TODO: implement both shifts as private methods accepting uint64_t, let operators handle the neg. and zero cases.
+    // TODO: or maybe abstract the two away into one method with `n`'s sign determining the shift direction?
 
     if(n < 0) {
         return operator>>=(-n);
     }
     else if(n == 0 || sign == 0) {
+        // Either number is already zero or is being shifted by zero -- both are no-ops
         return *this;
     }
 
-    const ssize_t n_whole_chunks = n / 64;
+    const uint64_t n_whole_chunks = (uint64_t)n / 64;
 
     if(n_whole_chunks != 0) {
+        /*
+         * Add an `n_whole_chunks`-long section of zeroes to the back, then move it to the front:
+         *   ABC...XYZ --> ABC...XYZ[000] --> [000]ABC...XYZ
+         */
         chunks.resize(chunks.size() + n_whole_chunks);
-
         std::rotate(chunks.begin(), chunks.end() - n_whole_chunks, chunks.end());
     }
 
-    n %= 64;
+    const uint64_t this_n = (uint64_t)n % 64;
 
-    if(n != 0) {
-        const uint64_t other_n = 64 - (uint64_t)n;
+    if(this_n != 0) {
+        const uint64_t other_n = 64 - this_n;
 
         if(chunks.back() >> other_n != 0) {
             chunks.push_back(0);
         }
 
-        for(ssize_t i = chunks.size() - 1; i >= n_whole_chunks; i--) {
-            chunks[i + 1] |= chunks[i] >> other_n;
+        for(size_t i = chunks.size() - 1; i > n_whole_chunks; i--) {
+            /*
+             * Shift this chunk while accepting the lower neighbour's highest bits "ascending up".
+             */
 
-            chunks[i] <<= n;
+            chunks[i] = (chunks[i] << this_n) | (chunks[i - 1] >> other_n);
         }
+
+        chunks[n_whole_chunks] <<= this_n;
     }
 
     return *this;
 }
 
-intbig_t& intbig_t::operator>>=(int64_t n)
+intbig_t& intbig_t::operator>>=(const int64_t n)
 {
     // TODO: likewise
 
@@ -734,11 +746,19 @@ intbig_t& intbig_t::operator>>=(int64_t n)
         return *this;
     }
 
-    const ssize_t n_whole_chunks = n / 64;
+    // 1. Shift whole chunks -- remove as many as needed from the least significant side
+    const uint64_t n_whole_chunks = (uint64_t)n / 64;
 
     if(n_whole_chunks != 0) {
         if(n_whole_chunks >= chunks.size()) {
+            /*
+             * Right shifting by more chunks than there are, leaving the number at the right shift's stationary point:
+             *   - for negative numbers -- -1 (binary '...11111111'),
+             *   - for non-negative numbers -- 0 (binary '...00000000').
+             */
             if(sign == -1) {
+                // For negative numbers, the stationary point is
+                // TODO: doesn't this erase the vector's reservation? If it does, do this in a way that doesn't.
                 chunks = { 1 };
             }
             else if(sign == 1) {
@@ -748,35 +768,43 @@ intbig_t& intbig_t::operator>>=(int64_t n)
             return *this; // TODO: <-- rearrange stuff so that there's only one of this statement
         }
 
+        /*
+         * Move an `n_whole_chunks`-long section from the front to the back, then cut it off:
+         *   [ABC]DEF...XYZ --> DEF...XYZ[ABC] --> DEF...XYZ
+         */
         std::rotate(chunks.begin(), chunks.begin() + n_whole_chunks, chunks.end());
-
         chunks.resize(chunks.size() - n_whole_chunks);
     }
 
-    n %= 64;
+    // 2. Shift stuff along chunk borders
+    uint64_t this_n = (uint64_t)n % 64;
 
-    if(n != 0) {
-        const uint64_t other_n = 64 - (uint64_t)n;
+    if(this_n != 0) {
+        const uint64_t other_n = 64 - this_n;
 
-        chunks[0] >>= n;
+        for(size_t i = 0; i < chunks.size() - 1; i++) {
+            /*
+             * Shift this chunk while accepting the upper neighbour's lowest bits being "passed down".
+             */
 
-        for(size_t i = 1; i < chunks.size(); i++) {
-            chunks[i - 1] |= chunks[i] << other_n;
-
-            chunks[i] >>= n;
+            chunks[i] = (chunks[i] >> this_n) | (chunks[i + 1] << other_n);
         }
 
-        if(chunks.back() == 0) {
-            chunks.pop_back();
+        chunks.back() >>= this_n;
 
-            if(chunks.empty()) {
+        // TODO: somehow restructure this if into a prettier sight
+        if(chunks.back() == 0) {
+            if(chunks.size() == 1) {
                 if(sign == -1) {
-                    // TODO: eliminate redundant pop-then-push in this case
-                    chunks.push_back(1);
+                    chunks[0] = 1;
                 }
                 else {
+                    chunks.pop_back();
                     sign = 0;
                 }
+            }
+            else {
+                chunks.pop_back();
             }
         }
     }
@@ -804,6 +832,7 @@ intbig_t& intbig_t::apply_bitwise(const intbig_t& other, const std::function<uin
 {
     bool neg_result = f_bitwise(sign == -1 ? 1 : 0, other.sign == -1 ? 1 : 0) != 0;
 
+    // REVIEW: document what the fuck is going on in this if's condition; check if it works for all 16 operations.
     if((sign == 1 && other.sign == 1 && f_bitwise(3, 5) == 1) || (sign == -1 && other.sign == -1 && f_bitwise(3, 5) == 7)) {
         chunks.resize(std::min(chunks.size(), other.chunks.size()));
     }

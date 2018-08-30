@@ -66,15 +66,18 @@ Might eventually get around to some of these.
 1. Both encryption schemes: `RSAES-OAEP` and `RSAES-PKCS-v1_5`;
 2. One of the hashes well-supported by RSA signature software (SHA-256);
 3. Signature schemes: `RSASSA-PSS`, `RSASSA-PKCS1-v1_5`;
+4. PGP-like RSA-based hybrid encryption feature:
+   1. A block cypher (AES256 with a mode that's secure and well-supported by GPG);
+   2. RSA-based key derivation scheme (?);
+   3. Back-and-forward support of GPG's encrypted messages;
+5. Support an elliptic curve (or a couple) in addition to RSA.
 
 ##### Compatibility with real-world applications
 
 1. GPG (OpenPGP standard):
-   1. importing keys from it;
-   2. export of keys for it;
-   3. signatures interoperability;
-   4. encryption interoperability;
-2. SSL/TLS:
+   1. import/export of its keys (public and private), etc;
+   2. A compression algorithm (ZIP or BZIP2);
+2. SSL/TLS (???):
    1. reading X.509 certificates;
    2. interoperability with OpenSSL (`.pem`, `.der` and shit);
    3. key exchange (?).
@@ -112,11 +115,8 @@ The number is internally represented with two data members:
     std::vector<uint64_t> chunks;
 ```
 
-> **TODO**: consider replacing the Minecraft-associated word "chunk" with something meaningful?
+> **TODO**: replace the term "chunk" with the widely-used "limb" (it has grown on me after more research).
 >
-> - just call it "digit" (might be confusing with decimal digits, though);
-> - adopt [GMP's "limb" metaphor](https://gmplib.org/manual/Nomenclature-and-Types.html#Nomenclature-and-Types) (it is even more disorientating, though, and I don't like how it sounds);
-> - "figure" (seems to sound like bad English, though).
 
 - `sign` — the number's sign: `-1` for negative numbers, `1` for positive, `0` for zero;
 
@@ -134,7 +134,7 @@ The number is internally represented with two data members:
 >
 > **TODO**: if it's smaller than `size_t`, put it at the end so theoretically something smaller than it can be aligned after the object?
 >
-> **TODO**: benchmark `int`-signed implementation against `bool`-signed one
+> **TODO**: benchmark `int`-signed implementation against `bool`-signed one?
 
 Note that the number zero has a unique representation: `{ .sign=0, chunks={} }`. All other "zero-valued" states are invalid.
 
@@ -165,17 +165,10 @@ c_i = (a_i \pm b_i + carry)\ mod\ N,
 $$
 where $carry$ is $0$ if the previous digit's computation didn't overflow, and $\pm 1$ if it did.
 
-For `uint64_t` calculations, the $N = 2^{64}$ remainder gets taken naturally (which is [specified in the C++ standard](https://en.cppreference.com/w/cpp/language/operator_arithmetic#Overflows)), and overflow of these operations is detected quite easily, given either of the operands for addition or the minuend for subtraction. E.g., for addition:
+For `uint64_t` calculations, the $N = 2^{64}$ remainder gets taken naturally (which is [specified in the C++ standard](https://en.cppreference.com/w/cpp/language/operator_arithmetic#Overflows)), and overflow is detected by checking whether the result is
 
-```cpp
-bool add_overflows(uint64_t x, uint64_t y) {
-	uint64_t s = x + y;
-
-    return s < x;
-    // or:
-    // return s < y;
-}
-```
+- less than either of the operands (for addition);
+- greater than the minuend (for subtraction).
 
 Additionally, the carry needs to be accounted for:
 
@@ -188,13 +181,13 @@ Additionally, the carry needs to be accounted for:
     }
 ```
 
-I've done a correctness proof for this scheme, but it's too large for this `README.md` *(no fucking clue)*.
+I've done a correctness proof for this scheme, but it's too large for this `README.md`
 
 Also, the `vector` lengths should be checked and updated appropriately:
 
 - after subtraction — to cut off possible leading zeroes;
-- before addition — to equalise the lengths of the operands *(when adding in-place)*;
-- after addition — to add a new digit if carry was left.
+- before addition — to equalize the lengths of the operands *(when adding in-place)*;
+- after addition — to add a new digit when needed (i.e. carry is left after the last one).
 
 The operations are then extended onto integers in terms of each other:
 
@@ -213,7 +206,7 @@ The operations are then extended onto integers in terms of each other:
 
   *(here, $a$ and $b$ here are the absolute values of the integer arguments)*.
 
-Now, all this is just simple arithmetics and function calls, but to implement all this without unnecessary overhead, some consideraions need to be taken:
+Now, all this is just simple arithmetics and function calls, but to implement all this without unnecessary overhead, some consideraions need to be addressed:
 
 - unlike variable $b$ above, the actual parameter `b` you can't just be passed with another sign:
 
@@ -221,13 +214,13 @@ Now, all this is just simple arithmetics and function calls, but to implement al
 
   - "change the sign, then change it back" won't work either, as it's passed by `const&` (should be, at least!);
 
-    thus, for any expression above where $b$ changes its sign, you have to manually traffic this information somehow;
+    thus, for any expression above where $b$ changes its sign, you have to traffic this information separately somehow;
 
 - for copying operators `+` and `-`, same applies to `a`;
 
 - for in-place operators `+=` and `-=`, every expression where the operands swap places is a call of separate method — can't just call the $b$'s method as $b$'s method computes into $b$.
 
-Then you try to optimize around some of these obstacles and it all turns into a mush of `if`s. Anyway, here's the hierarchy I finally organized:
+Then you try to optimize around some of these obstacles and it all turns into a mush of `if`s. Anyway, here's the hierarchy I've ended up with:
 
 - copying versions:
 
@@ -237,13 +230,13 @@ Then you try to optimize around some of these obstacles and it all turns into a 
 
   for every of the four combinations of signs, they express the operation as another one *on the absolute values of the numbers*, possibly with a sign flip afterwards;
 
-  handle cases where one or both operands are zero;
+  all cases where one or both operands are zero are also handled here;
 
 - absolute versions (`private`):
 
-  these compute into `*this` the result of one of the three operations on the absolute values: $a + b$, $a - b$, $b - a$ (including the sign — the old sign is discarded);
+  these compute into `*this` the result of one of the three operations on the absolute values: $a + b$, $a - b$, $b - a$ (including the results sign, which replaces `*this`'s sign);
 
-- helper functions *in the `.cpp` file*:
+- helper functions (*in the `.cpp` file*):
 
   these perform the three operations directly on `vector` representations, using the assumptions that we've started with — so, no signs involved.
 
@@ -253,15 +246,38 @@ Yeah!
 
 
 
-> **TODO**: private method for checking for zero instead of `chunks.empty()`?
->
-> ```cpp
-> private:
-> 	bool is_zero() const;
-> ```
-> **TODO**: some way to test the internal representation (zero, leading zeroes, etc.)?
->
-> **TODO**: avoid one unnecessary copy in the copying subtraction (might need to introduce `sub3` everywhere)
+##### Increment/decrement
+
+These sure can be implemented through addition and subtraction, but a separate implementation results in much leaner code. It's probably faster, too, as, until a short circuit is implemented for `int64_t`, an actual `intbig_t` instance will have to be used as the `1`.
+
+##### Bitwise operations
+
+The shifts are pretty straightforward.
+
+First shift the vector itself by $\lfloor n\ /\ 64 \rfloor$ chunks (`std::rotate` does the job really well), then shift bits inside and between individual chunks by $m = (n \bmod 64)$.
+
+![Sub-chunk operation of shifts](docs/sublimb_shifts.png )
+
+In addition to shifting each chunk's value, additional bits get "sank" from the upper chunk (in case of right shift) or "lifted" from the lower chunk (in case of left shift). As stated here, to be in-place, both operations have to run sequentially, and in the direction "opposite" to that of the shift in question.
+
+The other ones — `&`, `|`, `^` and `~`, — are just their `uint64_t` versions applied chunk-wise, with possible leading zeroes kept in mind.
+
+The only tricky part is the negative numbers. There are several ways of implementing bitwise operations on them, e.g.:
+
+- refuse to do so and fail right away;
+- operate on absolutes, perhaps also doing something to the signs;
+- use 1's complement representations ($-x$ is represented by $\overline{x}$, the result of its bitwise flip);
+- use 2's complement representations ($-x​$ is represented by $\overline{x} + 1​$).
+
+Many x86 programmers know what shifts do to negatives there — that is, definitely the final option, with right shift drawing from a bottomless supply of `1`'s beyond the MSD.
+
+The problem is that 2's complement is so good for fixed-width integers precisely because they overflow, allowing to (at least) add and subtract seamlessly, without distinguishing any signs. When imitating it in a "sign-and-abs" multiple-precision scenario, one bumps into quite a few edge cases.
+
+**TODO**
+
+...
+
+> **TODO**: consider changing the representation to 2's complement. If decided for it, be sure to benchmark one against the other.
 
 ##### Multiplication
 
@@ -481,80 +497,88 @@ struct cl_byte {
 
    4. [RSA and Primality Testing](https://imada.sdu.dk/~joan/projects/RSA.pdf) (slides);
 
-   5. [Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/);
+   5. [RSA Laboratories — High-Speed RSA Implementation (1994)](ftp://ftp.rsasecurity.com/pub/pdfs/tr201.pdf) — mainly discusses modular exponentiation and multiplication;
+
+   6. [Computational Complexity Analyses of Modular Arithmetic for RSA Cryptosystem](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.592.4078&rep=rep1&type=pdf);
+
+   7. [Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/);
 
       [Chapter 4: Public-Key Parameters](http://cacr.uwaterloo.ca/hac/about/chap4.pdf) *(it's totally somewhere up there with more precise references)*;
 
-   6. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) *(the dates aren't too good on this, but the presentation is promising)*;
+   8. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) *(the dates aren't too good on this, but the presentation is promising)*;
 
-   7. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
+   9. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
 
-   8. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
+   10. PGP, OpenPGP, GPG:
 
-   9. Validation:
+     1. [RFC 4480 — OpenPGP Message Format](https://tools.ietf.org/html/rfc4880);
+     2. [RFC 6637 — Elliptic Curve Cryptography (ECC) in OpenPGP](https://tools.ietf.org/html/rfc6637);
+     3. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
 
-      1. [The 186-4 RSA Validation System (RSA2VS)](https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss2/rsa2vs.pdf);
+   11. Validation:
 
-      2. [Project Wycheproof](https://github.com/google/wycheproof) — some test vectors;
+       1. [The 186-4 RSA Validation System (RSA2VS)](https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss2/rsa2vs.pdf);
 
-      3. [Some other library's description](https://github.com/pyca/cryptography/blob/master/docs/development/test-vectors.rst) of where they get their test vectors;
+       2. [Project Wycheproof](https://github.com/google/wycheproof) — some test vectors;
 
-      4. [Crypto++'s test vectors](https://github.com/weidai11/cryptopp/tree/master/TestVectors);
+       3. [Some other library's description](https://github.com/pyca/cryptography/blob/master/docs/development/test-vectors.rst) of where they get their test vectors;
 
-      5. [BoringSSL](https://boringssl.googlesource.com/boringssl/) — OpenSSL fork, has [fuzzing provisions](https://boringssl.googlesource.com/boringssl/+/HEAD/FUZZING.md) and [some tests](https://boringssl.googlesource.com/boringssl/+/ce3773f9fe25c3b54390bc51d72572f251c7d7e6/crypto/evp/evp_tests.txt);
+       4. [Crypto++'s test vectors](https://github.com/weidai11/cryptopp/tree/master/TestVectors);
 
-      6. Fuzzing:
+       5. [BoringSSL](https://boringssl.googlesource.com/boringssl/) — OpenSSL fork, has [fuzzing provisions](https://boringssl.googlesource.com/boringssl/+/HEAD/FUZZING.md) and [some tests](https://boringssl.googlesource.com/boringssl/+/ce3773f9fe25c3b54390bc51d72572f251c7d7e6/crypto/evp/evp_tests.txt);
 
-         1. [CDF – crypto differential fuzzing](https://github.com/kudelskisecurity/cdf) — a Go application;
+       6. Fuzzing:
 
-            [`rsaenc`](https://github.com/kudelskisecurity/cdf#rsaenc-rsa-encryption-oaep-or-pkcs-15) — its interface for RSA encryption/decryption;
+          1. [CDF – crypto differential fuzzing](https://github.com/kudelskisecurity/cdf) — a Go application;
 
-         2. llvm's [libFuzzer](http://llvm.org/docs/LibFuzzer.html), [AddressSanitizer](http://clang.llvm.org/docs/AddressSanitizer.html)
+             [`rsaenc`](https://github.com/kudelskisecurity/cdf#rsaenc-rsa-encryption-oaep-or-pkcs-15) — its interface for RSA encryption/decryption;
 
-         3. [American fuzzy lop](http://lcamtuf.coredump.cx/afl/) (AFL) — *complex file semantics* and shit;
+          2. llvm's [libFuzzer](http://llvm.org/docs/LibFuzzer.html), [AddressSanitizer](http://clang.llvm.org/docs/AddressSanitizer.html)
 
-         4. [libFuzzer Tutorial](https://github.com/google/fuzzer-test-suite/blob/master/tutorial/libFuzzerTutorial.md);
+          3. [American fuzzy lop](http://lcamtuf.coredump.cx/afl/) (AFL) — *complex file semantics* and shit;
 
-         5. [fuzzer-test-suite](https://github.com/google/fuzzer-test-suite);
+          4. [libFuzzer Tutorial](https://github.com/google/fuzzer-test-suite/blob/master/tutorial/libFuzzerTutorial.md);
 
-   10. Real implementations:
+          5. [fuzzer-test-suite](https://github.com/google/fuzzer-test-suite);
 
-     1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
+   12. Real implementations:
 
-        OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
+      1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
 
-        Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
+         OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
 
-     2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
+         Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
 
-        1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
+      2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
 
-           > Wei's original code was much simpler ...
-           >
+         1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
 
-        2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation:
+            > Wei's original code was much simpler ...
+            >
 
-           1. has `ModularArithmetic` class representing a modulus with methods accepting regular integers;
-           2. [modular add/sub](https://www.cryptopp.com/docs/ref/integer_8cpp_source.html#l04494) are pretty straightforward derivatives of their non-modular versions;
-           3. [`RSAPrimeSelector`](https://www.cryptopp.com/docs/ref/rsa_8cpp_source.html#l00106) — seems to just check GCD of candidate with the public exponent, which is weird;
+         2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation:
 
-        3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
+            1. has `ModularArithmetic` class representing a modulus with methods accepting regular integers;
+            2. [modular add/sub](https://www.cryptopp.com/docs/ref/integer_8cpp_source.html#l04494) are pretty straightforward derivatives of their non-modular versions;
+            3. [`RSAPrimeSelector`](https://www.cryptopp.com/docs/ref/rsa_8cpp_source.html#l00106) — seems to just check GCD of candidate with the public exponent, which is weird;
 
-        4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
+         3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
 
-     3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
+         4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
 
-        [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
+      3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
 
-        **May be up for a pull request after I'm finished with this!**
+         [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
 
-        > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
+         **May be up for a pull request after I'm finished with this!**
 
-        > Running doctests 1000x or until failure
+         > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
 
-        Found the users:
+         > Running doctests 1000x or until failure
 
-        > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
+         Found the users:
+
+         > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
 
 4. Other relevant algorithms:
 
