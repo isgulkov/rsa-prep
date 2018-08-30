@@ -4,7 +4,9 @@
 
 #include <vector>
 #include <string>
-#include <iostream> // For the i/o methods
+#include <functional>
+
+#include <iostream> // For the stream i/o methods
 
 class intbig_t
 {
