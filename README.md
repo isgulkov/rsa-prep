@@ -1,5 +1,6 @@
-
 <img src="http://www.ahawa.asn.au/images/ahawa---thiihohgec.jpg" align="right" height="100" /> Here I'm slowly chipping away at the goal of implementing the [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) cryptosystem in C++11 completely from scratch (the only dependency being the standard library, excluding dev ones).
+
+> **TODO**: this section needs a gif, like someone encrypting on a Mac, then decrypting on Windows XP, or something
 
 ## Motivation
 
@@ -7,21 +8,22 @@ I'm enrolled for a course at the uni starting this September where the old man w
 
 Better start early, right? Nothing better to do, anyway — it's not like a have a job.
 
+> **TODO**: put neat ["new" icons](https://github.com/niekbouman/ctbignum/tree/6d5ac017972ee170b1b86d447787579e8526b97a) on recently added features (as soon as there are any)
+
 ### Scope
 
 ##### Roughly the subproblems of a functional RSA implementation
 
-1. long (*thousands of bits*) integer arithmetics, incl. shifts *(right?)*;
+1. Long (*thousands of bits*) integer arithmetics, incl. shifts;
 
-2. $\lambda(n)$ — [Carmichael's totient function](https://en.wikipedia.org/wiki/Carmichael_function),
+   1. some level of `*`, `/`, `%` and `pow` — nothing fancy, mod is where it really matters;
+   2. lightweight expansion of every appropriate operator onto `int64_t` arguments;
 
-   $\phi(n)$ — [Euler's totient function](https://en.wikipedia.org/wiki/Euler%27s_totient_function);
+2. modular arithmetics: $+$, $-$, $\times$, $a^b$, $a^{-1}$, $gcd$ (?) — no efficiency in mind, implement the RSA first;
 
-3. arithmetics modulo large prime: $+$, $-$, $\times$, $a^b$, $a^{-1}$, $gcd$, $lcm$;
+3. a way to get good entropy for keys and shit (cryptographically secure PRNG?);
 
-4. cryptographically secure RNG;
-
-5. big integer primality test:
+4. big integer primality test:
 
    1. test divisions by a number of small primes (e.g. $< 100$);
 
@@ -46,8 +48,11 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 1. key generation algorithm:
 2. encyption and decryption primitives;
 3. an encryption scheme: `RSAES-OAEP` or `RSAES-PKCS-v1_5` (if the first one's too complex);
-4. compatibility with the [two ways of private exponent calculation](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2);
-5. [Chinese remainder-based](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Using_the_Chinese_remainder_algorithm) decryption optimization.
+4. compatibility with the [two ways of private exponent calculation](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2).
+
+##### Efficiency
+
+1. **efficient** modular arithmetics: Montgomery, Chinese remainders, etc., investigate a switch 2's complement representation;
 
 ##### Message exchange
 
@@ -57,7 +62,9 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
    3. include insignificant labels (just like `--------BEGIN PGP PUBLIC KEY----------`) that will act as "telomeres" — would be able lose or gain a couple characters at the ends for the case of a sloppy selection.
 2. CLI application:
    1. facilities for import & export of the above;
-   2. *keygen*, *encrypt* and *decrypt* commands.
+   2. command equivalents of (at least) *keygen*, *encrypt* and *decrypt* ops;
+   3. use input/output files in specified, stdin/stdout otherwise;
+   4. optional `-v`/`--verbose` flag.
 
 #### Beyond scope
 
@@ -68,27 +75,36 @@ Might eventually get around to some of these.
 3. Signature schemes: `RSASSA-PSS`, `RSASSA-PKCS1-v1_5`;
 4. PGP-like RSA-based hybrid encryption feature:
    1. A block cypher (AES256 with a mode that's secure and well-supported by GPG);
-   2. RSA-based key derivation scheme (?);
-   3. Back-and-forward support of GPG's encrypted messages;
+   2. Back-and-forward support of GPG's encrypted messages;
 5. Support an elliptic curve (or a couple) in addition to RSA.
 
 ##### Compatibility with real-world applications
 
-1. GPG (OpenPGP standard):
-   1. import/export of its keys (public and private), etc;
-   2. A compression algorithm (ZIP or BZIP2);
+1. GPG (and OpenPGP standard):
+   1. Import/export of its keys (public and private), etc;
+   2. PGP key ids (long and short) and fingerprints;
+   3. A compression algorithm (Deflate in ZIP format, or whatever GPG supports — might start with something easier like LZ77 or LZW);
+   4. A key derivation function (Scrypt?), symmetric encryption by passphrase;
+   5. Passphrase-protected key repository;
+   6. Architecture with primitives as plug-ins:
+      - public-key: RSA, ECDH, ECDSA ... (shouldn't this be split more, e.g. into signatures and key exchange? The interfaces seem pretty different);
+      - symmetric cypher: AES, AES-256, ...;
+      - cryptographic hash: SHA-256, ...;
+      - key-derivation function: Scrypt, ...;
+      - lossless compression: none, Deflate (ZIP), ...;
 2. SSL/TLS (???):
    1. reading X.509 certificates;
    2. interoperability with OpenSSL (`.pem`, `.der` and shit);
-   3. key exchange (?).
+   3. handshake, key exchange (?).
 
 ##### Security features
 
 1. Secure memory:
    1. compiler-proof memory erasure (at least in destructors);
    2. protection against swaps;
-   3. guarded heap allocations (through a C++11-style custom allocator);
-2.  Sourcing additional entropy from user environment.
+   3. guarded heap allocations (through a C++11-style custom allocator?);
+2. Sourcing additional entropy from user environment;
+3. Blinding values against timing attacks.
 
 ### Goals
 
@@ -106,7 +122,7 @@ TODO
 
 ## Module descriptions
 
-### `intbig_t` — arbitrary-precision integer
+### `intbig_t` — multiple-precision integer
 
 The number is internally represented with two data members:
 
@@ -271,7 +287,7 @@ The only tricky part is the negative numbers. There are several ways of implemen
 
 Many x86 programmers know what shifts do to negatives there — that is, definitely the final option, with right shift drawing from a bottomless supply of `1`'s beyond the MSD.
 
-The problem is that 2's complement is so good for fixed-width integers precisely because they overflow, allowing to (at least) add and subtract seamlessly, without distinguishing any signs. When imitating it in a "sign-and-abs" multiple-precision scenario, one bumps into quite a few edge cases.
+The problem is that 2's complement is so good for fixed-width integers precisely because they overflow, allowing to (at least) add and subtract seamlessly, without distinguishing any signs. When imitating it in a *signed-magnitude* multiple-precision scenario, one bumps into quite a few edge cases.
 
 **TODO**
 
@@ -300,77 +316,21 @@ Though basic impletementations of division and modulo are currently provided for
 Implement most of the appropriate C++ opeartors:
 
 - Assignment: `a = b`, `a += b`, `a -= b`, `a *= b`, `a /= b`, `a %= b`, `a &= b`, `a |= b`, `a ^= b`, `a <<= b`, `a >>= b`;
-
 - Increment, decrement: `++a`, `--a`, `a++`, `a--`;
 - Arithmetic: `+a`, `-a`, `a + b`, `a - b`, `a * b`, `a / b`, `a % b`, `~a`, `a & b`, `a | b`, `a ^ b`, `a << b`, `a >> b`;
 - Comparison: `a == b`, `a != b`, `a < b`, `a > b`, `a <= b`, `a >= b`;
+- `intbig_t& negate()` (non-copying version of unary `-`);
 
 as well as some additional methods:
 
-- Factory methods:
-
-  - [ ] `static intbig_t from_decimal(const std::string& decimal)`;
-  - [ ] `static intbig_t of(int64_t x)` (**TODO**: replace the implicit with this);
-  - [ ] `static intbig_t from_hex(const std::string& hex)` (this can be done hella efficiently, no multiplicative shit);
-
-- A custom literal? Like:
-
-  - [ ] `"99843217232349984321723234"_big` or `99843217232349984321723234_big`;
-
 - [x] Rule of 5 **— turns out, I don't need to define them manually given the member types**;
-
+- [ ] factory methods `of` and `from`, iostream's `operator>>`;
+- [ ] string conversions `to_string` and `to_chunky_string`, iostream's `operator<<`;
 - [ ] either provide a `swap` or ensure that `std::swap` works (and why);
-
-- [ ] *convert to string*:
-
-  - [ ] `std::string to_string() const`;
-
-    **TODO**: rename into (or make alias of?) `to_decimal`;
-
-  - [ ] `std::string to_decimal() const`;
-
-  - [ ] `std::string to_hex() const`;
-
-  - [ ] `operator<<(std::ostream& os, $)`<sup>1</sup>;
-
-- [ ] binary representation conversions:
-
-  - [ ] from:
-
-    - `static intbig_t from_bytes(std::string bytes)`;
-    - `static intbig_t from_bytes(std::istream stream)` (reads until EOF);
-
-  - [ ] to:
-
-    - `std::string to_bytes()`;
-    -  `void to_bytes(std::ostream stream)`;
-
-    these are roughly the `I2OSP` and `OSP2I` from the [PKCS#1](https://tools.ietf.org/html/rfc3447#page-9) standard;
-
-    the `I2OSP`'s parameter `xLen`, which, to my understanding, is included for overflow protection, is replaced by the following method:
-
-  - [ ] `size_t num_bytes() const` — exactly how many bytes will the previous two methods produce;
-
-  - [ ] as well as `size_t num_bits() const` — the length of the underlying number's binary representation, i.e. the 1-based position of its leftmost set bit (if a use is found);
-
-    **Note**: consider copying 8 bytes at a time with `reinterpret_cast<uint64_t*>` (check if `std::strings` are contiguous, though);
-
 - [ ] *explicit* conversions to `int`s of various sizes (throw `range_error` if doesn't fit);
+- [ ] faster versions of most `operator`s working on `int64_t` without conversion;
 
-- [x] `intbig_t& negate()` — non-copying version of unary `-` (basically its corresponding compound assignment);
-
-- faster versions of some `operator`s working on `int64_t` without conversion:
-
-  - [ ] `==` and `!=`;
-
-  - [ ] `=`;
-
-  - [ ] other comparisons;
-
-  - [ ] arithmetic (additive, at least);
-
-    *as out-of-class `friend` functions where applicable;*
-
+  - [ ] *as out-of-class `friend` functions where applicable;*
 - [ ] decide (not necessarily document) which [named requirements](https://en.cppreference.com/w/cpp/named_req) does and should it implement.
 
 Notes:
@@ -475,6 +435,55 @@ struct cl_byte {
 
 <hr />
 
+### `modbig_t` — multiple-precision modular arithmetic
+
+What's the best approach to such a thing's interface? Nothing looks too good:
+
+- modulo passed with the two operands:
+
+  ```cpp
+      intbig_t x, y, m;
+      // ...
+      intbig_t z = modbig::add(x, y, m);
+  ```
+
+- modulo passed with second operand:
+
+  ```cpp
+      modbig_t x, y, m;
+      // ...
+      modbig_t z = x.add(y, m)
+  ```
+
+- modulo represented as special object whose methods operate on `intbig_t`s:
+
+  ```cpp
+      intbig_t x, y, m;
+      // ...
+      modbig_t modulo(m);
+      intbig_t z = m.add(x, y);
+  ```
+
+- modulo stored in representations themselves:
+
+  ```cpp
+      intbig_t m = intbig_t::from("17");
+      modbig_t x(intbig_t::from("10"), m),
+               y(intbig_t::from("11"), m);
+      modbig_t z = x + y; // (4 mod 17)
+  
+      // Throw e.g. invalid_argument("Operands have different mods: `17` vs `19`"):
+      z = x + w(intbig_t::from("11"), intbig_t::from("19"));
+      // (or silently ignore one mod and use the other to avoid the comparison)
+  ```
+
+- modulo as representation's template parameter:
+
+  - will this even work before C++17 or C++20?
+  - will this work with RSA (i.e. are dynamically-calculated mods required)?
+
+<hr />
+
 ## Links
 
 1. google test:
@@ -485,9 +494,7 @@ struct cl_byte {
       2. [Predicate Assertions for Better Error Messages](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#predicate-assertions-for-better-error-messages);
       3. [Value-Parameterized Tests](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#value-parameterized-tests);
 
-2. [Длинная арифметика — e-maxx.ru](http://e-maxx.ru/algo/big_integer);
-
-3. RSA:
+2. RSA:
 
    1. [R.L. Rivest, A. Shamir, and L. Adleman — A Method for Obtaining Digital Signatures and Public-Key Cryptosystems](http://people.csail.mit.edu/rivest/Rsapaper.pdf);
 
@@ -497,90 +504,111 @@ struct cl_byte {
 
    4. [RSA and Primality Testing](https://imada.sdu.dk/~joan/projects/RSA.pdf) (slides);
 
-   5. [RSA Laboratories — High-Speed RSA Implementation (1994)](ftp://ftp.rsasecurity.com/pub/pdfs/tr201.pdf) — mainly discusses modular exponentiation and multiplication;
+   5. [Should RSA public exponent be only in {3, 5, 17, 257 or 65537} due to security considerations?](https://security.stackexchange.com/questions/2335/should-rsa-public-exponent-be-only-in-3-5-17-257-or-65537-due-to-security-c);
 
-   6. [Computational Complexity Analyses of Modular Arithmetic for RSA Cryptosystem](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.592.4078&rep=rep1&type=pdf);
+   6. Performance of RSA-related arithmetic and shit:
+
+     1. [Efficient Software Implementations of Modular Exponentiation](https://eprint.iacr.org/2011/239.pdf);
+
+     2. [RSA Laboratories — High-Speed RSA Implementation (1994)](ftp://ftp.rsasecurity.com/pub/pdfs/tr201.pdf) — mainly discusses modular exponentiation and multiplication;
+
+     3. [Computational Complexity Analyses of Modular Arithmetic for RSA Cryptosystem](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.592.4078&rep=rep1&type=pdf);
+
+     4. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) — emphasis on hardware implementations;
+
+     5. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
+
+     6. [HAC, Chapter 14: Efficient Implementation](http://cacr.uwaterloo.ca/hac/about/chap14.pdf) — talks about all the familiar topics;
+
+       p.595, 14.10 — Eliminating the requirement $x \ge y$:
+
+       1. *a repeated run after finishing on nonzero carry*;
+       2. *__or__ using (2's) complement representation*.
+
+     7. [Brent, Zimmermann — Modern Computer Arithmetic](https://members.loria.fr/PZimmermann/mca/pub226.html) — seems quite comprehensive;
+
+     8. [Multiprecision Arithmetic for Cryptology in C++](https://arxiv.org/pdf/1804.07236.pdf) — concerned with API and compile-time stuff;
+
+     9. [Constexpr C++17 Big-Integer / Finite-Field library](https://github.com/niekbouman/ctbignum/);
 
    7. [Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/);
 
       [Chapter 4: Public-Key Parameters](http://cacr.uwaterloo.ca/hac/about/chap4.pdf) *(it's totally somewhere up there with more precise references)*;
 
-   8. [Fast Implementations of RSA Cryptography](https://www.di.ens.fr/~jv/HomePage/pdf/rsa.pdf) *(the dates aren't too good on this, but the presentation is promising)*;
-
-   9. [Montgomery modular multiplication](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) — explicitly advertised for RSA right there;
-
-   10. PGP, OpenPGP, GPG:
+   8. PGP, OpenPGP, GPG:
 
      1. [RFC 4480 — OpenPGP Message Format](https://tools.ietf.org/html/rfc4880);
      2. [RFC 6637 — Elliptic Curve Cryptography (ECC) in OpenPGP](https://tools.ietf.org/html/rfc6637);
      3. [Anatomy of a GPG Key](https://davesteele.github.io/gpg/2014/09/20/anatomy-of-a-gpg-key/);
 
-   11. Validation:
+   9. Validation:
 
-       1. [The 186-4 RSA Validation System (RSA2VS)](https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss2/rsa2vs.pdf);
+      1. [The 186-4 RSA Validation System (RSA2VS)](https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss2/rsa2vs.pdf);
 
-       2. [Project Wycheproof](https://github.com/google/wycheproof) — some test vectors;
+      2. [Project Wycheproof](https://github.com/google/wycheproof) — some test vectors;
 
-       3. [Some other library's description](https://github.com/pyca/cryptography/blob/master/docs/development/test-vectors.rst) of where they get their test vectors;
+      3. [Some other library's description](https://github.com/pyca/cryptography/blob/master/docs/development/test-vectors.rst) of where they get their test vectors;
 
-       4. [Crypto++'s test vectors](https://github.com/weidai11/cryptopp/tree/master/TestVectors);
+      4. [Crypto++'s test vectors](https://github.com/weidai11/cryptopp/tree/master/TestVectors);
 
-       5. [BoringSSL](https://boringssl.googlesource.com/boringssl/) — OpenSSL fork, has [fuzzing provisions](https://boringssl.googlesource.com/boringssl/+/HEAD/FUZZING.md) and [some tests](https://boringssl.googlesource.com/boringssl/+/ce3773f9fe25c3b54390bc51d72572f251c7d7e6/crypto/evp/evp_tests.txt);
+      5. [BoringSSL](https://boringssl.googlesource.com/boringssl/) — OpenSSL fork, has [fuzzing provisions](https://boringssl.googlesource.com/boringssl/+/HEAD/FUZZING.md) and [some tests](https://boringssl.googlesource.com/boringssl/+/ce3773f9fe25c3b54390bc51d72572f251c7d7e6/crypto/evp/evp_tests.txt);
 
-       6. Fuzzing:
+      6. Fuzzing:
 
-          1. [CDF – crypto differential fuzzing](https://github.com/kudelskisecurity/cdf) — a Go application;
+         1. [CDF – crypto differential fuzzing](https://github.com/kudelskisecurity/cdf) — a Go application;
 
-             [`rsaenc`](https://github.com/kudelskisecurity/cdf#rsaenc-rsa-encryption-oaep-or-pkcs-15) — its interface for RSA encryption/decryption;
+            [`rsaenc`](https://github.com/kudelskisecurity/cdf#rsaenc-rsa-encryption-oaep-or-pkcs-15) — its interface for RSA encryption/decryption;
 
-          2. llvm's [libFuzzer](http://llvm.org/docs/LibFuzzer.html), [AddressSanitizer](http://clang.llvm.org/docs/AddressSanitizer.html)
+         2. llvm's [libFuzzer](http://llvm.org/docs/LibFuzzer.html), [AddressSanitizer](http://clang.llvm.org/docs/AddressSanitizer.html)
 
-          3. [American fuzzy lop](http://lcamtuf.coredump.cx/afl/) (AFL) — *complex file semantics* and shit;
+         3. [American fuzzy lop](http://lcamtuf.coredump.cx/afl/) (AFL) — *complex file semantics* and shit;
 
-          4. [libFuzzer Tutorial](https://github.com/google/fuzzer-test-suite/blob/master/tutorial/libFuzzerTutorial.md);
+         4. [libFuzzer Tutorial](https://github.com/google/fuzzer-test-suite/blob/master/tutorial/libFuzzerTutorial.md);
 
-          5. [fuzzer-test-suite](https://github.com/google/fuzzer-test-suite);
+         5. [fuzzer-test-suite](https://github.com/google/fuzzer-test-suite);
 
-   12. Real implementations:
+   10. Real implementations:
 
-      1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
+     1. [OpenSSL](https://wiki.openssl.org/index.php/Main_Page);
 
-         OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
+        OpenSSL's [Command Line Utilities](https://wiki.openssl.org/index.php/Command_Line_Utilities#rsa_.2F_genrsa);
 
-         Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
+        Description of [OpenSSL-related file formats](https://serverfault.com/a/9717);
 
-      2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
+     2. [Crypto++](https://www.cryptopp.com/) *(by Wai Dai the Bitcoin guy)*;
 
-         1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
+        1. [`integer.h`](https://github.com/weidai11/cryptopp/blob/master/integer.h), [`integer.cpp`](https://github.com/weidai11/cryptopp/blob/master/integer.cpp) — their big integer, probably?
 
-            > Wei's original code was much simpler ...
-            >
+           > Wei's original code was much simpler ...
+           >
 
-         2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation:
+        2. [`modarith.h`](https://github.com/weidai11/cryptopp/blob/master/modarith.h) — modular arithmetic, incl. Montgomery representation:
 
-            1. has `ModularArithmetic` class representing a modulus with methods accepting regular integers;
-            2. [modular add/sub](https://www.cryptopp.com/docs/ref/integer_8cpp_source.html#l04494) are pretty straightforward derivatives of their non-modular versions;
-            3. [`RSAPrimeSelector`](https://www.cryptopp.com/docs/ref/rsa_8cpp_source.html#l00106) — seems to just check GCD of candidate with the public exponent, which is weird;
+           1. has `ModularArithmetic` class representing a modulus with methods accepting regular integers;
+           2. [modular add/sub](https://www.cryptopp.com/docs/ref/integer_8cpp_source.html#l04494) are pretty straightforward derivatives of their non-modular versions;
+           3. [`RSAPrimeSelector`](https://www.cryptopp.com/docs/ref/rsa_8cpp_source.html#l00106) — seems to just check GCD of candidate with the public exponent, which is weird;
 
-         3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
+        3. [`algebra.h`](https://github.com/weidai11/cryptopp/blob/master/algebra.h), [`algebra.cpp`](https://github.com/weidai11/cryptopp/blob/master/algebra.cpp) (its dependency) — some other mathematics;
 
-         4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
+        4. [`secblock.h`](https://github.com/weidai11/cryptopp/blob/master/secblock.h) — secure memory allocations ([this document](https://download.libsodium.org/doc/helpers/memory_management.html) from other library may provide insight into what's going on there); 
 
-      3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
+     3. [Python-RSA](https://stuvel.eu/rsa) *(not that anyone right in their mind would actually use it)*;
 
-         [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
+        [GitHub repo](https://github.com/sybrenstuvel/python-rsa), [PyPI page](https://pypi.org/project/rsa/) (LOL @ project description);
 
-         **May be up for a pull request after I'm finished with this!**
+        **May be up for a pull request after I'm finished with this!**
 
-         > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
+        > Implementation based on the book Algorithm Design by Michael T. Goodrich and Roberto Tamassia, 2002.
 
-         > Running doctests 1000x or until failure
+        > Running doctests 1000x or until failure
 
-         Found the users:
+        Found the users:
 
-         > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
+        > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
 
-4. Other relevant algorithms:
+     4. [botan](https://github.com/randombit/botan/blob/master/src/lib/pubkey/rsa/rsa.cpp) — pretty granular, has kinda distinct modarithm, primality tests (Lucas, Miller-Rabin, Baillie–PSW), [Monty](https://github.com/randombit/botan/blob/ca847be7d8ae8942001b17a8e1b6f61ef9c4305e/src/lib/math/numbertheory/monty.h), etc.;
+
+3. Other relevant algorithms:
 
    1. bitwise operators on neagtive MP integers ([2's complement](https://en.wikipedia.org/wiki/Two%27s_complement)):
 
@@ -628,17 +656,19 @@ struct cl_byte {
          1. [`itoa` benchmarks](https://github.com/amdn/itoa-benchmark) (for regular ints);
          2. [gay `dtoa` benchmarks](https://github.com/miloyip/dtoa-benchmark) (for regular doubles);
 
-   5. PRNGs:
+      9. ZIP compression:
 
-      1. [Diehard tests](<https://en.wikipedia.org/wiki/Diehard_tests);
+         1. [something about ZIP format](https://stackoverflow.com/a/20765054);
 
-5. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
+   5. [Is ECDH still secure...](https://crypto.stackexchange.com/a/43136);
+
+4. [Source File Organization for C++ Projects Part 1: Headers and Sources](https://arne-mertz.de/2016/06/organizing-headers-and-sources/);
 
    [Source File Organization for C++ Projects Part 2: Directories and Namespaces](https://arne-mertz.de/2016/06/organizing-directories-namespaces/);
 
-6. [C++ Dos and Don'ts](https://www.chromium.org/developers/coding-style/cpp-dos-and-donts) (Chromium);
+5. [C++ Dos and Don'ts](https://www.chromium.org/developers/coding-style/cpp-dos-and-donts) (Chromium);
 
-7. GMP user manual:
+6. GMP user manual:
 
    1. [Build Options ](https://gmplib.org/manual/Build-Options.html) — all I had to do was to pass  `--enable-cxx` to `./configure`, it turns out!
    2. [3.1 Headers and Libraries](https://gmplib.org/manual/Headers-and-Libraries.html#Headers-and-Libraries);
@@ -648,7 +678,7 @@ struct cl_byte {
    6. [5.12 Input and Output Functions](https://gmplib.org/manual/I_002fO-of-Integers.html);
    7. [12.2 C++ Interface Integers](https://gmplib.org/manual/C_002b_002b-Interface-Integers.html#C_002b_002b-Interface-Integers).
 
-8. Benchmarks:
+7. Benchmarks:
 
    1. [Google Benchmark](https://github.com/google/benchmark) (documented mostly in `README.md`);
       1. [`benchmark.h`](https://github.com/google/benchmark/blob/master/include/benchmark/benchmark.h) (includes some additional documentation with examples)
@@ -659,5 +689,5 @@ struct cl_byte {
    3. [incise.org: Hash Table Benchmarks](http://incise.org/hash-table-benchmarks.html) — doctor, my lines are worrying me 🌝;
    4. [A benchmark report from criterion, a Haskell library](http://www.serpentine.com/criterion/fibber.html) — looks good;
 
-9. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, some of which he even benchmarks against our old friend `NTL`.
+8. [Someone really got carried away here](https://github.com/davidcastells/BigInteger) — 10 implementation of the same thing, some of which he even benchmarks against our old friend `NTL`.
 

@@ -50,39 +50,54 @@ private:
     intbig_t(int sign, std::vector<uint64_t>&& chunks);
 
 public:
-    // TODO: Replace this:
+    // REMOVE: replace this:
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     intbig_t(int64_t x);
-    // TODO: with this:
+    // TODO: with these:
     static intbig_t of(int64_t x);
+    static intbig_t of(uint64_t x);
+    // TODO: if these cause a conflict when called with shorter arguments, replace the second one with this:
+//    static intbig_t of(uint64_t x, bool neg);
 
-    // TODO: Also, replace this
+    enum Base { Binary = 2, Decimal = 10, Hex = 16, Base64 = 64, Base256 = 256 };
+
+    // REMOVE: replace this:
     static intbig_t from_decimal(const std::string& decimal);
     // TODO: with this:
-    static intbig_t from(const std::string& s, int base = 10);
+    static intbig_t from(const std::string& s, const Base base = Decimal);
 
+    // REMOVE: replace these:
     std::string to_string(int base = 10) const;
-    // TODO: much better names for these
     std::string to_hex_chunks() const;
-    std::string to_bin_chunks() const;
-    // TODO: / (showing number as its chunks)
-    // NOTE: just to_string(int base, bool sep_chunks = false)?
+    // TODO: with these:
+    std::string to_string(const Base base = Decimal) const;
+    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
+
+    // TODO: avoid the slow decimal conversions in tests -- use hex (in both directions)
+
+    /*
+     * TODO: See if the following speeds up the conversion to decimal:
+     *   - convert `chunks[0] % TEN_TO_THE_19` to string (stripping leading zeroes if it's the last one);
+     *   - divide the whole thing: `x.operator/=(TEN_TO_THE_19)`.
+     */
 
     friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
-    // NOTE: PKCS#1 conversions
+    // TODO: return number of limbs
+    size_t size() const;
+
+    // TODO: PKCS#1 conversions
     static intbig_t from_bytes(std::string& bytes);
     static intbig_t from_bytes(std::istream& stream);
 
     size_t num_bytes() const;
-    std::string to_bytes();
-    void to_bytes(std::ostream& stream);
-    // NOTE: / PKCS#1 conversions
+    // NOTE: `num_bytes` is intended as replacement for PKCS#1's xLen parameter, so must return exactly the number of
+    // NOTE: bytes each of following two will produce
 
-    // TODO: if ever useful:
-    size_t num_bits() const;
-    // size_t size() const -- number of limbs
+    std::string as_bytes(); // TODO: consider copying 4 bytes at a time through reinterpret_cast to char[8]
+    void as_bytes(std::ostream& stream);
+    // TODO: / PKCS#1 conversions
 
     //
     bool operator==(const intbig_t& other) const;
@@ -146,7 +161,7 @@ public:
     intbig_t& operator&=(const intbig_t& other);
     intbig_t& operator|=(const intbig_t& other);
     intbig_t& operator^=(const intbig_t& other);
-    intbig_t& operator<<=(int64_t n);
+    intbig_t& operator<<=(int64_t n); // TODO: forbid negative shifts by just accepting size_t? Botan does this
     intbig_t& operator>>=(int64_t n);
 
     intbig_t operator&(const intbig_t& other) const;
@@ -159,17 +174,16 @@ public:
 
     //
     intbig_t& operator*=(const intbig_t& other);
-    intbig_t operator*(const intbig_t& other) const;
-
     intbig_t& operator%=(const intbig_t& other);
     intbig_t& operator/=(const intbig_t& other);
 
+    intbig_t operator*(const intbig_t& other) const;
     intbig_t operator%(const intbig_t& other) const;
     intbig_t operator/(const intbig_t& other) const;
 //    std::pair<intbig_t, intbig_t> divmod(const intbig_t& other) const;
 
     intbig_t& to_power(int64_t p);
-    intbig_t power(int64_t p) const;
+    intbig_t  at_power(int64_t p) const;
 };
 
 #endif //RSA_PREP_INTBIG_T_H
