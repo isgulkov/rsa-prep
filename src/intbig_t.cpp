@@ -1001,3 +1001,8 @@ intbig_t& intbig_t::operator*=(const intbig_t& other)
 
     return *this = result;
 }
+
+intbig_t intbig_t::operator*(const intbig_t& other) const
+{
+    return intbig_t(*this) *= other;
+}

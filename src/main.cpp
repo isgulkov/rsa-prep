@@ -42,13 +42,15 @@ int main()
     intbig_t x = intbig_t::from(s);
     intbig_t y = intbig_t::from(t);
 
-    std::cout << x << std::endl;
-    std::cout << y << std::endl;
+    std::cout << x << '\n' << y << '\n' << std::endl;
+
+    std::cout << x * y << std::endl;
+
+    std::cout << x << '\n' << y << '\n' << std::endl;
 
     x *= y;
 
-    std::cout << x << std::endl;
-    std::cout << y << std::endl;
+    std::cout << x << '\n' << y << '\n' << std::endl;
 
     return 0;
 }
