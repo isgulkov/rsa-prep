@@ -44,7 +44,7 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
       1. Modular addition, subtraction, multiplication
 
-   3. Lucas
+   3. Lucas (strong..?)
 
       1. Modular subtraction, division
       2. ...
@@ -131,7 +131,7 @@ TODO
 
 ### `intbig_t` — multiple-precision integer
 
-The number is internally represented with two data members:
+The type uses sign/magnitude representation:
 
 ```cpp
     int sign = 0;
@@ -148,13 +148,17 @@ The number is internally represented with two data members:
 
   - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `limbs.back()` or `limbs[limbs.size() - 1]`.
 
-Note that the number zero has a unique representation: `{ .sign=0, limbs={} }`. All other "zero-valued" states are invalid.
+Note that the number zero has a unique representation: `{ .sign=0, .limbs={} }`. All other "zero-valued" states are invalid.
+
+> Note that despite using sign/magnitude internally, with respect to bitwise operations it behaves like 2's complement, like regular signed integers do (on x86, at least). While 2's complement could be used internally, and would be beneficial for additive operations, sign/magnitude is employed because it simplifies more expensive multiplicative operations.
+>
+> The above is consistent with how most of the prevalent big integer implementations are done.
 
 If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `sign` field.
 
-Not all dynamic arrays explicitly store their size, though (e.g. most `std::vector` implementations don't), and it's unclear whether this would bring any benefits other than save a couple bytes of memory (which for our application are irrelevant).
+Not all dynamic arrays explicitly store their size, though (e.g. `libc++` and `libstdc++` implementations of `std::vector` don't), and it's unclear whether this would bring any benefits other than save a couple bytes of memory (which is irrelevant in our case).
 
-> *Note*: the fact that `vector` never automatically shrinks is actually pretty sweet here;
+> *Note*: the fact that `vector` never automatically shrinks is actually pretty sweet here.
 
 ##### Addition and subtraction
 
@@ -419,6 +423,12 @@ struct cl_byte {
 
 <hr />
 
+### `sha256` — SHA256 cryptographic hash function
+
+...
+
+<hr/>
+
 ### `modbig_t` — multiple-precision modular arithmetic
 
 What's the best approach to such a thing's interface? Nothing looks too good:
@@ -591,6 +601,8 @@ What's the best approach to such a thing's interface? Nothing looks too good:
         > This software was originally written by Sybren Stüvel, Marloes de Boer, Ivo Tamboer and subsequenty improved by Barry Mead, Yesudeep Mangalapilly, and others.
 
      4. [botan](https://github.com/randombit/botan/blob/master/src/lib/pubkey/rsa/rsa.cpp) — pretty granular, has kinda distinct modarithm, primality tests (Lucas, Miller-Rabin, Baillie–PSW), [Monty](https://github.com/randombit/botan/blob/ca847be7d8ae8942001b17a8e1b6f61ef9c4305e/src/lib/math/numbertheory/monty.h), etc.;
+
+     5. [Why do BigInteger implementations use sign-magnitude instead of two's complement? — Stack Overflow](https://stackoverflow.com/q/52051295);
 
 3. Other relevant algorithms:
 
