@@ -606,18 +606,12 @@ intbig_t& intbig_t::operator-=(const intbig_t& other)
 
 intbig_t intbig_t::operator+(const intbig_t& other) const
 {
-    intbig_t result = intbig_t(*this);
-    result += other;
-
-    return result;
+    return intbig_t(*this) += other;
 }
 
 intbig_t intbig_t::operator-(const intbig_t& other) const
 {
-    intbig_t result = intbig_t(*this);
-    result -= other;
-
-    return result;
+    return intbig_t(*this) -= other;
 }
 
 void intbig_t::inc_abs()
@@ -682,7 +676,7 @@ intbig_t& intbig_t::operator--()
 
 const intbig_t intbig_t::operator++(int)
 {
-    intbig_t old_value = *this;
+    const intbig_t old_value = *this;
 
     operator++();
 
@@ -691,7 +685,7 @@ const intbig_t intbig_t::operator++(int)
 
 const intbig_t intbig_t::operator--(int)
 {
-    intbig_t old_value = *this;
+    const intbig_t old_value = *this;
 
     operator--();
 
@@ -828,18 +822,12 @@ intbig_t& intbig_t::operator>>=(const int64_t n)
 
 intbig_t intbig_t::operator<<(int64_t n) const
 {
-    intbig_t result = intbig_t(*this);
-    result <<= n;
-
-    return result;
+    return intbig_t(*this) <<= n;
 }
 
 intbig_t intbig_t::operator>>(int64_t n) const
 {
-    intbig_t result = intbig_t(*this);
-    result >>= n;
-
-    return result;
+    return intbig_t(*this) >>= n;
 }
 
 intbig_t& intbig_t::apply_bitwise(const intbig_t& other, const std::function<uint64_t(uint64_t, uint64_t)>& f_bitwise)
@@ -944,26 +932,17 @@ intbig_t& intbig_t::operator^=(const intbig_t& other)
 
 intbig_t intbig_t::operator&(const intbig_t& other) const
 {
-    intbig_t result = intbig_t(*this);
-    result &= other;
-
-    return result;
+    return intbig_t(*this) &= other;
 }
 
 intbig_t intbig_t::operator|(const intbig_t& other) const
 {
-    intbig_t result = intbig_t(*this);
-    result |= other;
-
-    return result;
+    return intbig_t(*this) |= other;
 }
 
 intbig_t intbig_t::operator^(const intbig_t& other) const
 {
-    intbig_t result = intbig_t(*this);
-    result ^= other;
-
-    return result;
+    return intbig_t(*this) ^= other;
 }
 
 intbig_t intbig_t::operator~() const
