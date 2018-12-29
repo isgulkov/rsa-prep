@@ -19,9 +19,9 @@ class intbig_t
      *       -  1 -- positive;
      *       -  0 -- zero.
      *
-     *   - `chunks`: the number's absolute value
+     *   - `limbs`: the number's absolute value
      *       - in base 2^64, so with 64-bit integers as digits
-     *           (the term "chunk" is used to avoid confusion with decimal digits 0-9);
+     *           (to avoid confusion with decimal digits 0-9, the term "limb" is used);
      *       - little-endian (least to most significant);
      *       - with no leading zeroes (thus, empty for 0).
      */
@@ -30,7 +30,7 @@ class intbig_t
 public:
     // REMOVE: / !!!!!!!!!!
     int sign = 0;
-    std::vector<uint64_t> chunks;
+    std::vector<uint64_t> limbs;
 
 public:
     /**
@@ -48,7 +48,7 @@ public:
 //    ~intbig_t() = default;
 
 private:
-    intbig_t(int sign, std::vector<uint64_t>&& chunks);
+    intbig_t(int sign, std::vector<uint64_t>&& limbs);
 
 public:
     // REMOVE: replace this:
@@ -78,7 +78,7 @@ public:
 
     /*
      * TODO: See if the following speeds up the conversion to decimal:
-     *   - convert `chunks[0] % TEN_TO_THE_19` to string (stripping leading zeroes if it's the last one);
+     *   - convert `limbs[0] % TEN_TO_THE_19` to string (stripping leading zeroes if it's the last one);
      *   - divide the whole thing: `x.operator/=(TEN_TO_THE_19)`.
      */
 

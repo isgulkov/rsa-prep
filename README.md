@@ -135,20 +135,20 @@ The number is internally represented with two data members:
 
 ```cpp
     int sign = 0;
-    std::vector<uint64_t> chunks;
+    std::vector<uint64_t> limbs;
 ```
 
 - `sign` — the number's sign: `-1` for negative numbers, `1` for positive, `0` for zero;
 
-- `chunks` — the number's absolute value:
+- `limbs` — the number's absolute value:
 
   - the value is stored base 64, the digits are in little-endian (ordered from least to most significant):
 
-    $|x| = chunks[0] + 2^{64} \times chunks[1] + (2^{64})^2 \times chunks[2] + ...$;
+    $|x| = limbs[0] + 2^{64} \times limbs[1] + (2^{64})^2 \times limbs[2] + ...$;
 
-  - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
+  - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `limbs.back()` or `limbs[limbs.size() - 1]`.
 
-Note that the number zero has a unique representation: `{ .sign=0, chunks={} }`. All other "zero-valued" states are invalid.
+Note that the number zero has a unique representation: `{ .sign=0, limbs={} }`. All other "zero-valued" states are invalid.
 
 If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `sign` field.
 
@@ -258,13 +258,13 @@ These sure can be implemented through addition and subtraction, but a separate i
 
 The shifts are pretty straightforward.
 
-First shift the vector itself by $\lfloor n\ /\ 64 \rfloor$ chunks (`std::rotate` does the job really well), then shift bits inside and between individual chunks by $m = (n \bmod 64)$.
+First shift the vector itself by $\lfloor n\ /\ 64 \rfloor$ limbs (`std::rotate` does the job really well), then shift bits inside and between individual limbs by $m = (n \bmod 64)$.
 
-![Sub-chunk operation of shifts](docs/sublimb_shifts.png )
+![Sub-limb operation of shifts](docs/sublimb_shifts.png )
 
-In addition to shifting each chunk's value, additional bits get "sank" from the upper chunk (in case of right shift) or "lifted" from the lower chunk (in case of left shift). As stated here, to be in-place, both operations have to run sequentially, and in the direction "opposite" to that of the shift in question.
+In addition to shifting each limb's value, additional bits get "sank" from the upper limb (in case of right shift) or "lifted" from the lower limb (in case of left shift). As stated here, to be in-place, both operations have to run sequentially, and in the direction "opposite" to that of the shift in question.
 
-The other ones — `&`, `|`, `^` and `~`, — are just their `uint64_t` versions applied chunk-wise, with possible leading zeroes kept in mind.
+The other ones — `&`, `|`, `^` and `~`, — are just their `uint64_t` versions applied limb-wise, with possible leading zeroes kept in mind.
 
 The only tricky part is the negative numbers. There are several ways of implementing bitwise operations on them, e.g.:
 

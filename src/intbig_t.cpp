@@ -21,9 +21,9 @@
  */
 constexpr size_t INITIAL_RESERVATION = 20;
 
-intbig_t::intbig_t(int sign, std::vector<uint64_t>&& chunks) : sign(sign), chunks(std::move(chunks))
+intbig_t::intbig_t(int sign, std::vector<uint64_t>&& limbs) : sign(sign), limbs(std::move(limbs))
 {
-    chunks.reserve(INITIAL_RESERVATION);
+    limbs.reserve(INITIAL_RESERVATION);
 }
 
 namespace
@@ -44,11 +44,11 @@ int sign_of(int64_t x)
 
 intbig_t::intbig_t(int64_t x) : sign(sign_of(x))
 {
-    chunks.reserve(INITIAL_RESERVATION);
+    limbs.reserve(INITIAL_RESERVATION);
 
     // Respect the representation of zero with empty vector
     if(x != 0) {
-        chunks = { (uint64_t)(x < 0 ? -x : x) };
+        limbs = { (uint64_t)(x < 0 ? -x : x) };
     }
 }
 
@@ -66,51 +66,52 @@ intbig_t intbig_t::from_decimal(const std::string& decimal)
     InfInt TWO_64 = InfInt(UINT64_MAX) + 1;
 
     int sign = fifth_leg < 0 ? -1 : (fifth_leg == 0 ? 0 : 1);
-    std::vector<uint64_t> chunks;
+    std::vector<uint64_t> limbs;
 
     if(fifth_leg < 0) {
         fifth_leg *= -1;
     }
 
     while(fifth_leg != 0) {
-        chunks.push_back((fifth_leg % TWO_64).toUnsignedLongLong());
+        limbs.push_back((fifth_leg % TWO_64).toUnsignedLongLong());
 
         fifth_leg /= TWO_64;
     }
 
-    return { sign, std::move(chunks) };
+    return { sign, std::move(limbs) };
 }
 
 size_t intbig_t::size() const
 {
-    return chunks.size();
+    return limbs.size();
 }
 
 size_t intbig_t::num_bits() const
 {
     size_t num_bits_last = 0;
 
-    for(uint64_t last = chunks.back(); last; last >>= 1) {
+    for(uint64_t last = limbs.back(); last; last >>= 1) {
         num_bits_last += 1;
     }
 
-    return 64 * chunks.size() + num_bits_last;
+    return 64 * limbs.size() + num_bits_last;
 }
 
 std::string intbig_t::to_string(int base) const
 {
     // REMOVE: temporary, until proper string conversions are implemented
 
-    const uint64_t HALF_CHUNK = 1ULL << 32U;
+    // REVIEW: yikes!
+    const uint64_t HALF_LIMB = 1ULL << 32U;
 
     InfInt x;
 
-    for(size_t i_back = 0; i_back < chunks.size(); i_back++) {
-        x *= InfInt(HALF_CHUNK);
-        x += chunks[(chunks.size() - 1) - i_back] >> 32U;
+    for(size_t i_back = 0; i_back < limbs.size(); i_back++) {
+        x *= InfInt(HALF_LIMB);
+        x += limbs[(limbs.size() - 1) - i_back] >> 32U;
 
-        x *= InfInt(HALF_CHUNK);
-        x += chunks[(chunks.size() - 1) - i_back] & (HALF_CHUNK - 1);
+        x *= InfInt(HALF_LIMB);
+        x += limbs[(limbs.size() - 1) - i_back] & (HALF_LIMB - 1);
     }
 
     if(sign < 0) {
@@ -149,14 +150,14 @@ std::string intbig_t::to_hex_chunks() const
 {
     // REMOVE: dev version -- make more usable and possibly roundtrip-convertible
 
-    if(chunks.empty()) {
+    if(limbs.empty()) {
         return "  " + uint64_as_hex(0);
     }
 
     std::string result = sign < 0 ? "-" : " ";
 
-    for(ssize_t i = chunks.size() - 1; i >= 0; i--) {
-        result += " " + uint64_as_hex(chunks[i]);
+    for(ssize_t i = limbs.size() - 1; i >= 0; i--) {
+        result += " " + uint64_as_hex(limbs[i]);
     }
 
     return result;
@@ -169,39 +170,39 @@ std::ostream& operator<<(std::ostream& os, const intbig_t& value)
 
 bool intbig_t::operator==(const intbig_t& other) const
 {
-    return sign == other.sign && chunks == other.chunks;
+    return sign == other.sign && limbs == other.limbs;
 }
 
 bool intbig_t::operator!=(const intbig_t& other) const
 {
-    return sign != other.sign || chunks != other.chunks;
+    return sign != other.sign || limbs != other.limbs;
 }
 
 int intbig_t::compare_3way_unsigned(const intbig_t& other) const
 {
     // No leading zeroes are allowed, so longer value is necessarily larger
-    if(chunks.size() < other.chunks.size()) {
+    if(limbs.size() < other.limbs.size()) {
         return -1;
     }
-    else if(chunks.size() > other.chunks.size()) {
+    else if(limbs.size() > other.limbs.size()) {
         return 1;
     }
 
     // From most significant to least significant
-    for(ssize_t i = chunks.size() - 1; i >= 0; i--) {
+    for(ssize_t i = limbs.size() - 1; i >= 0; i--) {
         /*
          * Can't simply return a - b here -- it may not fit neither int nor int64_t
          */
 
         // REVIEW: const uint64_t&
         // REVIEW: a way to make their signed difference fit some type?
-        const uint64_t our_chunk = chunks[i];
-        const uint64_t their_chunk = other.chunks[i];
+        const uint64_t our_limb = limbs[i];
+        const uint64_t their_limb = other.limbs[i];
 
-        if(our_chunk < their_chunk) {
+        if(our_limb < their_limb) {
             return -1;
         }
-        else if(our_chunk > their_chunk) {
+        else if(our_limb > their_limb) {
             return 1;
         }
     }
@@ -286,7 +287,7 @@ intbig_t intbig_t::operator-() const
 {
     return intbig_t(
             -sign,  // Preserve false for zero
-            std::vector<uint64_t>(chunks)  // Explicitly copy the vector for the && parameter
+            std::vector<uint64_t>(limbs)  // Explicitly copy the vector for the && parameter
     );
 }
 
@@ -314,16 +315,16 @@ namespace {
         for(size_t i = 0; i < x.size(); i++) {
             // In case acc and x is actually the same vector
             // REVIEW: either find a way to avoid this copy or apply the hack to subs as well
-            const uint64_t x_chunk = x[i];
+            const uint64_t x_limb = x[i];
 
             acc[i] += x[i] + carry;
 
             // Set carry if overflow occured
             if(!carry) {
-                carry = acc[i] < x_chunk;
+                carry = acc[i] < x_limb;
             }
             else {
-                carry = acc[i] <= x_chunk;
+                carry = acc[i] <= x_limb;
             }
         }
 
@@ -361,17 +362,17 @@ namespace {
         bool carry = false;
 
         for(size_t i = 0; i < x.size(); i++) {
-            uint64_t acc_chunk = acc[i] - carry - x[i];
+            uint64_t acc_limb = acc[i] - carry - x[i];
 
             // Set carry if overflow has occurred
             if(!carry) {
-                carry = acc_chunk > acc[i];
+                carry = acc_limb > acc[i];
             }
             else {
-                carry = acc_chunk >= acc[i];
+                carry = acc_limb >= acc[i];
             }
 
-            acc[i] = acc_chunk;
+            acc[i] = acc_limb;
         }
 
         // Collect the remaining carry, if any
@@ -416,16 +417,16 @@ namespace {
         bool carry = false;
 
         for(size_t i = 0; i < acc.size(); i++) {
-            uint64_t chunk = x[i] - acc[i] - carry;
+            uint64_t limb = x[i] - acc[i] - carry;
 
             if(!carry) {
-                carry = chunk > x[i];
+                carry = limb > x[i];
             }
             else {
-                carry = chunk >= x[i];
+                carry = limb >= x[i];
             }
 
-            acc[i] = chunk;
+            acc[i] = limb;
         }
 
         for(size_t i = acc.size(); i < x.size(); i++) {
@@ -456,13 +457,13 @@ void intbig_t::add_abs(const intbig_t& other)
      * Pre: both `this` and `other` are non-zero
      */
 
-    add2_unsigned(chunks, other.chunks);
+    add2_unsigned(limbs, other.limbs);
     sign = 1;
 }
 
 intbig_t& intbig_t::clear()
 {
-    chunks.resize(0);
+    limbs.resize(0);
     sign = 0;
 
     return *this;
@@ -482,7 +483,7 @@ void intbig_t::sub_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        sub2from_unsigned(chunks, other.chunks);
+        sub2from_unsigned(limbs, other.limbs);
         sign = -1;
     }
     else if(cmp_with_other == 0) {
@@ -490,7 +491,7 @@ void intbig_t::sub_abs(const intbig_t& other)
         clear();
     }
     else {
-        sub2_unsigned(chunks, other.chunks);
+        sub2_unsigned(limbs, other.limbs);
         sign = 1;
     }
 }
@@ -507,14 +508,14 @@ void intbig_t::subfrom_abs(const intbig_t& other)
     int cmp_with_other = compare_3way_unsigned(other);
 
     if(cmp_with_other < 0) {
-        sub2from_unsigned(chunks, other.chunks);
+        sub2from_unsigned(limbs, other.limbs);
         sign = 1;
     }
     else if(cmp_with_other == 0) {
         clear();
     }
     else {
-        sub2_unsigned(chunks, other.chunks);
+        sub2_unsigned(limbs, other.limbs);
         sign = -1;
     }
 }
@@ -613,28 +614,28 @@ intbig_t intbig_t::operator-(const intbig_t& other) const
 
 void intbig_t::inc_abs()
 {
-    for(uint64_t& chunk : chunks) {
-        if(++chunk != 0) {
+    for(uint64_t& limb : limbs) {
+        if(++limb != 0) {
             return;
         }
     }
 
-    chunks.push_back(1);
+    limbs.push_back(1);
 }
 
 void intbig_t::dec_abs()
 {
-    for(uint64_t& chunk : chunks) {
-        if(chunk-- != 0) {
+    for(uint64_t& limb : limbs) {
+        if(limb-- != 0) {
             break;
         }
     }
 
-    if(!chunks.back()) {
-        chunks.pop_back();
+    if(!limbs.back()) {
+        limbs.pop_back();
     }
 
-    if(chunks.empty()) {
+    if(limbs.empty()) {
         sign = 0;
     }
 }
@@ -645,7 +646,7 @@ intbig_t& intbig_t::operator++()
         dec_abs();
     }
     else if(sign == 0) {
-        chunks.push_back(1);
+        limbs.push_back(1);
         sign = 1;
     }
     else {
@@ -661,7 +662,7 @@ intbig_t& intbig_t::operator--()
         inc_abs();
     }
     else if(sign == 0) {
-        chunks.push_back(1);
+        limbs.push_back(1);
         sign = -1;
     }
     else {
@@ -705,15 +706,16 @@ intbig_t& intbig_t::operator<<=(const int64_t n)
         return *this;
     }
 
-    const uint64_t n_whole_chunks = (uint64_t)n / 64;
+    // REVIEW: rename to avoid Vietnam flashbacks?
+    const uint64_t n_whole_limbs = (uint64_t)n / 64;
 
-    if(n_whole_chunks != 0) {
+    if(n_whole_limbs != 0) {
         /*
-         * Add an `n_whole_chunks`-long section of zeroes to the back, then move it to the front:
+         * Add an `n_whole_limbs`-long section of zeroes to the back, then move it to the front:
          *   ABC...XYZ --> ABC...XYZ[000] --> [000]ABC...XYZ
          */
-        chunks.resize(chunks.size() + n_whole_chunks);
-        std::rotate(chunks.begin(), chunks.end() - n_whole_chunks, chunks.end());
+        limbs.resize(limbs.size() + n_whole_limbs);
+        std::rotate(limbs.begin(), limbs.end() - n_whole_limbs, limbs.end());
     }
 
     const uint64_t this_n = (uint64_t)n % 64;
@@ -721,19 +723,19 @@ intbig_t& intbig_t::operator<<=(const int64_t n)
     if(this_n != 0) {
         const uint64_t other_n = 64 - this_n;
 
-        if(chunks.back() >> other_n != 0) {
-            chunks.push_back(0);
+        if(limbs.back() >> other_n != 0) {
+            limbs.push_back(0);
         }
 
-        for(size_t i = chunks.size() - 1; i > n_whole_chunks; i--) {
+        for(size_t i = limbs.size() - 1; i > n_whole_limbs; i--) {
             /*
-             * Shift this chunk while accepting the lower neighbour's highest bits "ascending up".
+             * Shift this limb while accepting the lower neighbour's highest bits "ascending up".
              */
 
-            chunks[i] = (chunks[i] << this_n) | (chunks[i - 1] >> other_n);
+            limbs[i] = (limbs[i] << this_n) | (limbs[i - 1] >> other_n);
         }
 
-        chunks[n_whole_chunks] <<= this_n;
+        limbs[n_whole_limbs] <<= this_n;
     }
 
     return *this;
@@ -750,20 +752,20 @@ intbig_t& intbig_t::operator>>=(const int64_t n)
         return *this;
     }
 
-    // 1. Shift whole chunks -- remove as many as needed from the least significant side
-    const uint64_t n_whole_chunks = (uint64_t)n / 64;
+    // 1. Shift whole limbs -- remove as many as needed from the least significant side
+    const uint64_t n_whole_limbs = (uint64_t)n / 64;
 
-    if(n_whole_chunks != 0) {
-        if(n_whole_chunks >= chunks.size()) {
+    if(n_whole_limbs != 0) {
+        if(n_whole_limbs >= limbs.size()) {
             /*
-             * Right shifting by more chunks than there are, leaving the number at the right shift's stationary point:
+             * Right shifting by more limbs than there are, leaving the number at the right shift's stationary point:
              *   - for negative numbers -- -1 (binary '...11111111'),
              *   - for non-negative numbers -- 0 (binary '...00000000').
              */
             if(sign == -1) {
                 // For negative numbers, the stationary point is
                 // TODO: doesn't this erase the vector's reservation? If it does, do this in a way that doesn't.
-                chunks = { 1 };
+                limbs = { 1 };
             }
             else if(sign == 1) {
                 clear();
@@ -773,42 +775,42 @@ intbig_t& intbig_t::operator>>=(const int64_t n)
         }
 
         /*
-         * Move an `n_whole_chunks`-long section from the front to the back, then cut it off:
+         * Move an `n_whole_limbs`-long section from the front to the back, then cut it off:
          *   [ABC]DEF...XYZ --> DEF...XYZ[ABC] --> DEF...XYZ
          */
-        std::rotate(chunks.begin(), chunks.begin() + n_whole_chunks, chunks.end());
-        chunks.resize(chunks.size() - n_whole_chunks);
+        std::rotate(limbs.begin(), limbs.begin() + n_whole_limbs, limbs.end());
+        limbs.resize(limbs.size() - n_whole_limbs);
     }
 
-    // 2. Shift stuff along chunk borders
+    // 2. Shift stuff along limb borders
     uint64_t this_n = (uint64_t)n % 64;
 
     if(this_n != 0) {
         const uint64_t other_n = 64 - this_n;
 
-        for(size_t i = 0; i < chunks.size() - 1; i++) {
+        for(size_t i = 0; i < limbs.size() - 1; i++) {
             /*
-             * Shift this chunk while accepting the upper neighbour's lowest bits being "passed down".
+             * Shift this limb while accepting the upper neighbour's lowest bits being "passed down".
              */
 
-            chunks[i] = (chunks[i] >> this_n) | (chunks[i + 1] << other_n);
+            limbs[i] = (limbs[i] >> this_n) | (limbs[i + 1] << other_n);
         }
 
-        chunks.back() >>= this_n;
+        limbs.back() >>= this_n;
 
         // TODO: somehow restructure this if into a prettier sight
-        if(chunks.back() == 0) {
-            if(chunks.size() == 1) {
+        if(limbs.back() == 0) {
+            if(limbs.size() == 1) {
                 if(sign == -1) {
-                    chunks[0] = 1;
+                    limbs[0] = 1;
                 }
                 else {
-                    chunks.pop_back();
+                    limbs.pop_back();
                     sign = 0;
                 }
             }
             else {
-                chunks.pop_back();
+                limbs.pop_back();
             }
         }
     }
@@ -838,34 +840,34 @@ intbig_t& intbig_t::apply_bitwise(const intbig_t& other, const std::function<uin
 
     // REVIEW: document what the fuck is going on in this if's condition; check if it works for all 16 operations.
     if((sign == 1 && other.sign == 1 && f_bitwise(3, 5) == 1) || (sign == -1 && other.sign == -1 && f_bitwise(3, 5) == 7)) {
-        chunks.resize(std::min(chunks.size(), other.chunks.size()));
+        limbs.resize(std::min(limbs.size(), other.limbs.size()));
     }
     else {
-        chunks.resize(std::max(chunks.size(), other.chunks.size()));
+        limbs.resize(std::max(limbs.size(), other.limbs.size()));
     }
 
     // The "1"s that need to be added for conversion of terms into 2's complement
     bool this_add = sign == -1, other_add = other.sign == -1;
 
-    for(size_t i = 0; i < chunks.size(); i++) {
+    for(size_t i = 0; i < limbs.size(); i++) {
         // Handle `this` as 2's complement
-        if(sign == -1 && (chunks[i] = ~chunks[i] + this_add)) {
+        if(sign == -1 && (limbs[i] = ~limbs[i] + this_add)) {
             this_add = false;
         }
 
         // REVIEW: Cut a corner or two when this condition is false?
-        uint64_t other_chunk = i < other.chunks.size() ? other.chunks[i] : 0;
+        uint64_t other_limb = i < other.limbs.size() ? other.limbs[i] : 0;
 
         // Handle `other` as 2's complement
-        if(other.sign == -1 && (other_chunk = ~other_chunk + other_add)) {
+        if(other.sign == -1 && (other_limb = ~other_limb + other_add)) {
             other_add = false;
         }
 
-        chunks[i] = f_bitwise(chunks[i], other_chunk);
+        limbs[i] = f_bitwise(limbs[i], other_limb);
 
         // In this case, `this` ends up 2's complement -- convert it back
         if(neg_result) {
-            chunks[i] = ~chunks[i];
+            limbs[i] = ~limbs[i];
         }
     }
 
@@ -879,11 +881,11 @@ intbig_t& intbig_t::apply_bitwise(const intbig_t& other, const std::function<uin
     }
 
     // TODO: Do this in one resize instead of this loop.
-    while(!chunks.empty() && chunks.back() == 0) {
-        chunks.pop_back();
+    while(!limbs.empty() && limbs.back() == 0) {
+        limbs.pop_back();
     }
 
-    if(chunks.empty()) {
+    if(limbs.empty()) {
         sign = 0;
     }
 
@@ -892,10 +894,10 @@ intbig_t& intbig_t::apply_bitwise(const intbig_t& other, const std::function<uin
 
 intbig_t& intbig_t::operator&=(const intbig_t& other)
 {
-    if(chunks.empty()) {
+    if(limbs.empty()) {
         return *this;
     }
-    else if(other.chunks.empty()) {
+    else if(other.limbs.empty()) {
         return clear();
     }
 
@@ -906,10 +908,10 @@ intbig_t& intbig_t::operator&=(const intbig_t& other)
 
 intbig_t& intbig_t::operator|=(const intbig_t& other)
 {
-    if(chunks.empty()) {
+    if(limbs.empty()) {
         return operator=(other);
     }
-    else if(other.chunks.empty()) {
+    else if(other.limbs.empty()) {
         return *this;
     }
 
@@ -920,10 +922,10 @@ intbig_t& intbig_t::operator|=(const intbig_t& other)
 
 intbig_t& intbig_t::operator^=(const intbig_t& other)
 {
-    if(chunks.empty()) {
+    if(limbs.empty()) {
         return operator=(other);
     }
-    else if(other.chunks.empty()) {
+    else if(other.limbs.empty()) {
         return *this;
     }
 
@@ -975,13 +977,13 @@ intbig_t& intbig_t::operator*=(const intbig_t& other)
 
     intbig_t result;
 
-    for(uint64_t chunk : other.chunks) {
+    for(uint64_t limb : other.limbs) {
         for(size_t i = 0; i < 64; i++) {
-            if((chunk & 1U) != 0) {
+            if((limb & 1U) != 0) {
                 result += *this;
             }
 
-            chunk >>= 1U;
+            limb >>= 1U;
 
             operator<<=(1);
         }

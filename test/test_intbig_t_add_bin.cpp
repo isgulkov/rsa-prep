@@ -20,15 +20,15 @@
  *   - [x] zeroes:
  *     cases of zero operands and zero result;
  *   - [x] positive:
- *         - [x] small (<= 1 chunk)
- *         - [x] large (2 – 100 chunks)
+ *         - [x] small (<= 1 limb)
+ *         - [x] large (2 – 100 limbs)
  *   - [x] mixed signs:
  *         - [x] (same)
- *   - [x] on a chunk's edge:
+ *   - [x] on a limb's edge:
  *         - 1 00(64)00 00(64)00
  *         -   11(64)11 11(64)11
  *   - [x] composition:
- *         - [x] within 1 chunk
+ *         - [x] within 1 limb
  *         - [x] with growth
  *         - [x] with alternating growth and shrinkage
  *
@@ -482,35 +482,35 @@ INSTANTIATE_TEST_CASE_P(Sub,
                         ::testing::Values(BinaryOps::Sub_op)
 );
 
-TEST_P(IntBigTAdditiveComposed, MonotonicPositiveOneChunk)
+TEST_P(IntBigTAdditiveComposed, MonotonicPositiveOneLimb)
 {
     for(std::string inc : TestData::small_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
-TEST_P(IntBigTAdditiveComposed, MonotonicNegativeOneChunk)
+TEST_P(IntBigTAdditiveComposed, MonotonicNegativeOneLimb)
 {
     for(std::string inc : TestData::small_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
-TEST_P(IntBigTAdditiveComposed, MonotonicPositiveManyChunks)
+TEST_P(IntBigTAdditiveComposed, MonotonicPositiveManyLimbs)
 {
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
     }
 }
 
-TEST_P(IntBigTAdditiveComposed, MonotonicNegativeManyChunks)
+TEST_P(IntBigTAdditiveComposed, MonotonicNegativeManyLimbs)
 {
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance("-" + inc));
     }
 }
 
-TEST_P(IntBigTAdditiveComposed, OscilatingManyChunks)
+TEST_P(IntBigTAdditiveComposed, OscilatingManyLimbs)
 {
     for(std::string inc : TestData::large_increments) {
         ASSERT_NO_FATAL_FAILURE(assert_advance(inc));
