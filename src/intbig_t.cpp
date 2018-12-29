@@ -3,10 +3,11 @@
 
 #include <stdexcept>
 #include <algorithm>
+#include <sstream>
 
-// REMOVE: temporary, for the following:
-// REMOVE:  - to_string
-#include "InfInt.h"
+extern "C" {
+#include "mini-gmp.h"
+}
 
 /*
  * TODO: decide how much to reserve
@@ -85,32 +86,32 @@ intbig_t intbig_t::from(const std::string& s, const Base base)
     return is_neg ? x.negate() : x;
 }
 
-std::string intbig_t::to_string(const int base) const
+std::string intbig_t::to_string(const Base base) const
 {
-    // REMOVE: temporary, until proper string conversions are implemented
-
-    if(base != 10) {
+    if(base != Decimal) {
         throw std::logic_error("bases other than 10 aren't implemented");
     }
 
-    // REVIEW: yikes!
-    const uint64_t HALF_LIMB = 1ULL << 32U;
+    // REMOVE: temporary -- replace after implementing div and mod
 
-    InfInt x;
+    mpz_t x;
+    mpz_init(x);
 
-    for(size_t i_back = 0; i_back < limbs.size(); i_back++) {
-        x *= InfInt(HALF_LIMB);
-        x += limbs[(limbs.size() - 1) - i_back] >> 32U;
+    for(ssize_t i_limb = limbs.size() - 1; i_limb >= 0; i_limb--) {
+        const uint64_t limb = limbs[i_limb];
 
-        x *= InfInt(HALF_LIMB);
-        x += limbs[(limbs.size() - 1) - i_back] & (HALF_LIMB - 1);
+        mpz_mul_2exp(x, x, 32);
+        mpz_add_ui(x, x, uint32_t(limb >> 32));
+
+        mpz_mul_2exp(x, x, 32);
+        mpz_add_ui(x, x, (uint32_t)limb);
     }
 
-    if(sign < 0) {
-        x *= -1;
+    if(sign == -1) {
+        mpz_neg(x, x);
     }
 
-    return x.toString();
+    return mpz_get_str(nullptr, 10, x);
 }
 
 namespace

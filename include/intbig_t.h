@@ -64,11 +64,10 @@ public:
 
     static intbig_t from(const std::string& s, Base base = Decimal);
 
-    // REMOVE: replace these:
-    std::string to_string(int base = 10) const;
+    // REMOVE: replace this:
     std::string to_hex_chunks() const;
     // TODO: with these:
-//    std::string to_string(const Base base = Decimal) const;
+    std::string to_string(const Base base = Decimal) const;
 //    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
 
     // TODO: avoid the slow decimal conversions in tests -- use hex (in both directions)
@@ -111,7 +110,7 @@ public:
     bool operator>=(const intbig_t& other) const;
     bool operator >(const intbig_t& other) const;
 
-    //
+    // TODO: abs(), is_zero(), is_neg(), is_pos(), ...
     intbig_t operator+() const;
     intbig_t operator-() const;
     intbig_t& negate();
