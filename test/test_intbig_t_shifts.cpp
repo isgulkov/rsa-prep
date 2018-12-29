@@ -1,7 +1,10 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "InfInt.h"
+
+extern "C" {
+#include "mini-gmp.h"
+}
 
 #include "intbig_t.h"
 
@@ -96,27 +99,28 @@ protected:
     void assert_likeReference(const std::string& s, int n)
     {
         intbig_t x = intbig_t::from(s);
-        InfInt y = s;
+        mpz_t y;
+        mpz_init_set_str(y, s.c_str(), 10);
 
         if(GetParam() == ShiftDir::LEFT) {
             x <<= n;
 
             for(int i = 0; i < n; i++) {
-                y *= 2;
+                mpz_mul_ui(y, y, 2);
             }
         }
         else if(GetParam() == ShiftDir::RIGHT) {
             x >>= n;
 
             for(int i = 0; i < n; i++) {
-                if(y >= 0) {
-                    y /= 2;
+                if(mpz_sgn(y) >= 0) {
+                    mpz_tdiv_q_ui(y, y, 2);
                 }
                 else {
-                    y /= 2;
+                    mpz_tdiv_q_ui(y, y, 2);
 
-                    if(y == 0) {
-                        y = "-1";
+                    if(!mpz_sgn(y)) {
+                        mpz_set_si(y, -1);
                     }
                 }
             }
@@ -125,7 +129,7 @@ protected:
             FAIL() << "Unknown direction: " << GetParam();
         }
 
-        ASSERT_EQ(x.to_string(), y.toString()) << intbig_t::from(s).to_hex_chunks()
+        ASSERT_EQ(x.to_string(), mpz_get_str(nullptr, 10, y)) << intbig_t::from(s).to_hex_chunks()
                                                << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
     }
 
@@ -240,23 +244,24 @@ protected:
     void assert_likeReference(const std::string& s, int n)
     {
         intbig_t x = intbig_t::from(s);
-        InfInt y = s;
+        mpz_t y;
+        mpz_init_set_str(y, s.c_str(), 10);
 
         if(GetParam() == ShiftDir::LEFT) {
             for(int i = 0; i < n; i++) {
-                y *= 2;
+                mpz_mul_ui(y, y, 2);
             }
         }
         else if(GetParam() == ShiftDir::RIGHT) {
             for(int i = 0; i < n; i++) {
-                if(y >= 0) {
-                    y /= 2;
+                if(mpz_sgn(y) >= 0) {
+                    mpz_tdiv_q_ui(y, y, 2);
                 }
                 else {
-                    y /= 2;
+                    mpz_tdiv_q_ui(y, y, 2);
 
-                    if(y == 0) {
-                        y = "-1";
+                    if(!mpz_sgn(y)) {
+                        mpz_set_si(y, -1);
                     }
                 }
             }
@@ -267,7 +272,7 @@ protected:
 
         ASSERT_EQ(
                 (GetParam() == ShiftDir::LEFT ? x << n : x >> n).to_string(),
-                y.toString()
+                mpz_get_str(nullptr, 10, y)
         ) << intbig_t::from(s).to_hex_chunks() << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
     }
 

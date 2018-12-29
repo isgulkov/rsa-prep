@@ -1,7 +1,10 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "InfInt.h"
+
+extern "C" {
+#include "mini-gmp.h"
+}
 
 #include "intbig_t.h"
 
@@ -257,7 +260,12 @@ const AddUnOp IncPrefix_op = {
             ++x;
         },
         [](const std::string& x) {
-            return (++InfInt(x)).toString();
+            mpz_t mx;
+            mpz_init_set_str(mx, x.c_str(), 10);
+
+            mpz_add_ui(mx, mx, 1);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 
@@ -270,7 +278,12 @@ const AddUnOp DecPrefix_op = {
             --x;
         },
         [](const std::string& x) {
-            return (--InfInt(x)).toString();
+            mpz_t mx;
+            mpz_init_set_str(mx, x.c_str(), 10);
+
+            mpz_sub_ui(mx, mx, 1);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 
@@ -285,9 +298,12 @@ const AddUnOp IncPostfix_op = {
             x++;
         },
         [](const std::string& x) {
-            InfInt a = x;
-            a++;
-            return a.toString();
+            mpz_t mx;
+            mpz_init_set_str(mx, x.c_str(), 10);
+
+            mpz_add_ui(mx, mx, 1);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 
@@ -302,9 +318,12 @@ const AddUnOp DecPostfix_op = {
             x--;
         },
         [](const std::string& x) {
-            InfInt a = x;
-            a--;
-            return a.toString();
+            mpz_t mx;
+            mpz_init_set_str(mx, x.c_str(), 10);
+
+            mpz_sub_ui(mx, mx, 1);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 

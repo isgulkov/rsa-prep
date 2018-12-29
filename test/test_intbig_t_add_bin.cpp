@@ -1,7 +1,10 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "InfInt.h"
+
+extern "C" {
+#include "mini-gmp.h"
+}
 
 #include "intbig_t.h"
 
@@ -153,17 +156,24 @@ const std::vector<std::string> just_below_power_negative = {
 };
 
 // since C++20: std::generate
-std::vector<std::string> gen_increments(int64_t x, int64_t b)
+std::vector<std::string> gen_increments(int32_t x, int32_t b)
 {
     std::vector<std::string> increments(20);
 
-    InfInt increment = 11;
+    mpz_t inc;
+    mpz_init_set_ui(inc, 11);
 
     for(auto it = increments.begin(); it != increments.end(); it++) {
-        *it = increment.toString();
+        *it = mpz_get_str(nullptr, 10, inc);
 
-        increment *= x;
-        increment += b;
+        mpz_mul_si(inc, inc, x);
+
+        if(b < 0) {
+            mpz_sub_ui(inc, inc, (uint32_t)-b);
+        }
+        else {
+            mpz_add_ui(inc, inc, (uint32_t)b);
+        }
     }
 
     return increments;
@@ -202,7 +212,13 @@ const AdditiveBinaryOp AddAssign_op = {
             x += intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
-            return (InfInt(x) + InfInt(y)).toString();
+            mpz_t mx, my;
+            mpz_init_set_str(mx, x.c_str(), 10);
+            mpz_init_set_str(my, y.c_str(), 10);
+
+            mpz_add(mx, mx, my);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 
@@ -215,7 +231,13 @@ const AdditiveBinaryOp Add_op = {
             x = x + intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
-            return (InfInt(x) + InfInt(y)).toString();
+            mpz_t mx, my;
+            mpz_init_set_str(mx, x.c_str(), 10);
+            mpz_init_set_str(my, y.c_str(), 10);
+
+            mpz_add(mx, mx, my);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 
@@ -231,7 +253,13 @@ const AdditiveBinaryOp SubAssign_op = {
             x -= intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
-            return (InfInt(x) - InfInt(y)).toString();
+            mpz_t mx, my;
+            mpz_init_set_str(mx, x.c_str(), 10);
+            mpz_init_set_str(my, y.c_str(), 10);
+
+            mpz_sub(mx, mx, my);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 
@@ -244,7 +272,13 @@ const AdditiveBinaryOp Sub_op = {
             x = x - intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
-            return (InfInt(x) - InfInt(y)).toString();
+            mpz_t mx, my;
+            mpz_init_set_str(mx, x.c_str(), 10);
+            mpz_init_set_str(my, y.c_str(), 10);
+
+            mpz_sub(mx, mx, my);
+
+            return mpz_get_str(nullptr, 10, mx);
         }
 };
 }

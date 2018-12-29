@@ -6,7 +6,7 @@ project(rsa_prep
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall -Wextra")
 #                          ^^^
 # This may or may not improve lldb's "Evaluate Expression" functionality in CLion
 
@@ -30,7 +30,9 @@ add_library(sha256 src/sha256.cpp)
 ### ------------------------
 add_executable(rsa_prep src/main.cpp)
 # REMOVE: v
-target_link_libraries(rsa_prep sha256)
+target_include_directories(rsa_prep PRIVATE vendor/mini-gmp-6.1.2)
+
+target_link_libraries(rsa_prep intbig_t)
 # REMOVE: ^
 
 ### Unit tests
@@ -57,7 +59,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_add_bin PRIVATE vendor/infint)
+  target_include_directories(test_intbig_t_add_bin PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_add_bin test_intbig_t_add_bin)
 
   add_executable(test_intbig_t_add_un test/test_intbig_t_add_un.cpp)
@@ -66,7 +68,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_add_un PRIVATE vendor/infint)
+  target_include_directories(test_intbig_t_add_un PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_add_un test_intbig_t_add_un)
 
   add_executable(test_intbig_t_shifts test/test_intbig_t_shifts.cpp)
@@ -75,7 +77,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_shifts PRIVATE vendor/infint)
+  target_include_directories(test_intbig_t_shifts PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_shifts test_intbig_t_shifts)
 
   add_executable(test_intbig_t_bitwise test/test_intbig_t_bitwise.cpp)
@@ -102,7 +104,7 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t sha256
   )
-  target_include_directories(test_all PRIVATE vendor/infint vendor/mini-gmp-6.1.2)
+  target_include_directories(test_all PRIVATE vendor/mini-gmp-6.1.2)
 
   # TODO: https://stackoverflow.com/a/28305481:
   # TODO:   make sense of what the PRIVATE and PUBLIC do in `target_include_directories`

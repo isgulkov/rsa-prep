@@ -75,7 +75,9 @@ intbig_t intbig_t::from(const std::string& s, const Base base)
 
         if(dig > 9) {
             throw std::invalid_argument(
-                    "Invalid digit '" + std::string(1, *it_c) + "' at " + std::to_string(it_c - s.begin())
+                    "Invalid digit '" + std::string(1, *it_c) + "'"
+                    + " at " + std::to_string(it_c - s.begin())
+                    + " in \"" + s + "\""
             );
         }
 
