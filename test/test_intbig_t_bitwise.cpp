@@ -127,8 +127,8 @@ struct BitwiseBinaryOp
 BitwiseBinaryOp BitwiseAnd_op = {
         "BitwiseAnd",
         [](const std::string& x, const std::string& y) {
-            intbig_t sx = intbig_t::from_decimal(x);
-            intbig_t sy = intbig_t::from_decimal(y);
+            intbig_t sx = intbig_t::from(x);
+            intbig_t sy = intbig_t::from(y);
 
             intbig_t sz = sx;
             sz &= sy;
@@ -151,8 +151,8 @@ BitwiseBinaryOp BitwiseAnd_op = {
 BitwiseBinaryOp BitwiseAndCopy_op = {
         "BitwiseAndCopy",
         [](const std::string& x, const std::string& y) {
-            intbig_t sx = intbig_t::from_decimal(x);
-            intbig_t sy = intbig_t::from_decimal(y);
+            intbig_t sx = intbig_t::from(x);
+            intbig_t sy = intbig_t::from(y);
 
             return (sx & sy).to_hex_chunks();
         },
@@ -164,8 +164,8 @@ BitwiseBinaryOp BitwiseAndCopy_op = {
 BitwiseBinaryOp BitwiseOr_op = {
         "BitwiseOr",
         [](const std::string& x, const std::string& y) {
-            intbig_t sx = intbig_t::from_decimal(x);
-            intbig_t sy = intbig_t::from_decimal(y);
+            intbig_t sx = intbig_t::from(x);
+            intbig_t sy = intbig_t::from(y);
 
             intbig_t sz = sx;
             sz |= sy;
@@ -188,8 +188,8 @@ BitwiseBinaryOp BitwiseOr_op = {
 BitwiseBinaryOp BitwiseOrCopy_op = {
         "BitwiseOrCopy",
         [](const std::string& x, const std::string& y) {
-            intbig_t sx = intbig_t::from_decimal(x);
-            intbig_t sy = intbig_t::from_decimal(y);
+            intbig_t sx = intbig_t::from(x);
+            intbig_t sy = intbig_t::from(y);
 
             return (sx | sy).to_hex_chunks();
         },
@@ -201,8 +201,8 @@ BitwiseBinaryOp BitwiseOrCopy_op = {
 BitwiseBinaryOp BitwiseXor_op = {
         "BitwiseXor",
         [](const std::string& x, const std::string& y) {
-            intbig_t sx = intbig_t::from_decimal(x);
-            intbig_t sy = intbig_t::from_decimal(y);
+            intbig_t sx = intbig_t::from(x);
+            intbig_t sy = intbig_t::from(y);
 
             intbig_t sz = sx;
             sz ^= sy;
@@ -225,8 +225,8 @@ BitwiseBinaryOp BitwiseXor_op = {
 BitwiseBinaryOp BitwiseXorCopy_op = {
         "BitwiseXorCopy",
         [](const std::string& x, const std::string& y) {
-            intbig_t sx = intbig_t::from_decimal(x);
-            intbig_t sy = intbig_t::from_decimal(y);
+            intbig_t sx = intbig_t::from(x);
+            intbig_t sy = intbig_t::from(y);
 
             return (sx ^ sy).to_hex_chunks();
         },
@@ -243,7 +243,7 @@ protected:
         ASSERT_EQ(
                 GetParam().get_impl(x, y),
                 GetParam().get_ref(x, y)
-        ) << intbig_t::from_decimal(x).to_hex_chunks() << ", " << intbig_t::from_decimal(y).to_hex_chunks();
+        ) << intbig_t::from(x).to_hex_chunks() << ", " << intbig_t::from(y).to_hex_chunks();
     }
 
     void assertAll_paired(const std::vector<std::string>& xs, const std::vector<std::string>& ys)
@@ -306,7 +306,7 @@ TEST(IntBigTBitwiseInverse, UsableAsBitmask)
 TEST(IntBigTBitwiseInverse, IsOnesComplement)
 {
     for(const std::string& s : TestData::varied_positive) {
-        const intbig_t x = intbig_t::from_decimal(s);
+        const intbig_t x = intbig_t::from(s);
 
         ASSERT_EQ((x + ~x).to_hex_chunks(), intbig_t::of(-1).to_hex_chunks()) << s;
         ASSERT_EQ((~~x).to_hex_chunks(), x.to_hex_chunks()) << s;

@@ -6,7 +6,6 @@
 
 // REMOVE: temporary, for the following:
 // REMOVE:  - to_string
-// REMOVE:  - from_decimal
 #include "InfInt.h"
 
 /*
@@ -57,49 +56,42 @@ intbig_t intbig_t::of(const int64_t x)
     return intbig_t(x);
 }
 
-intbig_t intbig_t::from_decimal(const std::string& decimal)
+intbig_t intbig_t::from(const std::string& s, const Base base)
+{
+    if(base != Base::Decimal) {
+        throw std::logic_error("bases other than Decimal aren't implemented"); // TODO
+    }
+
+    auto it_c = s.begin();
+
+    const bool is_neg = *it_c == '-';
+    if(is_neg) ++it_c;
+
+    intbig_t x;
+
+    for(; it_c != s.end(); it_c++) {
+        const auto dig = (uint8_t)(*it_c - '0');
+
+        if(dig > 9) {
+            throw std::invalid_argument(
+                    "Invalid digit '" + std::string(1, *it_c) + "' at " + std::to_string(it_c - s.begin())
+            );
+        }
+
+        x *= 10;
+        x += dig;
+    }
+
+    return is_neg ? x.negate() : x;
+}
+
+std::string intbig_t::to_string(const int base) const
 {
     // REMOVE: temporary, until proper string conversions are implemented
 
-    InfInt fifth_leg(decimal);
-
-    InfInt TWO_64 = InfInt(UINT64_MAX) + 1;
-
-    int sign = fifth_leg < 0 ? -1 : (fifth_leg == 0 ? 0 : 1);
-    std::vector<uint64_t> limbs;
-
-    if(fifth_leg < 0) {
-        fifth_leg *= -1;
+    if(base != 10) {
+        throw std::logic_error("bases other than 10 aren't implemented");
     }
-
-    while(fifth_leg != 0) {
-        limbs.push_back((fifth_leg % TWO_64).toUnsignedLongLong());
-
-        fifth_leg /= TWO_64;
-    }
-
-    return { sign, std::move(limbs) };
-}
-
-size_t intbig_t::size() const
-{
-    return limbs.size();
-}
-
-size_t intbig_t::num_bits() const
-{
-    size_t num_bits_last = 0;
-
-    for(uint64_t last = limbs.back(); last; last >>= 1) {
-        num_bits_last += 1;
-    }
-
-    return 64 * limbs.size() + num_bits_last;
-}
-
-std::string intbig_t::to_string(int base) const
-{
-    // REMOVE: temporary, until proper string conversions are implemented
 
     // REVIEW: yikes!
     const uint64_t HALF_LIMB = 1ULL << 32U;
@@ -171,6 +163,22 @@ std::ostream& operator<<(std::ostream& os, const intbig_t& value)
 bool intbig_t::operator==(const intbig_t& other) const
 {
     return sign == other.sign && limbs == other.limbs;
+}
+
+size_t intbig_t::size() const
+{
+    return limbs.size();
+}
+
+size_t intbig_t::num_bits() const
+{
+    size_t num_bits_last = 0;
+
+    for(uint64_t last = limbs.back(); last; last >>= 1) {
+        num_bits_last += 1;
+    }
+
+    return 64 * limbs.size() + num_bits_last;
 }
 
 bool intbig_t::operator!=(const intbig_t& other) const
@@ -988,6 +996,8 @@ intbig_t& intbig_t::operator*=(const intbig_t& other)
             operator<<=(1);
         }
     }
+
+    result.sign *= other.sign;
 
     return *this = result;
 }

@@ -62,10 +62,7 @@ public:
 
     enum Base { Binary = 2, Decimal = 10, Hex = 16, Base64 = 64, Base256 = 256 };
 
-    // REMOVE: replace this:
-    static intbig_t from_decimal(const std::string& decimal);
-    // TODO: with this:
-    static intbig_t from(const std::string& s, const Base base = Decimal);
+    static intbig_t from(const std::string& s, Base base = Decimal);
 
     // REMOVE: replace these:
     std::string to_string(int base = 10) const;

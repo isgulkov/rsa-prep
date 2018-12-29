@@ -45,7 +45,7 @@
  * NOTE: it's not tested whether each copying operator actually copies stuff as this is enforced by their return types
  *
  * Note that result comparisons are done through decimal string representation as the most "representative": most
- * human-readable and (arguably) most brittle. Tests specific to `from_decimal` and `to_decimal`, as well as other
+ * human-readable and (arguably) most brittle. Tests specific to `from` and `to_decimal` (?), as well as other
  * representations, should be in a separate file.  (e.g. don't intentionally feed it invalid data and shit)
  *
  * TODO: make AdditiveBinaryOp a type parameter instead of value one, like in the negate tests?
@@ -193,13 +193,13 @@ struct AdditiveBinaryOp
 const AdditiveBinaryOp AddAssign_op = {
         "AddAssign",
         [](const std::string& x, const std::string& y) {
-            intbig_t a = intbig_t::from_decimal(x);
-            a += intbig_t::from_decimal(y);
+            intbig_t a = intbig_t::from(x);
+            a += intbig_t::from(y);
 
             return a;
         },
         [](intbig_t& x, const std::string& y) {
-            x += intbig_t::from_decimal(y);
+            x += intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
             return (InfInt(x) + InfInt(y)).toString();
@@ -209,10 +209,10 @@ const AdditiveBinaryOp AddAssign_op = {
 const AdditiveBinaryOp Add_op = {
         "Add",
         [](const std::string& x, const std::string& y) {
-            return intbig_t::from_decimal(x) + intbig_t::from_decimal(y);
+            return intbig_t::from(x) + intbig_t::from(y);
         },
         [](intbig_t& x, const std::string& y) {
-            x = x + intbig_t::from_decimal(y);
+            x = x + intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
             return (InfInt(x) + InfInt(y)).toString();
@@ -222,13 +222,13 @@ const AdditiveBinaryOp Add_op = {
 const AdditiveBinaryOp SubAssign_op = {
         "SubAssign",
         [](const std::string& x, const std::string& y) {
-            intbig_t a = intbig_t::from_decimal(x);
-            a -= intbig_t::from_decimal(y);
+            intbig_t a = intbig_t::from(x);
+            a -= intbig_t::from(y);
 
             return a;
         },
         [](intbig_t& x, const std::string& y) {
-            x -= intbig_t::from_decimal(y);
+            x -= intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
             return (InfInt(x) - InfInt(y)).toString();
@@ -238,10 +238,10 @@ const AdditiveBinaryOp SubAssign_op = {
 const AdditiveBinaryOp Sub_op = {
         "Sub",
         [](const std::string& x, const std::string& y) {
-            return intbig_t::from_decimal(x) - intbig_t::from_decimal(y);
+            return intbig_t::from(x) - intbig_t::from(y);
         },
         [](intbig_t& x, const std::string& y) {
-            x = x - intbig_t::from_decimal(y);
+            x = x - intbig_t::from(y);
         },
         [](const std::string& x, const std::string& y) {
             return (InfInt(x) - InfInt(y)).toString();
@@ -537,8 +537,8 @@ namespace SubShrinkage
 
 TEST(IntBigTAdditiveSubShrinkage, SubAssignForward)
 {
-    intbig_t one = intbig_t::from_decimal(TestData::large_different_by_one.first);
-    one -= intbig_t::from_decimal(TestData::large_different_by_one.second);
+    intbig_t one = intbig_t::from(TestData::large_different_by_one.first);
+    one -= intbig_t::from(TestData::large_different_by_one.second);
 
     EXPECT_EQ(one, 1);
     EXPECT_FALSE(one > 1);
@@ -546,8 +546,8 @@ TEST(IntBigTAdditiveSubShrinkage, SubAssignForward)
 
 TEST(IntBigTAdditiveSubShrinkage, SubAssignBackward)
 {
-    intbig_t one = intbig_t::from_decimal(TestData::large_different_by_one.second);
-    one -= intbig_t::from_decimal(TestData::large_different_by_one.first);
+    intbig_t one = intbig_t::from(TestData::large_different_by_one.second);
+    one -= intbig_t::from(TestData::large_different_by_one.first);
 
     EXPECT_EQ(one, -1);
     EXPECT_FALSE(one < -1);
@@ -557,8 +557,8 @@ TEST(IntBigTAdditiveSubShrinkage, SubAssignEqual)
 {
     const std::string large = TestData::large_positive.back();
 
-    intbig_t zero = intbig_t::from_decimal(large);
-    zero -= intbig_t::from_decimal(large);
+    intbig_t zero = intbig_t::from(large);
+    zero -= intbig_t::from(large);
 
     EXPECT_EQ(zero, 0);
     EXPECT_FALSE(zero < 0);
@@ -567,9 +567,9 @@ TEST(IntBigTAdditiveSubShrinkage, SubAssignEqual)
 
 TEST(IntBigTAdditiveSubShrinkage, SubForward)
 {
-    intbig_t one = intbig_t::from_decimal(
+    intbig_t one = intbig_t::from(
             TestData::large_different_by_one.first
-    ) - intbig_t::from_decimal(TestData::large_different_by_one.second);
+    ) - intbig_t::from(TestData::large_different_by_one.second);
 
     EXPECT_EQ(one, 1);
     EXPECT_FALSE(one > 1);
@@ -577,9 +577,9 @@ TEST(IntBigTAdditiveSubShrinkage, SubForward)
 
 TEST(IntBigTAdditiveSubShrinkage, SubBackward)
 {
-    intbig_t one = intbig_t::from_decimal(
+    intbig_t one = intbig_t::from(
             TestData::large_different_by_one.second
-    ) - intbig_t::from_decimal(TestData::large_different_by_one.first);
+    ) - intbig_t::from(TestData::large_different_by_one.first);
 
     EXPECT_EQ(one, -1);
     EXPECT_FALSE(one < -1);
@@ -589,7 +589,7 @@ TEST(IntBigTAdditiveSubShrinkage, SubEqual)
 {
     const std::string large = TestData::large_positive.back();
 
-    intbig_t zero = intbig_t::from_decimal(large) - intbig_t::from_decimal(large);
+    intbig_t zero = intbig_t::from(large) - intbig_t::from(large);
 
     EXPECT_EQ(zero, 0);
     EXPECT_FALSE(zero < 0);

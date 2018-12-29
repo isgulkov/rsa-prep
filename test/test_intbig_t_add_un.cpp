@@ -148,7 +148,7 @@ class IntBigTNegate : public ::testing::Test
 public:
     void assert_negatedEq(const std::string& x, const std::string& negated_x)
     {
-        intbig_t a = intbig_t::from_decimal(x);
+        intbig_t a = intbig_t::from(x);
         NegateOp::apply(a);
 
         ASSERT_EQ(a.to_string(), negated_x);
@@ -156,8 +156,8 @@ public:
 
     void assert_plusTurnsMinus(const std::string& x, const std::string& y)
     {
-        intbig_t a = intbig_t::from_decimal(x);
-        intbig_t b = intbig_t::from_decimal(y);
+        intbig_t a = intbig_t::from(x);
+        intbig_t b = intbig_t::from(y);
 
         std::string result = (a - b).to_string();
 
@@ -168,8 +168,8 @@ public:
 
     void assert_minusTurnsPlus(const std::string& x, const std::string& y)
     {
-        intbig_t a = intbig_t::from_decimal(x);
-        intbig_t b = intbig_t::from_decimal(y);
+        intbig_t a = intbig_t::from(x);
+        intbig_t b = intbig_t::from(y);
 
         std::string result = (a + b).to_string();
 
@@ -251,7 +251,7 @@ struct AddUnOp
 const AddUnOp IncPrefix_op = {
         "++value",
         [](const std::string& x) {
-            return ++intbig_t::from_decimal(x);
+            return ++intbig_t::from(x);
         },
         [](intbig_t& x) {
             ++x;
@@ -264,7 +264,7 @@ const AddUnOp IncPrefix_op = {
 const AddUnOp DecPrefix_op = {
         "--value",
         [](const std::string& x) {
-            return --intbig_t::from_decimal(x);
+            return --intbig_t::from(x);
         },
         [](intbig_t& x) {
             --x;
@@ -277,7 +277,7 @@ const AddUnOp DecPrefix_op = {
 const AddUnOp IncPostfix_op = {
         "value++",
         [](const std::string& x) {
-            intbig_t a = intbig_t::from_decimal(x);
+            intbig_t a = intbig_t::from(x);
             a++;
             return a;
         },
@@ -294,7 +294,7 @@ const AddUnOp IncPostfix_op = {
 const AddUnOp DecPostfix_op = {
         "value--",
         [](const std::string& x) {
-            intbig_t a = intbig_t::from_decimal(x);
+            intbig_t a = intbig_t::from(x);
             a--;
             return a;
         },
@@ -400,7 +400,7 @@ TEST_P(IntBigTAddUnSingle, PowerBoundaryOverNegative)
 
 TEST(IntBigTAddUnPostfix, IncPostfixReturnsOldValue)
 {
-    intbig_t x = intbig_t::from_decimal("10");
+    intbig_t x = intbig_t::from("10");
 
     ASSERT_EQ((x++).to_string(), "10");
     ASSERT_EQ(x.to_string(), "11");
@@ -408,7 +408,7 @@ TEST(IntBigTAddUnPostfix, IncPostfixReturnsOldValue)
 
 TEST(IntBigTAddUnPostfix, DecPostfixReturnsOldValue)
 {
-    intbig_t x = intbig_t::from_decimal("10");
+    intbig_t x = intbig_t::from("10");
 
     ASSERT_EQ((x--).to_string(), "10");
     ASSERT_EQ(x.to_string(), "9");

@@ -95,7 +95,7 @@ class IntBigTBitwiseShifts : public ::testing::TestWithParam<ShiftDir>
 protected:
     void assert_likeReference(const std::string& s, int n)
     {
-        intbig_t x = intbig_t::from_decimal(s);
+        intbig_t x = intbig_t::from(s);
         InfInt y = s;
 
         if(GetParam() == ShiftDir::LEFT) {
@@ -125,7 +125,7 @@ protected:
             FAIL() << "Unknown direction: " << GetParam();
         }
 
-        ASSERT_EQ(x.to_string(), y.toString()) << intbig_t::from_decimal(s).to_hex_chunks()
+        ASSERT_EQ(x.to_string(), y.toString()) << intbig_t::from(s).to_hex_chunks()
                                                << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
     }
 
@@ -164,7 +164,7 @@ TEST_P(IntBigTBitwiseShifts, PosLargeByPosVarious)
 TEST_P(IntBigTBitwiseShifts, PosByItsNumBits)
 {
     for(const std::string& x : TestData::large_positive) {
-        int n_bits = (int)intbig_t::from_decimal(x).num_bits();
+        int n_bits = (int)intbig_t::from(x).num_bits();
 
         ASSERT_NO_FATAL_FAILURE(
                 assert_likeReference(x, n_bits)
@@ -192,10 +192,10 @@ TEST(IntBigTBitwiseShifts, PosByNegativeResultsInSymmetric)
         intbig_t x;
 
         if(n % 2) {
-            x = intbig_t::from_decimal(TestData::small_positive[n % TestData::small_positive.size()]);
+            x = intbig_t::from(TestData::small_positive[n % TestData::small_positive.size()]);
         }
         else {
-            x = intbig_t::from_decimal(TestData::large_positive[n % TestData::large_positive.size()]);
+            x = intbig_t::from(TestData::large_positive[n % TestData::large_positive.size()]);
         }
 
         intbig_t y = x;
@@ -239,7 +239,7 @@ class IntBigTBitwiseCopyingShifts : public ::testing::TestWithParam<ShiftDir>
 protected:
     void assert_likeReference(const std::string& s, int n)
     {
-        intbig_t x = intbig_t::from_decimal(s);
+        intbig_t x = intbig_t::from(s);
         InfInt y = s;
 
         if(GetParam() == ShiftDir::LEFT) {
@@ -268,7 +268,7 @@ protected:
         ASSERT_EQ(
                 (GetParam() == ShiftDir::LEFT ? x << n : x >> n).to_string(),
                 y.toString()
-        ) << intbig_t::from_decimal(s).to_hex_chunks() << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
+        ) << intbig_t::from(s).to_hex_chunks() << (GetParam() == ShiftDir::LEFT ? " << " : " >> ") << n;
     }
 
     void assertAll_paired(const std::vector<std::string>& xs, const std::vector<int>& ns)

@@ -39,8 +39,8 @@ int main()
     std::string s = "2109840582450070658310040166140836617";
     std::string t = "3959959789200537618582114387829736246";
 
-    intbig_t x = intbig_t::from_decimal(s);
-    intbig_t y = intbig_t::from_decimal(t);
+    intbig_t x = intbig_t::from(s);
+    intbig_t y = intbig_t::from(t);
 
     std::cout << x << std::endl;
     std::cout << y << std::endl;
@@ -48,6 +48,7 @@ int main()
     x *= y;
 
     std::cout << x << std::endl;
+    std::cout << y << std::endl;
 
     return 0;
 }
