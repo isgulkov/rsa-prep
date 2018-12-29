@@ -38,7 +38,7 @@ const std::vector<std::string> varied_positive = {
         "25",
         "15231",
         "10832543123",
-        "87972214896678166229" // NOLINT(misc-suspicious-missing-comma)
+        "87972214896678166229" // NOLINT(bugprone-suspicious-missing-comma)
         "8173139348",
         "78697751883288514847"
         "84972777418658240764"
