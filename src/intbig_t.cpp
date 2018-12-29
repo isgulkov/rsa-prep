@@ -81,6 +81,22 @@ intbig_t intbig_t::from_decimal(const std::string& decimal)
     return { sign, std::move(chunks) };
 }
 
+size_t intbig_t::size() const
+{
+    return chunks.size();
+}
+
+size_t intbig_t::num_bits() const
+{
+    size_t num_bits_last = 0;
+
+    for(uint64_t last = chunks.back(); last; last >>= 1) {
+        num_bits_last += 1;
+    }
+
+    return 64 * chunks.size() + num_bits_last;
+}
+
 std::string intbig_t::to_string(int base) const
 {
     // REMOVE: temporary, until proper string conversions are implemented
@@ -149,22 +165,6 @@ std::string intbig_t::to_hex_chunks() const
 std::ostream& operator<<(std::ostream& os, const intbig_t& value)
 {
     return os << value.to_string();
-}
-
-size_t intbig_t::num_bits() const
-{
-    // TODO: treat negatives as 2-complement
-    // TODO: is zero 0 bits or 1?
-
-    if(chunks.empty()) {
-        return 1;
-    }
-
-    size_t msb_bits = 0;
-
-    for(uint64_t chunk = chunks.back(); chunk != 0; chunk >>= 1, msb_bits++) { }
-
-    return msb_bits + (64 * (chunks.size() - 1));
 }
 
 bool intbig_t::operator==(const intbig_t& other) const
@@ -312,14 +312,18 @@ namespace {
         bool carry = false;
 
         for(size_t i = 0; i < x.size(); i++) {
+            // In case acc and x is actually the same vector
+            // REVIEW: either find a way to avoid this copy or apply the hack to subs as well
+            const uint64_t x_chunk = x[i];
+
             acc[i] += x[i] + carry;
 
             // Set carry if overflow occured
             if(!carry) {
-                carry = acc[i] < x[i];
+                carry = acc[i] < x_chunk;
             }
             else {
-                carry = acc[i] <= x[i];
+                carry = acc[i] <= x_chunk;
             }
         }
 
@@ -962,4 +966,26 @@ intbig_t intbig_t::operator~() const
      */
 
     return --operator-();
+}
+
+intbig_t& intbig_t::operator*=(const intbig_t& other)
+{
+    // NOTE: This is equivalent to the O(n^2) schoolbook method
+    // TODO: Implement Karatsuba instead
+
+    intbig_t result;
+
+    for(uint64_t chunk : other.chunks) {
+        for(size_t i = 0; i < 64; i++) {
+            if((chunk & 1U) != 0) {
+                result += *this;
+            }
+
+            chunk >>= 1U;
+
+            operator<<=(1);
+        }
+    }
+
+    return *this = result;
 }

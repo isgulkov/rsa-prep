@@ -1,58 +1,71 @@
 <img src="docs/rsa.jpg" align="right" height="100" /> Here I'm slowly chipping away at the goal of implementing the [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) cryptosystem in C++11 completely from scratch (the only dependency being the standard library, excluding dev ones).
 
-> **TODO**: this section needs a gif, like someone encrypting on a Mac, then decrypting on Windows XP, or something
-
 ## Motivation
 
 I'm enrolled for a course at the uni starting this September where the old man will make us do precisely that, as a year-long project.
 
 Better start early, right? Nothing better to do, anyway — it's not like a have a job.
 
-> **TODO**: put neat ["new" icons](https://github.com/niekbouman/ctbignum/tree/6d5ac017972ee170b1b86d447787579e8526b97a) on recently added features (as soon as there are any)
-
 ### Scope
 
 ##### Roughly the subproblems of a functional RSA implementation
 
-1. Long (*thousands of bits*) integer arithmetics, incl. shifts;
+1. Random number generation
 
-   1. some level of `*`, `/`, `%` and `pow` — nothing fancy, mod is where it really matters;
-   2. lightweight expansion of every appropriate operator onto `int64_t` arguments;
+   1. AES-256
+      1. CTR as crypto PRNG
+      2. CBC for PGP interop
 
-2. modular arithmetics: $+$, $-$, $\times$, $a^b$, $a^{-1}$, $gcd$ (?) — no efficiency in mind, implement the RSA first;
+2. Long integer arithmetics
 
-3. a way to get good entropy for keys and shit (cryptographically secure PRNG?);
+   1. *Represent as 2-complement internally*
 
-4. big integer primality test:
+   2. Multiplication
 
-   1. test divisions by a number of small primes (e.g. $< 100$);
+   3. GCD, LCM
 
-   2. multiple [Miller-Rabin tests](https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test) with random bases
+   4. Carmichael's totient ($\lambda$)
 
-   3. followed by a single strong<sup>?</sup> [Lucas test](https://en.wikipedia.org/wiki/Lucas_primality_test), using the [FIPS 186-4 tables](http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf#page=62) to decide how many to use[<sup>1</sup>](https://crypto.stackexchange.com/a/25881);
+   5. Modular operations
 
-      [FIPS 186-3, 5.1 RSA Key Pair Generation](https://csrc.nist.gov/csrc/media/publications/fips/186/3/archive/2009-06-25/documents/fips_186-3.pdf);
+      1. Multiplicative inverse
 
-      [FIPS 186-4, B.3.2 Generation of Random Primes that are Provably Prime](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf#page=61);
+      2. Exponentiation
 
-      [Handbook of Applied Cryptography, 4. Public-Key Parameters](http://cacr.uwaterloo.ca/hac/about/chap4.pdf):
+         *Montgomery, chinese remainder theorem*
 
-      - 4.4.1 Random search for probable primes;
-      - 4.51 Note *(incremental search)*;
-      - 4.4.2 Strong primes
+   6. Lightweight expansion of every appropriate operator onto `int64_t` arguments;
 
-      [OpenSSL: /docs/man1.1.0/crypto/BN_generate_prime](https://www.openssl.org/docs/man1.1.0/crypto/BN_generate_prime.html).
+3. Primality tests (see *FIPS 186-4*)
+
+   1. Test divisions by a number of small primes (e.g. $< 100$)
+
+   2. Miller-Rabin
+
+      1. Modular addition, subtraction, multiplication
+
+   3. Lucas
+
+      1. Modular subtraction, division
+      2. ...
+
+      [OpenSSL: /docs/man1.1.0/crypto/BN_generate_prime](https://www.openssl.org/docs/man1.1.0/crypto/BN_generate_prime.html)
+
+4. A padding scheme
 
 ##### The RSA itself
 
-1. key generation algorithm:
-2. encyption and decryption primitives;
-3. an encryption scheme: `RSAES-OAEP` or `RSAES-PKCS-v1_5` (if the first one's too complex);
-4. compatibility with the [two ways of private exponent calculation](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2).
+1. Key generation algorithm
 
-##### Efficiency
+2. Encyption and decryption primitives
 
-1. **efficient** modular arithmetics: Montgomery, Chinese remainders, etc., investigate a switch 2's complement representation;
+3. An encryption scheme: `RSAES-OAEP`, or `RSAES-PKCS-v1_5` if the first one's too complex
+
+   [Are there two incompatible ways to calculate the private exponent?](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#cite_ref-rsa_2-2)
+
+4. Signature scheme: `RSASSA-PSS`, `RSASSA-PKCS1-v1_5`
+
+   1. SHA-256
 
 ##### Message exchange
 
@@ -68,43 +81,37 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
 #### Beyond scope
 
-Might eventually get around to some of these.
-
-1. Both encryption schemes: `RSAES-OAEP` and `RSAES-PKCS-v1_5`;
-2. One of the hashes well-supported by RSA signature software (SHA-256);
-3. Signature schemes: `RSASSA-PSS`, `RSASSA-PKCS1-v1_5`;
-4. PGP-like RSA-based hybrid encryption feature:
-   1. A block cypher (AES256 with a mode that's secure and well-supported by GPG);
-   2. Back-and-forward support of GPG's encrypted messages;
-5. Support an elliptic curve (or a couple) in addition to RSA.
+1. PGP-like RSA-based hybrid encryption feature:
+   1. Back-and-forward support of GPG's encrypted messages
+2. Support elliptic curve system (or a couple) in addition to RSA
 
 ##### Compatibility with real-world applications
 
 1. GPG (and OpenPGP standard):
-   1. Import/export of its keys (public and private), etc;
-   2. PGP key ids (long and short) and fingerprints;
-   3. A compression algorithm (Deflate in ZIP format, or whatever GPG supports — might start with something easier like LZ77 or LZW);
-   4. A key derivation function (Scrypt?), symmetric encryption by passphrase;
-   5. Passphrase-protected key repository;
-   6. Architecture with primitives as plug-ins:
-      - public-key: RSA, ECDH, ECDSA ... (shouldn't this be split more, e.g. into signatures and key exchange? The interfaces seem pretty different);
-      - symmetric cypher: AES, AES-256, ...;
-      - cryptographic hash: SHA-256, ...;
-      - key-derivation function: Scrypt, ...;
-      - lossless compression: none, Deflate (ZIP), ...;
-2. SSL/TLS (???):
-   1. reading X.509 certificates;
-   2. interoperability with OpenSSL (`.pem`, `.der` and shit);
-   3. handshake, key exchange (?).
+   1. Import/export of its keys (public and private), etc
+   2. PGP key ids (long and short) and fingerprints
+   3. A compression algorithm (Deflate in ZIP format, or whatever GPG supports — might start with something easier like LZ77 or LZW)
+   4. A key derivation function (Scrypt?), symmetric encryption by passphrase
+   5. Passphrase-protected key repository
+   6. Architecture with primitives as plug-ins
+      - Public-key: RSA, ECDH, ECDSA ... (shouldn't this be split more, e.g. into signatures and key exchange? The interfaces seem pretty different)
+      - symmetric cypher: AES, AES-256, ...
+      - cryptographic hash: SHA-256, ...
+      - key-derivation function: Scrypt, ...
+      - lossless compression: none, Deflate (ZIP), ...
+2. SSL/TLS (???)
+   1. reading X.509 certificates
+   2. interoperability with OpenSSL (`.pem`, `.der` and shit)
+   3. handshake, key exchange (?)
 
 ##### Security features
 
-1. Secure memory:
-   1. compiler-proof memory erasure (at least in destructors);
-   2. protection against swaps;
-   3. guarded heap allocations (through a C++11-style custom allocator?);
-2. Sourcing additional entropy from user environment;
-3. Blinding values against timing attacks.
+1. Secure memory
+   1. Compiler-proof memory erasure (at least in destructors)
+   2. Protection against swaps
+   3. Guarded heap allocations (through a C++11-style custom allocator?)
+2. Sourcing additional entropy from user environment
+3. Blinding values against timing attacks
 
 ### Goals
 
@@ -131,9 +138,6 @@ The number is internally represented with two data members:
     std::vector<uint64_t> chunks;
 ```
 
-> **TODO**: replace the term "chunk" with the widely-used "limb" (it has grown on me after more research).
->
-
 - `sign` — the number's sign: `-1` for negative numbers, `1` for positive, `0` for zero;
 
 - `chunks` — the number's absolute value:
@@ -144,29 +148,13 @@ The number is internally represented with two data members:
 
   - leading zeroes are not allowed, so the current number's most significant digit can always be accessed as `chunks.back()` or `chunks[chunks.size() - 1]`.
 
-> **TODO**: 2-complement representation, like Java's `BigInteger`?
->
-> **TODO**: use a smaller or larger type for `sign` (it takes 8 bytes right now anyway)
->
-> **TODO**: if it's smaller than `size_t`, put it at the end so theoretically something smaller than it can be aligned after the object?
->
-> **TODO**: benchmark `int`-signed implementation against `bool`-signed one?
-
 Note that the number zero has a unique representation: `{ .sign=0, chunks={} }`. All other "zero-valued" states are invalid.
 
 If the `std::vector` is replaced with own implementation, a common trick ([GMP](https://gmplib.org/repo/gmp/file/gmp-6.1.0/gmp-h.in#l157), [CPython](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Include/longintrepr.h#L73)) is to make the size field of the "vector" signed and in the sign of it store the number's sign, thus eliminating the need for the separate `sign` field.
 
 Not all dynamic arrays explicitly store their size, though (e.g. most `std::vector` implementations don't), and it's unclear whether this would bring any benefits other than save a couple bytes of memory (which for our application are irrelevant).
 
-> **TODO**: Find the value for passing into `chunks.reserve()` that will allow 4096-bit modular operations with no further reallocations.
->
 > *Note*: the fact that `vector` never automatically shrinks is actually pretty sweet here;
-
-> **TODO**: Benchmark `std::vector<uint64_t>` to determine whether `emplace_back` that everyone (including `clang-Tidy`) is talking about is actually measurably faster than `push_back`. Remember to measure cases where each is called with:
->
-> - an integer literal (in a loop);
-> - a `uint64_t` local variable whose value is always the same;
-> - a `uint64_t` local variable whose value is new each time.
 
 ##### Addition and subtraction
 
@@ -293,7 +281,7 @@ The problem is that 2's complement is so good for fixed-width integers precisely
 
 ...
 
-> **TODO**: consider changing the representation to 2's complement. If decided for it, be sure to benchmark one against the other.
+
 
 ##### Multiplication
 
@@ -301,15 +289,11 @@ It's getting more complicated here. The $O(n^2)$ algorithm where you double the 
 
 There are also FFT-based algorithms that apparently have to be mentioned in every discussion of this topic, but their big-O isn't felt before tens of thousand bytes, so it's doubtful that in our case there are any benefits to them (except, of course, an opportunity to implement the famous FFT that everyone has heard the name of but no one has ever wrote).
 
-> **TODO**: implement some fast multiplication shit
-
 ##### Division, modulo, power
 
 The arbitrary-precision versions of these operations aren't used by corresponding modular algorithms; thus, these operations are skipped for now.
 
 Though basic impletementations of division and modulo are currently provided for the needs of `to_string` method, they are extremely wasteful and shouldn't be relied on.
-
->  **TODO**: look at how power is done in [`longobject.c`](https://github.com/python/cpython/blob/e42b705188271da108de42b55d9344642170aa2b/Objects/longobject.c#L118)
 
 #### Todo
 

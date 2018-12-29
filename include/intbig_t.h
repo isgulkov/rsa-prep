@@ -8,6 +8,7 @@
 
 #include <iostream> // For the stream i/o methods
 
+// TODO: put everything in a namespace
 class intbig_t
 {
     /**
@@ -33,7 +34,7 @@ public:
 
 public:
     /**
-     * Construct a zero
+     * Construct the number zero
      */
     intbig_t() = default;
 
@@ -55,8 +56,8 @@ public:
     intbig_t(int64_t x);
     // TODO: with these:
     static intbig_t of(int64_t x);
-    static intbig_t of(uint64_t x);
-    // TODO: if these cause a conflict when called with shorter arguments, replace the second one with this:
+//    static intbig_t of(uint64_t x);
+    // TODO: if there's a conflict with shorter argument types, remove the second one or replace with the following:
 //    static intbig_t of(uint64_t x, bool neg);
 
     enum Base { Binary = 2, Decimal = 10, Hex = 16, Base64 = 64, Base256 = 256 };
@@ -70,8 +71,8 @@ public:
     std::string to_string(int base = 10) const;
     std::string to_hex_chunks() const;
     // TODO: with these:
-    std::string to_string(const Base base = Decimal) const;
-    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
+//    std::string to_string(const Base base = Decimal) const;
+//    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
 
     // TODO: avoid the slow decimal conversions in tests -- use hex (in both directions)
 
@@ -84,8 +85,8 @@ public:
     friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
-    // TODO: return number of limbs
-    size_t size() const;
+    size_t size() const; // TODO: is this useful?
+    size_t num_bits() const; // TODO: what is this for 2-comp. negatives?
 
     // TODO: PKCS#1 conversions
     static intbig_t from_bytes(std::string& bytes);
@@ -173,6 +174,10 @@ public:
     intbig_t operator~() const;
 
     //
+private:
+//    bool test_bit(const size_t i) const;
+
+public:
     intbig_t& operator*=(const intbig_t& other);
     intbig_t& operator%=(const intbig_t& other);
     intbig_t& operator/=(const intbig_t& other);

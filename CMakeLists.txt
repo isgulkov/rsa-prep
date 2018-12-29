@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall")
 #                          ^^^
-# This may or may not improve llvm's "Evaluate Expression" functionality in CLion
+# This may or may not improve lldb's "Evaluate Expression" functionality in CLion
 
 #set(CMAKE_VERBOSE_MAKEFILE TRUE)
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -v")
