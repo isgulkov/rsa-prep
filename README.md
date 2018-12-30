@@ -36,6 +36,8 @@ Better start early, right? Nothing better to do, anyway — it's not like a have
 
    6. Lightweight expansion of every appropriate operator onto `int64_t` arguments;
 
+      **[GMP User Manual](https://gmplib.org/gmp-man-6.1.2.pdf), section 15: Algorithms**
+
 3. Primality tests (see *FIPS 186-4*)
 
    1. Test divisions by a number of small primes (e.g. $< 100$)
