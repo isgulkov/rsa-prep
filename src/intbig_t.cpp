@@ -366,7 +366,7 @@ namespace {
 
 #ifndef NDEBUG
         if(acc.size() < x.size()) {
-            std::logic_error("Negative result -- this should't happen");
+            throw std::logic_error("Negative result -- this should't happen");
         }
 #endif
 
@@ -400,7 +400,7 @@ namespace {
 
 #ifndef NDEBUG
         if(carry) {
-            std::logic_error("Runaway carry -- this should't happen");
+            throw std::logic_error("Runaway carry -- this should't happen");
         }
 #endif
 
@@ -421,7 +421,7 @@ namespace {
 
 #ifndef NDEBUG
         if(x.size() < acc.size()) {
-            std::logic_error("Negative result -- this should't happen");
+            throw std::logic_error("Negative result -- this should't happen");
         }
 #endif
 
@@ -448,7 +448,7 @@ namespace {
 
 #ifndef NDEBUG
         if(carry) {
-            std::logic_error("Runaway carry -- this should't happen");
+            throw std::logic_error("Runaway carry -- this should't happen");
         }
 #endif
 
