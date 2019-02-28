@@ -38,14 +38,36 @@ private:
 public:
     void accept_word(const std::string& word)
     {
-        std::cerr << '"' << word << '"' << std::endl;
-
         if(word == "+") {
             apply_bin([](const intbig_t& a, const intbig_t& b) { return a + b; });
+        }
+        else if(word == "-") {
+            apply_bin([](const intbig_t& a, const intbig_t& b) { return a - b; });
         }
         else if(word == "negate") {
             apply_un([](const intbig_t& a) { return -a; });
         }
+        else if(word == "~") {
+            apply_un([](const intbig_t& a) { return ~a; });
+        }
+        else if(word == "&") {
+            apply_bin([](const intbig_t& a, const intbig_t& b) { return a & b; });
+        }
+        else if(word == "|") {
+            apply_bin([](const intbig_t& a, const intbig_t& b) { return a | b; });
+        }
+        else if(word == "^") {
+            apply_bin([](const intbig_t& a, const intbig_t& b) { return a | b; });
+        }
+        else if(word == "*") {
+            apply_bin([](const intbig_t& a, const intbig_t& b) { return a * b; });
+        }
+//        else if(word == "/") {
+//            apply_bin([](const intbig_t& a, const intbig_t& b) { return a / b; });
+//        }
+//        else if(word == "%") {
+//            apply_bin([](const intbig_t& a, const intbig_t& b) { return a % b; });
+//        }
         else {
             stack.push_back(intbig_t::from(word));
         }
@@ -69,8 +91,9 @@ public:
 };
 
 /**
- * A simple calculator app for postfix expressions on multiple precision integers. Basically, an standard stream
- * interface to {@code intbig_t} for external testing.
+ * A simple calculator app for postfix expressions on multiple precision integers.
+ *
+ * Basically, this is a (quite limited) standard stream interface to {@code intbig_t} for external testing.
  */
 int main() {
     calc c;
