@@ -67,7 +67,7 @@ public:
     // REMOVE: replace this:
     std::string to_hex_chunks() const;
     // TODO: with these:
-    std::string to_string(const Base base = Decimal) const;
+    std::string to_string(Base base = Decimal) const;
 //    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
 
     // TODO: avoid the slow decimal conversions in tests -- use hex (in both directions)
