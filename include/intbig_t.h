@@ -92,7 +92,7 @@ public:
     // NOTE: `num_bytes` is intended as replacement for PKCS#1's xLen parameter, so must return exactly the number of
     // NOTE: bytes each of following two will produce
 
-    std::string as_bytes(); // TODO: consider copying 4 bytes at a time through reinterpret_cast to char[8]
+    std::string as_bytes();
     void as_bytes(std::ostream& stream);
     // TODO: / PKCS#1 conversions
 
