@@ -310,6 +310,103 @@ intbig_t& intbig_t::negate()
 }
 
 namespace {
+    void add2_unsigned(std::vector<uint64_t>& acc, uint64_t x)
+    {
+        for(size_t i = 0; x && i < acc.size(); i++) {
+            const uint64_t new_limb = acc[i] + x;
+
+            x = new_limb <= acc[i] ? 1 : 0;
+
+            acc[i] = new_limb;
+        }
+
+        if(x) {
+            acc.push_back(x);
+        }
+    }
+
+    void sub2_unsigned(std::vector<uint64_t>& acc, uint64_t x)
+    {
+        for(size_t i = 0; x && i < acc.size(); i++) {
+            const uint64_t new_limb = acc[i] - x;
+
+            x = new_limb >= acc[i] ? 1 : 0;
+
+            acc[i] = new_limb;
+        }
+
+        if(!acc.back()) {
+            acc.pop_back();
+        }
+    }
+}
+
+intbig_t& intbig_t::operator+=(int64_t x)
+{
+    if(x < 0) {
+        return operator-=(-x);
+    }
+
+    if(sign < 0) {
+        // REVIEW: rewrite without the double negation? (here and in operator-=)
+
+        negate();
+        operator-=(x);
+        negate();
+    }
+    else if(x != 0) {
+        sign = 1; // For when this is zero
+
+        add2_unsigned(limbs, (uint64_t)x);
+    }
+
+    return *this;
+}
+
+intbig_t& intbig_t::operator-=(const int64_t x)
+{
+    if(x < 0) {
+        return operator+=(-x);
+    }
+
+    if(sign < 0) {
+        negate();
+        operator+=(x);
+        negate();
+    }
+    else {
+        uint64_t _x = (uint64_t)x;
+
+        if(limbs.size() == 1 && limbs[0] < _x) {
+            std::swap(limbs[0], _x);
+            negate();
+        }
+
+        sub2_unsigned(limbs, _x);
+    }
+
+    return *this;
+}
+
+intbig_t intbig_t::operator+(int64_t x) const
+{
+    return intbig_t(*this) += x;
+}
+
+intbig_t intbig_t::operator-(int64_t x) const
+{
+    return intbig_t(*this) -= x;
+}
+
+intbig_t& intbig_t::clear()
+{
+    limbs.resize(0);
+    sign = 0;
+
+    return *this;
+}
+
+namespace {
     void add2_unsigned(std::vector<uint64_t>& acc, const std::vector<uint64_t>& x)
     {
         /*
@@ -470,14 +567,6 @@ void intbig_t::add_abs(const intbig_t& other)
 
     add2_unsigned(limbs, other.limbs);
     sign = 1;
-}
-
-intbig_t& intbig_t::clear()
-{
-    limbs.resize(0);
-    sign = 0;
-
-    return *this;
 }
 
 void intbig_t::sub_abs(const intbig_t& other)

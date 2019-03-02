@@ -96,7 +96,7 @@ public:
     void as_bytes(std::ostream& stream);
     // TODO: / PKCS#1 conversions
 
-    //
+    // TODO: single-limb comparisons
     bool operator==(const intbig_t& other) const;
     bool operator!=(const intbig_t& other) const;
 
@@ -110,10 +110,15 @@ public:
     bool operator>=(const intbig_t& other) const;
     bool operator >(const intbig_t& other) const;
 
-    // TODO: abs(), is_zero(), is_neg(), is_pos(), ...
     intbig_t operator+() const;
     intbig_t operator-() const;
     intbig_t& negate();
+
+    intbig_t& operator+=(int64_t x);
+    intbig_t& operator-=(int64_t x);
+
+    intbig_t operator+(int64_t x) const;
+    intbig_t operator-(int64_t x) const;
 
 private:
     // Set this number to zero (for when two equal numbers are subtracted)
@@ -145,8 +150,8 @@ public:
     intbig_t& operator++();
     intbig_t& operator--();
 
-    // REVIEW: Should these really return const? clang-Tidy says so, but the original commit where they add this check
-    // REVIEW: references a dead link on some sketchy CMU site. Not on web.archive.org, nowhere on Google.
+    // These return const because of a clang-Tidy check based on some strange, never-to-be-found source:
+    // https://clang.llvm.org/extra/clang-tidy/checks/cert-dcl21-cpp.html
     const intbig_t operator++(int);
     const intbig_t operator--(int);
 
