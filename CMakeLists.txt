@@ -72,6 +72,15 @@ if (BUILD_TESTS)
   target_include_directories(test_intbig_t_add_bin PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_add_bin test_intbig_t_add_bin)
 
+  add_executable(test_intbig_t_add_bin_single test/test_intbig_t_add_bin_single.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_add_bin_single.cpp")
+  target_link_libraries(test_intbig_t_add_bin_single
+          gtest gtest_main
+          intbig_t
+          )
+  target_include_directories(test_intbig_t_add_bin_single PRIVATE vendor/mini-gmp-6.1.2)
+  add_test(test_intbig_t_add_bin_single test_intbig_t_add_bin_single)
+
   add_executable(test_intbig_t_add_un test/test_intbig_t_add_un.cpp)
   set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_add_un.cpp")
   target_link_libraries(test_intbig_t_add_un

@@ -72,13 +72,7 @@ public:
     std::string to_string(Base base = Decimal) const;
 //    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
 
-    // TODO: avoid the slow decimal conversions in tests -- use hex (in both directions)
-
-    /*
-     * TODO: See if the following speeds up the conversion to decimal:
-     *   - convert `limbs[0] % TEN_TO_THE_19` to string (stripping leading zeroes if it's the last one);
-     *   - divide the whole thing: `x.operator/=(TEN_TO_THE_19)`.
-     */
+    // TODO: Consider converting to decimal ~19 digits at a time
 
     friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
@@ -176,8 +170,7 @@ public:
 
     intbig_t operator~() const;
 
-    //
-private:
+//private:
 //    bool test_bit(const size_t i) const;
 
 public:
