@@ -175,6 +175,28 @@ std::ostream& operator<<(std::ostream& os, const intbig_t& value)
     return os << value.to_string();
 }
 
+bool intbig_t::operator==(const int64_t x) const
+{
+    switch(limbs.size()) {
+        case 0:
+            return x == 0;
+        case 1:
+            if(x < 0) {
+                return sign == -1 && limbs[0] == (uint64_t)-x;
+            }
+            else {
+                return sign == 1 && limbs[0] == (uint64_t)x;
+            }
+        default:
+            return false;
+    }
+}
+
+bool intbig_t::operator!=(const int64_t x) const
+{
+    return !operator==(x);
+}
+
 bool intbig_t::operator==(const intbig_t& other) const
 {
     return sign == other.sign && limbs == other.limbs;
@@ -199,6 +221,57 @@ size_t intbig_t::num_bits() const
 bool intbig_t::operator!=(const intbig_t& other) const
 {
     return sign != other.sign || limbs != other.limbs;
+}
+
+int intbig_t::compare_3way_unsigned(uint64_t x) const
+{
+    switch(limbs.size()) {
+        case 0:
+            return -1 * (x != 0);
+        case 1:
+            if(limbs[0] < x) {
+                return -1;
+            }
+            else if(limbs[0] == x) {
+                return 0;
+            }
+            else {
+                return 1;
+            }
+        default:
+            return 1;
+    }
+}
+
+int intbig_t::compare_3way(const int64_t x) const
+{
+    const int x_sign = sign_of(x);
+
+    if(sign != x_sign) {
+        return sign - x_sign;
+    }
+
+    return sign * compare_3way_unsigned((uint64_t)std::abs(x));
+}
+
+bool intbig_t::operator <(const int64_t x) const
+{
+    return compare_3way(x) < 0;
+}
+
+bool intbig_t::operator<=(const int64_t x) const
+{
+    return compare_3way(x) <= 0;
+}
+
+bool intbig_t::operator>=(const int64_t x) const
+{
+    return compare_3way(x) >= 0;
+}
+
+bool intbig_t::operator >(const int64_t x) const
+{
+    return compare_3way(x) > 0;
 }
 
 int intbig_t::compare_3way_unsigned(const intbig_t& other) const

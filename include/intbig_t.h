@@ -92,9 +92,21 @@ public:
     void as_bytes(std::ostream& stream);
     // TODO: / PKCS#1 conversions
 
-    // TODO: single-limb comparisons
+    bool operator==(int64_t x) const;
+    bool operator!=(int64_t x) const;
+
     bool operator==(const intbig_t& other) const;
     bool operator!=(const intbig_t& other) const;
+
+private:
+    int compare_3way_unsigned(uint64_t x) const;
+    int compare_3way(int64_t x) const;
+
+public:
+    bool operator <(int64_t x) const;
+    bool operator<=(int64_t x) const;
+    bool operator>=(int64_t x) const;
+    bool operator >(int64_t x) const;
 
 private:
     int compare_3way_unsigned(const intbig_t& other) const;
