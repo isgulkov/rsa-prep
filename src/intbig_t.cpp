@@ -57,6 +57,18 @@ intbig_t intbig_t::of(const int64_t x)
     return intbig_t(x);
 }
 
+intbig_t& intbig_t::operator=(const int64_t x)
+{
+    if((sign = sign_of(x))) {
+        limbs = { (uint64_t)std::abs(x) };
+    }
+    else {
+        limbs.clear();
+    }
+
+    return *this;
+}
+
 intbig_t intbig_t::from(const std::string& s, const Base base)
 {
     if(base != Base::Decimal) {

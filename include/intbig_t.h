@@ -60,6 +60,8 @@ public:
     // TODO: if there's a conflict with shorter argument types, remove the second one or replace with the following:
 //    static intbig_t of(uint64_t x, bool neg);
 
+    intbig_t& operator=(int64_t x);
+
     enum Base { Binary = 2, Decimal = 10, Hex = 16, Base64 = 64, Base256 = 256 };
 
     static intbig_t from(const std::string& s, Base base = Decimal);
