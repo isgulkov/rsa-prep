@@ -35,9 +35,15 @@ add_library(sha256 src/sha256.cpp)
 add_executable(rsa_prep src/main.cpp)
 # REMOVE: v
 target_include_directories(rsa_prep PRIVATE vendor/mini-gmp-6.1.2)
-
 target_link_libraries(rsa_prep intbig_t)
 # REMOVE: ^
+
+### CLI applications
+### ----------------
+
+# - sha256sum: a file hashing utility like shasum
+add_executable(sha256sum apps/sha256sum.cpp)
+target_link_libraries(sha256sum sha256)
 
 ### Unit tests
 ### ----------
