@@ -72,7 +72,6 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_add_bin_single PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_add_bin_single test_intbig_t_add_bin_single)
 
   add_executable(test_intbig_t_add_un test/test_intbig_t_add_un.cpp)

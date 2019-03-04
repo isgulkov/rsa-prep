@@ -2,10 +2,6 @@
 
 #include "gtest/gtest.h"
 
-extern "C" {
-#include "mini-gmp.h"
-}
-
 #include "intbig_t.h"
 
 namespace IntBigTAdditiveBinSingle

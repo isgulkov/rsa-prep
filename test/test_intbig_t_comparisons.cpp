@@ -1,8 +1,8 @@
-#include "intbig_t.h"
+#include <vector>
 
 #include "gtest/gtest.h"
 
-#include <vector>
+#include "intbig_t.h"
 
 /*
  * Tests for comparison operators ==, !=, <, <=, >= and >
