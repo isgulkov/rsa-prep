@@ -1134,6 +1134,60 @@ intbig_t intbig_t::operator~() const
     return --operator-();
 }
 
+intbig_t& intbig_t::operator*=(const int64_t x)
+{
+    if(x < 0) {
+        negate();
+        return operator*=(-x);
+    }
+    else if(x == 0) {
+        return clear();
+    }
+    else if(x == 1) {
+        return *this;
+    }
+
+    uint64_t carry = 0;
+
+    for(uint64_t& limb : limbs) {
+        const uint64_t limb_low = limb & 0xFFFFFFFF;
+        const uint64_t limb_high = limb >> 32;
+        const uint64_t x_low = (uint64_t)x & 0xFFFFFFFF;
+        const uint64_t x_high = (uint64_t)x >> 32;
+
+        const uint64_t z0 = limb_low * x_low;
+
+        uint64_t z1 = limb_high * x_low;
+        const uint64_t z11 = limb_low * x_high;
+
+        uint64_t z2 = limb_high * x_high;
+
+        z1 += z0 >> 32;
+        z1 += z11;
+
+        if(z1 < z11) {
+            z2 += 1ULL << 32;
+        }
+
+        limb = (z1 << 32) + (z0 & 0xFFFFFFFF) + carry;
+
+        // TODO!: Invent a test vector where this fails without the (limb < carry) term.
+        //  Also, can't this expression itself carry?
+        carry = (limb < carry) + z2 + (z1 >> 32);
+    }
+
+    if(carry) {
+        limbs.push_back(carry);
+    }
+
+    return *this;
+}
+
+intbig_t intbig_t::operator*(const int64_t x) const
+{
+    return intbig_t(*this) *= x;
+}
+
 intbig_t& intbig_t::operator*=(const intbig_t& other)
 {
     // NOTE: This is equivalent to the O(n^2) schoolbook method

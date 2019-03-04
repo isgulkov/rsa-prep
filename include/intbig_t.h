@@ -186,6 +186,10 @@ public:
 //    bool test_bit(const size_t i) const;
 
 public:
+    intbig_t& operator*=(int64_t);
+
+    intbig_t operator*(int64_t) const;
+
     intbig_t& operator*=(const intbig_t& other);
     intbig_t& operator%=(const intbig_t& other);
     intbig_t& operator/=(const intbig_t& other);
