@@ -5,10 +5,6 @@
 #include <algorithm>
 #include <sstream>
 
-extern "C" {
-#include "mini-gmp.h"
-}
-
 /*
  * TODO: decide how much to reserve
  *       (i.e. how much bytes will we need and how much to pass to "reverse" to achieve that amount)
@@ -103,29 +99,29 @@ intbig_t intbig_t::from(const std::string& s, const Base base)
 std::string intbig_t::to_string(const Base base) const
 {
     if(base != Decimal) {
-        throw std::logic_error("bases other than 10 aren't implemented");
+        throw std::logic_error("Bases other than 10 aren't implemented yet");
     }
 
-    // REMOVE: temporary -- replace after implementing div and mod
-
-    mpz_t x;
-    mpz_init(x);
-
-    for(ssize_t i_limb = limbs.size() - 1; i_limb >= 0; i_limb--) {
-        const uint64_t limb = limbs[i_limb];
-
-        mpz_mul_2exp(x, x, 32);
-        mpz_add_ui(x, x, uint32_t(limb >> 32));
-
-        mpz_mul_2exp(x, x, 32);
-        mpz_add_ui(x, x, (uint32_t)limb);
+    if(!sign) {
+        return "0";
     }
 
-    if(sign == -1) {
-        mpz_neg(x, x);
+    // TODO: consider reducing the number of divisions by taking up to 18 digits at a time
+
+    intbig_t value = *this;
+    std::string s;
+
+    while(value != 0) {
+        s += (char)('0' + value.divmod(10));
     }
 
-    return mpz_get_str(nullptr, 10, x);
+    if(sign < 0) {
+        s += '-';
+    }
+
+    std::reverse(s.begin(), s.end());
+
+    return s;
 }
 
 namespace
@@ -443,6 +439,10 @@ intbig_t& intbig_t::operator+=(int64_t x)
         sign = 1; // For when this is zero
 
         add2_unsigned(limbs, (uint64_t)x);
+
+        if(limbs.empty()) {
+            sign = 0;
+        }
     }
 
     return *this;
@@ -460,7 +460,7 @@ intbig_t& intbig_t::operator-=(const int64_t x)
         negate();
     }
     else {
-        uint64_t _x = (uint64_t)x;
+        auto _x = (uint64_t)x;
 
         if(limbs.size() == 1 && limbs[0] < _x) {
             std::swap(limbs[0], _x);
@@ -468,6 +468,10 @@ intbig_t& intbig_t::operator-=(const int64_t x)
         }
 
         sub2_unsigned(limbs, _x);
+
+        if(limbs.empty()) {
+            sign = 0;
+        }
     }
 
     return *this;
@@ -1183,9 +1187,77 @@ intbig_t& intbig_t::operator*=(const int64_t x)
     return *this;
 }
 
+uint64_t intbig_t::divmod(const uint64_t x)
+{
+    if(x == 0) {
+        throw std::domain_error("Division by zero");
+    }
+
+    // TODO: implement this the way GMP does it (https://gmplib.org/~tege/division-paper.pdf)
+
+    uint64_t carry = 0;
+
+    for(ssize_t i = limbs.size() - 1; i >= 0; i--) {
+        uint64_t limb_high = (carry << 32) + (limbs[i] >> 32);
+
+        carry = limb_high % x;
+        limb_high /= x;
+
+        uint64_t limb_low = (carry << 32) + (limbs[i] & 0xFFFFFFFF);
+        carry = limb_low % x;
+        limb_low /= x;
+
+        limbs[i] = (limb_high << 32) | (limb_low & 0xFFFFFFFF);
+    }
+
+    if(!limbs.back()) {
+        limbs.pop_back();
+
+        if(limbs.empty()) {
+            sign = 0;
+        }
+    }
+
+    return carry;
+}
+
+intbig_t& intbig_t::operator/=(const int64_t x)
+{
+    if(x < 0) {
+        negate();
+        return operator/=(-x);
+    }
+
+    if(x != 1) {
+        divmod((uint64_t)x);
+    }
+
+    return *this;
+}
+
+
+intbig_t& intbig_t::operator%=(const int64_t x)
+{
+    if(x < 0 || sign < 0) {
+        throw std::logic_error("Not implemented yet");
+    }
+
+    return operator=(divmod((uint64_t)x));
+}
+
 intbig_t intbig_t::operator*(const int64_t x) const
 {
     return intbig_t(*this) *= x;
+}
+
+intbig_t intbig_t::operator/(const int64_t x) const
+{
+    return intbig_t(*this) /= x;
+}
+
+intbig_t intbig_t::operator%(const int64_t x) const
+{
+    return intbig_t(*this) %= x;
 }
 
 intbig_t& intbig_t::operator*=(const intbig_t& other)

@@ -72,8 +72,6 @@ public:
     std::string to_string(Base base = Decimal) const;
 //    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
 
-    // TODO: Consider converting to decimal ~19 digits at a time
-
     friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
@@ -186,17 +184,24 @@ public:
 //    bool test_bit(const size_t i) const;
 
 public:
+    uint64_t divmod(uint64_t);
+
     intbig_t& operator*=(int64_t);
+    intbig_t& operator/=(int64_t);
+    intbig_t& operator%=(int64_t);
 
     intbig_t operator*(int64_t) const;
+    intbig_t operator/(int64_t) const;
+    intbig_t operator%(int64_t) const;
 
     intbig_t& operator*=(const intbig_t& other);
-    intbig_t& operator%=(const intbig_t& other);
     intbig_t& operator/=(const intbig_t& other);
+    intbig_t& operator%=(const intbig_t& other);
 
     intbig_t operator*(const intbig_t& other) const;
-    intbig_t operator%(const intbig_t& other) const;
     intbig_t operator/(const intbig_t& other) const;
+    intbig_t operator%(const intbig_t& other) const;
+
 //    std::pair<intbig_t, intbig_t> divmod(const intbig_t& other) const;
 
     intbig_t& to_power(int64_t p);
