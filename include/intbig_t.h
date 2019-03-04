@@ -163,7 +163,7 @@ public:
     intbig_t& operator&=(const intbig_t& other);
     intbig_t& operator|=(const intbig_t& other);
     intbig_t& operator^=(const intbig_t& other);
-    intbig_t& operator<<=(int64_t n); // TODO: forbid negative shifts by just accepting size_t? Botan does this
+    intbig_t& operator<<=(int64_t n);
     intbig_t& operator>>=(int64_t n);
 
     intbig_t operator&(const intbig_t& other) const;
