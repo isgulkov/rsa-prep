@@ -50,19 +50,6 @@ uint8_t decode(char c)
     throw std::invalid_argument("Can't decode character `" + std::to_string(c) + "`");
 }
 
-bool is_whitespace(char c)
-{
-    switch(c) {
-        case ' ':
-        case '\t':
-        case '\r':
-        case '\n':
-            return true;
-        default:
-            return false;
-    }
-}
-
 /**
  * +--first octet--+-second octet--+--third octet--+
  * |7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|
@@ -110,7 +97,7 @@ std::string b64decode(const std::string& s)
 
     for(size_t i = 0; i < s.size(); ) {
         for(size_t i_v = 0; i_v < 4; i_v++) {
-            while(i < s.size() && is_whitespace(s[i])) {
+            while(i < s.size() && std::isspace(s[i])) {
                 i++;
             }
 
@@ -139,7 +126,7 @@ std::string b64decode(const std::string& s)
         if(s[i] == '=') {
             result.pop_back();
         }
-        else if(!is_whitespace(s[i])) {
+        else if(!std::isspace(s[i])) {
             break;
         }
     }
