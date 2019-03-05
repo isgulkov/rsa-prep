@@ -1316,6 +1316,10 @@ namespace
 
 intbig_t& intbig_t::operator*=(const intbig_t& other)
 {
+    if(other == 1) {
+        return *this;
+    }
+
     return operator=(operator*(other));
 }
 
@@ -1325,6 +1329,9 @@ intbig_t intbig_t::operator*(const intbig_t& other) const
 
     if(!sign || !other.sign) {
         return intbig_t();
+    }
+    else if(operator==(1)) {
+        return other;
     }
 
     std::vector<uint64_t> new_limbs(limbs.size() + other.limbs.size());
