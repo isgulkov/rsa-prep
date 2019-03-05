@@ -1193,7 +1193,11 @@ uint64_t intbig_t::divmod(const uint64_t x)
         throw std::domain_error("Division by zero");
     }
 
-    // TODO: implement this the way GMP does it (https://gmplib.org/~tege/division-paper.pdf)
+    /**
+     * TODO: implement this the way GMP does it:
+     *  - https://gmplib.org/manual/Single-Limb-Division.html#Single-Limb-Division
+     *  - https://gmplib.org/~tege/division-paper.pdf
+     */
 
     uint64_t carry = 0;
 
@@ -1260,31 +1264,84 @@ intbig_t intbig_t::operator%(const int64_t x) const
     return intbig_t(*this) %= x;
 }
 
-intbig_t& intbig_t::operator*=(const intbig_t& other)
+namespace
 {
-    // NOTE: This is equivalent to the O(n^2) schoolbook method
-    // TODO: Implement Karatsuba instead
+    /**
+     * Perform "full word" multiplication on limbs.
+     * TODO: use this in operator*=(uint64_t) as well
+     *
+     * @return Two-limb product of @code a and @code b
+     */
+    std::pair<uint64_t, uint64_t> mul_full(const uint64_t a, const uint64_t b)
+    {
+        const uint64_t a_low = a & 0xFFFFFFFF;
+        const uint64_t a_high = a >> 32;
+        const uint64_t b_low = b & 0xFFFFFFFF;
+        const uint64_t b_high = b >> 32;
 
-    intbig_t result;
+        const uint64_t z0 = a_low * b_low;
 
-    for(uint64_t limb : other.limbs) {
-        for(size_t i = 0; i < 64; i++) {
-            if((limb & 1U) != 0) {
-                result += *this;
-            }
+        uint64_t z1 = a_high * b_low;
+        const uint64_t z11 = a_low * b_high;
 
-            limb >>= 1U;
+        uint64_t z2 = a_high * b_high;
 
-            operator<<=(1);
+        z1 += z0 >> 32;
+        z1 += z11;
+
+        if(z1 < z11) {
+            z2 += 1ULL << 32;
         }
+
+        return { (z1 << 32) + (z0 & 0xFFFFFFFF), z2 + (z1 >> 32) };
     }
 
-    result.sign *= other.sign;
+    void add1_at(std::vector<uint64_t>& acc, uint64_t x, const size_t i_radix)
+    {
+        if(acc.size() <= i_radix) {
+            acc.resize(i_radix + 1);
+        }
 
-    return *this = result;
+        for(size_t i = i_radix; x && i < acc.size(); i++) {
+            acc[i] += x;
+
+            x = acc[i] < x ? 1 : 0;
+        }
+
+        if(x) {
+            acc.push_back(x);
+        }
+    }
+}
+
+intbig_t& intbig_t::operator*=(const intbig_t& other)
+{
+    return operator=(operator*(other));
 }
 
 intbig_t intbig_t::operator*(const intbig_t& other) const
 {
-    return intbig_t(*this) *= other;
+    // TODO: Karatsuba for numbers over a threshold (30 limbs in GMP)
+
+    if(!sign || !other.sign) {
+        return intbig_t();
+    }
+
+    std::vector<uint64_t> new_limbs(limbs.size() + other.limbs.size());
+
+    for(size_t i = 0; i < limbs.size(); i++) {
+        for(size_t j = 0; j < other.limbs.size(); j++) {
+            const auto prod = mul_full(limbs[i], other.limbs[j]);
+
+            if(prod.first) {
+                add1_at(new_limbs, prod.first, i + j);
+            }
+
+            if(prod.second) {
+                add1_at(new_limbs, prod.second, i + j + 1);
+            }
+        }
+    }
+
+    return intbig_t(sign * other.sign, std::move(new_limbs));
 }
