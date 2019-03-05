@@ -1334,7 +1334,7 @@ intbig_t intbig_t::operator*(const intbig_t& other) const
         return other;
     }
 
-    std::vector<uint64_t> new_limbs(limbs.size() + other.limbs.size());
+    std::vector<uint64_t> new_limbs(limbs.size() + other.limbs.size() - 1);
 
     for(size_t i = 0; i < limbs.size(); i++) {
         for(size_t j = 0; j < other.limbs.size(); j++) {
@@ -1351,4 +1351,52 @@ intbig_t intbig_t::operator*(const intbig_t& other) const
     }
 
     return intbig_t(sign * other.sign, std::move(new_limbs));
+}
+
+intbig_t& intbig_t::square()
+{
+    if(sign == 0) {
+        return *this;
+    }
+    else if(sign < 0) {
+        negate();
+    }
+
+    if(operator==(1)) {
+        return *this;
+    }
+
+    std::vector<uint64_t> new_limbs(2 * limbs.size() - 1);
+
+    /**
+     * Only multiply limbs i and j once, but add double the product to the result.
+     */
+    for(size_t i = 0; i < limbs.size(); i++) {
+        for(size_t j = i; j < limbs.size(); j++) {
+            auto prod = mul_full(limbs[i], limbs[j]);
+            uint64_t prod_carry = 0;
+
+            if(i != j) {
+                prod_carry = prod.second >> 63;
+                prod.second = (prod.second << 1) | (prod.first >> 63);
+                prod.first <<= 1;
+            }
+
+            if(prod.first) {
+                add1_at(new_limbs, prod.first, i + j);
+            }
+
+            if(prod.second) {
+                add1_at(new_limbs, prod.second, i + j + 1);
+            }
+
+            if(prod_carry) {
+                add1_at(new_limbs, 1, i + j + 2);
+            }
+        }
+    }
+
+    limbs = new_limbs;
+
+    return *this;
 }

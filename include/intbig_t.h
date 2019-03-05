@@ -203,7 +203,7 @@ public:
     intbig_t operator/(const intbig_t& other) const;
     intbig_t operator%(const intbig_t& other) const;
 
-//    std::pair<intbig_t, intbig_t> divmod(const intbig_t& other) const;
+    intbig_t& square();
 
     intbig_t& to_power(int64_t p);
     intbig_t  at_power(int64_t p) const;
