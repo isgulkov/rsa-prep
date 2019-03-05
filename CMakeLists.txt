@@ -117,11 +117,20 @@ if (BUILD_TESTS)
           )
   add_test(test_sha256 test_sha256)
 
+  # - base64
+  add_executable(test_base64 test/test_base64.cpp)
+  set(TEST_SRCS "${TEST_SRCS};test/test_base64.cpp")
+  target_link_libraries(test_base64
+          gtest gtest_main
+          base64
+          )
+  add_test(test_base64 test_base64)
+
   # all tests
   add_executable(test_all test/main.cpp "${TEST_SRCS}")
   target_link_libraries(test_all
           gtest gtest_main
-          intbig_t sha256
+          intbig_t sha256 base64
   )
   target_include_directories(test_all PRIVATE vendor/mini-gmp-6.1.2)
 

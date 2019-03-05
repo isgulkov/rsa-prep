@@ -71,7 +71,6 @@ bool is_whitespace(char c)
  * +--1.index--+--2.index--+--3.index--+--4.index--+
  *
  * TODO:
- *  - decode: ignore all whitespace
  *  - decode: fail (with an exception) on unexpected characters
  *  - encode: insert newlines every so many characters?
  */
@@ -135,11 +134,13 @@ std::string b64decode(const std::string& s)
 
     end:
 
-    if(s[s.size() - 1] == '=') {
-        result.pop_back();
-
-        if(s[s.size() - 2] == '=') {
+    // TODO: fix the handling of '=' characters here and in decode()
+    for(ssize_t i = s.size() - 1; i >= 0; i--) {
+        if(s[i] == '=') {
             result.pop_back();
+        }
+        else if(!is_whitespace(s[i])) {
+            break;
         }
     }
 
