@@ -26,6 +26,9 @@ target_link_libraries(calc intbig_t)
 # - sha256: a SHA256 cryptograpihc hash implementation
 add_library(sha256 src/sha256.cpp)
 
+# - base64: a base64 codec as defined in RFC4880
+add_library(base64 src/base64.cpp)
+
 # REMOVE: v
 ### some shit...
 add_executable(rsa_prep src/main.cpp)
@@ -38,6 +41,10 @@ target_link_libraries(rsa_prep intbig_t)
 # - sha256sum: a file hashing utility like shasum
 add_executable(sha256sum apps/sha256sum.cpp)
 target_link_libraries(sha256sum sha256)
+
+# - b64codec: a command-line base64 codec
+add_executable(b64codec apps/b64codec.cpp)
+target_link_libraries(b64codec base64)
 
 ### Unit tests
 ### ----------
