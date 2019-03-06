@@ -1406,3 +1406,21 @@ intbig_t& intbig_t::square()
 
     return *this;
 }
+
+namespace
+{
+    int64_t gcd1(int64_t a, int64_t b)
+    {
+        while(b != 0) {
+            a %= b;
+            std::swap(a, b);
+        }
+
+        return a;
+    }
+}
+
+int64_t intbig_t::gcd(const int64_t x) const
+{
+    return gcd1(x, operator%(x));
+}

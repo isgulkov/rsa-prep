@@ -204,8 +204,7 @@ public:
 
     intbig_t& square();
 
-    intbig_t& to_power(int64_t p);
-    intbig_t  at_power(int64_t p) const;
+    int64_t gcd(int64_t) const;
 };
 
 #endif //RSA_PREP_INTBIG_T_H
