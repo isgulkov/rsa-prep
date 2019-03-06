@@ -1259,9 +1259,15 @@ intbig_t intbig_t::operator/(const int64_t x) const
     return intbig_t(*this) /= x;
 }
 
-intbig_t intbig_t::operator%(const int64_t x) const
+int64_t intbig_t::operator%(const int64_t x) const
 {
-    return intbig_t(*this) %= x;
+    if(x < 0 || sign < 0) {
+        throw std::logic_error("Not implemented yet");
+    }
+
+    intbig_t x_div = *this;
+
+    return x_div.divmod((uint64_t)x);
 }
 
 namespace
