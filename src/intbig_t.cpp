@@ -1138,6 +1138,18 @@ intbig_t intbig_t::operator~() const
     return --operator-();
 }
 
+bool intbig_t::test_bit(const size_t i) const
+{
+    const size_t i_limb = i / 64;
+
+    if(i_limb < limbs.size()) {
+        return ((limbs[i_limb] >> (i % 64)) & 1) != 0;
+    }
+    else {
+        return sign < 0;
+    }
+}
+
 intbig_t& intbig_t::operator*=(const int64_t x)
 {
     if(x < 0) {

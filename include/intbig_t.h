@@ -180,10 +180,8 @@ public:
 
     intbig_t operator~() const;
 
-//private:
-//    bool test_bit(const size_t i) const;
+    bool test_bit(size_t) const;
 
-public:
     uint64_t divmod(uint64_t);
 
     intbig_t& operator*=(int64_t);
