@@ -78,6 +78,9 @@ public:
     size_t size() const; // TODO: is this useful?
     size_t num_bits() const; // TODO: what is this for 2-comp. negatives?
 
+    // TODO: Test against consecutive divisions
+    uint64_t factor2() const;
+
     // TODO: Find a way to test the random number constructors
     static intbig_t random_bits(size_t n_bits);
     static intbig_t random_lt(const intbig_t&);

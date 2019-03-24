@@ -219,6 +219,25 @@ size_t intbig_t::num_bits() const
     return 64 * limbs.size() + num_bits_last;
 }
 
+uint64_t intbig_t::factor2() const
+{
+    uint64_t coef = 0;
+
+    size_t i_limb = 0;
+
+    for(; i_limb < limbs.size() && !limbs[i_limb]; i_limb++) {
+        coef += 64;
+    }
+
+    if(i_limb < limbs.size()) {
+        for(uint64_t limb = limbs[i_limb]; (limb & 1) == 0; limb >>= 1) {
+            coef += 1;
+        }
+    }
+
+    return coef;
+}
+
 intbig_t intbig_t::random_bits(size_t n_bits)
 {
     std::random_device rd;
