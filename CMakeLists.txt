@@ -23,6 +23,9 @@ add_library(intbig_t src/intbig_t.cpp)
 add_executable(calc src/calc.cpp)
 target_link_libraries(calc intbig_t)
 
+# - primes: generation of large random primes
+add_library(primes src/primes.cpp)
+
 # - sha256: a SHA256 cryptograpihc hash implementation
 add_library(sha256 src/sha256.cpp)
 
