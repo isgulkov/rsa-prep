@@ -31,17 +31,25 @@ bool prime_finder::test_prime_mr(const intbig_t& n)
     return false;
 }
 
-bool prime_finder::test_prime_lucas(const intbig_t& x)
+bool prime_finder::test_prime_lucas(const intbig_t& n)
 {
-    // TODO: implement
+    /**
+     * TODO: implement
+     */
 
     return true;
 }
 
 intbig_t prime_finder::random_prime(const size_t n_bits)
 {
+    // TODO: Parallelize into several threads?
+
     while(true) {
         intbig_t x = intbig_t::random_bits(n_bits);
+
+        if(!x.test_bit(0)) {
+            x += 1;
+        }
 
         if(x.gcd(P_SMALL_PRIMES) != 1) {
             continue;
@@ -55,7 +63,7 @@ intbig_t prime_finder::random_prime(const size_t n_bits)
             bool is_composite = false;
 
             // TODO: Determine an appropriate number of iterations
-            for(int i = 0; i < 40; i++) {
+            for(int i = 0; i < num_mr_checks(n_bits); i++) {
                 if(!test_prime_mr(x)) {
                     is_composite = true;
                     break;
