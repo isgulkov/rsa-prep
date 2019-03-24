@@ -83,7 +83,7 @@ public:
 
     // TODO: Find a way to test the random number constructors
     static intbig_t random_bits(size_t n_bits);
-    static intbig_t random_lt(const intbig_t&);
+    static intbig_t random_lte(const intbig_t& x_max);
 
     // TODO: PKCS#1 conversions
     static intbig_t from_bytes(std::string& bytes);
