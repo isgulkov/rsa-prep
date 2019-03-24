@@ -253,7 +253,6 @@ std::vector<uint64_t> random_bits_upto(size_t n_bits)
         uint64_t last_limb = dist(rd);
 
         last_limb &= (1 << n_bits) - 1;
-        last_limb |= 1 << n_bits;
 
         limbs.push_back(last_limb);
     }
