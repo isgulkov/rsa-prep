@@ -211,6 +211,9 @@ public:
 
     intbig_t& square();
 
+    intbig_t& to_power(const intbig_t& other);
+    intbig_t  at_power(const intbig_t& other) const;
+
     int64_t gcd(int64_t) const;
     intbig_t gcd(const intbig_t& other) const;
 };

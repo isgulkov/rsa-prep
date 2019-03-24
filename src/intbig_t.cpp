@@ -216,7 +216,7 @@ size_t intbig_t::num_bits() const
         num_bits_last += 1;
     }
 
-    return 64 * limbs.size() + num_bits_last;
+    return 64 * (limbs.size() - 1) + num_bits_last;
 }
 
 uint64_t intbig_t::factor2() const
@@ -1560,6 +1560,35 @@ intbig_t& intbig_t::square()
     limbs = new_limbs;
 
     return *this;
+}
+
+intbig_t& intbig_t::to_power(const intbig_t& other)
+{
+    return operator=(at_power(other));
+}
+
+intbig_t intbig_t::at_power(const intbig_t& other) const
+{
+    if(other.sign < 0) {
+        throw std::logic_error("Can't raise to negative power " + other.to_string());
+    }
+    else if(other.sign == 0) {
+        return of(1);
+    }
+
+    intbig_t result = of(1);
+
+    intbig_t pow2_this = *this;
+
+    for(size_t i = 0; i < other.num_bits(); i++) {
+        if(other.test_bit(i)) {
+            result *= pow2_this;
+        }
+
+        pow2_this.square();
+    }
+
+    return result;
 }
 
 namespace
