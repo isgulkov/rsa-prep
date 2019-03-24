@@ -213,8 +213,8 @@ public:
 
     intbig_t& square();
 
-    intbig_t& to_power(const intbig_t& other);
-    intbig_t  at_power(const intbig_t& other) const;
+    intbig_t& to_power(const intbig_t& pow);
+    intbig_t  at_power(const intbig_t& pow) const;
 
     /**
      * TODO: Reimplement both modular product and modular power through Montgomery reduction.
@@ -222,6 +222,9 @@ public:
 
     intbig_t& mul_mod(const intbig_t& other, const intbig_t& m);
     intbig_t  times_mod(const intbig_t& other, const intbig_t& m) const;
+
+    intbig_t& to_power(const intbig_t& pow, const intbig_t& m);
+    intbig_t  at_power(const intbig_t& pow, const intbig_t& m) const;
 
     int64_t gcd(int64_t) const;
     intbig_t gcd(const intbig_t& other) const;

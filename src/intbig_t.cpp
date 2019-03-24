@@ -1569,17 +1569,17 @@ intbig_t& intbig_t::square()
     return *this;
 }
 
-intbig_t& intbig_t::to_power(const intbig_t& other)
+intbig_t& intbig_t::to_power(const intbig_t& pow)
 {
-    return operator=(at_power(other));
+    return operator=(at_power(pow));
 }
 
-intbig_t intbig_t::at_power(const intbig_t& other) const
+intbig_t intbig_t::at_power(const intbig_t& pow) const
 {
-    if(other.sign < 0) {
-        throw std::logic_error("Can't raise to negative power " + other.to_string());
+    if(pow.sign < 0) {
+        throw std::logic_error("Can't raise to negative power " + pow.to_string());
     }
-    else if(other.sign == 0) {
+    else if(pow.sign == 0) {
         return of(1);
     }
 
@@ -1587,8 +1587,8 @@ intbig_t intbig_t::at_power(const intbig_t& other) const
 
     intbig_t pow2_this = *this;
 
-    for(size_t i = 0; i < other.num_bits(); i++) {
-        if(other.test_bit(i)) {
+    for(size_t i = 0; i < pow.num_bits(); i++) {
+        if(pow.test_bit(i)) {
             result *= pow2_this;
         }
 
@@ -1605,7 +1605,7 @@ intbig_t& intbig_t::mul_mod(const intbig_t& other, const intbig_t& m)
 
 intbig_t intbig_t::times_mod(const intbig_t& other, const intbig_t& m) const
 {
-    if(sign < 0 || other.sign < 0 || m.sign < 0) {
+    if(sign < 0 || other.sign < 0 || m.sign <= 0) {
         throw std::logic_error("");
     }
     else if(!sign || !other.sign) {
@@ -1632,6 +1632,43 @@ intbig_t intbig_t::times_mod(const intbig_t& other, const intbig_t& m) const
 
         if(pow2_this >= m) {
             pow2_this -= m;
+        }
+    }
+
+    return result;
+}
+
+intbig_t& intbig_t::to_power(const intbig_t& pow, const intbig_t& m)
+{
+    return operator=(at_power(pow, m));
+}
+
+intbig_t intbig_t::at_power(const intbig_t& pow, const intbig_t& m) const
+{
+    if(sign < 0 || pow.sign < 0 || m.sign <= 0) {
+        throw std::logic_error("");
+    }
+    else if(!pow.sign) {
+        return of(1);
+    }
+
+    intbig_t result = of(1);
+
+    intbig_t pow2_this = operator%(m);
+
+    for(size_t i = 0; i < pow.num_bits(); i++) {
+        if(pow.test_bit(i)) {
+            result *= pow2_this;
+
+            if(result >= m) {
+                result %= m;
+            }
+        }
+
+        pow2_this.square();
+
+        if(pow2_this >= m) {
+            pow2_this %= m;
         }
     }
 
