@@ -72,6 +72,8 @@ public:
     std::string to_string(Base base = Decimal) const;
 //    std::string to_chunky_string(const Base base = Hex, const size_t zfill = 0) const;
 
+    // TODO: Add implicit conversion to bool -- regular ints have it, so why not?
+
     friend std::istream& operator>>(std::istream&, intbig_t& value);
     friend std::ostream& operator<<(std::ostream& os, const intbig_t& value);
 
@@ -213,6 +215,13 @@ public:
 
     intbig_t& to_power(const intbig_t& other);
     intbig_t  at_power(const intbig_t& other) const;
+
+    /**
+     * TODO: Reimplement both modular product and modular power through Montgomery reduction.
+     */
+
+    intbig_t& mul_mod(const intbig_t& other, const intbig_t& m);
+    intbig_t  times_mod(const intbig_t& other, const intbig_t& m) const;
 
     int64_t gcd(int64_t) const;
     intbig_t gcd(const intbig_t& other) const;

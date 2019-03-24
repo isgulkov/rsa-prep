@@ -1453,9 +1453,16 @@ intbig_t intbig_t::divmod(const intbig_t& other)
         return intbig_t();
     }
 
-    // TODO!: Handle negative signs and zeroes (esp. zero result right below)
+    // TODO!: Handle negative signs and zeroes
 
     ssize_t n_bits_q = num_bits() - other.num_bits();
+
+    if(n_bits_q < 0) {
+        const intbig_t rem = { sign * other.sign, std::move(limbs) };
+        operator=(of(0));
+
+        return rem;
+    }
 
     intbig_t denom = other << n_bits_q;
 
@@ -1586,6 +1593,46 @@ intbig_t intbig_t::at_power(const intbig_t& other) const
         }
 
         pow2_this.square();
+    }
+
+    return result;
+}
+
+intbig_t& intbig_t::mul_mod(const intbig_t& other, const intbig_t& m)
+{
+    return operator=(times_mod(other, m));
+}
+
+intbig_t intbig_t::times_mod(const intbig_t& other, const intbig_t& m) const
+{
+    if(sign < 0 || other.sign < 0 || m.sign < 0) {
+        throw std::logic_error("");
+    }
+    else if(!sign || !other.sign) {
+        // TODO: Do the modulo on operands before this check
+
+        return of(0);
+    }
+
+    intbig_t result;
+
+    intbig_t pow2_this = operator%(m);
+    const intbig_t m_other = other % m;
+
+    for(size_t i = 0; i < other.num_bits(); i++) {
+        if(other.test_bit(i)) {
+            result += pow2_this;
+
+            if(result >= m) {
+                result -= m;
+            }
+        }
+
+        pow2_this += pow2_this;
+
+        if(pow2_this >= m) {
+            pow2_this -= m;
+        }
     }
 
     return result;
