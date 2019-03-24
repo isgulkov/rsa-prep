@@ -1512,3 +1512,55 @@ int64_t intbig_t::gcd(const int64_t x) const
 {
     return gcd1(x, operator%(x));
 }
+
+intbig_t intbig_t::gcd(const intbig_t& other) const
+{
+    if(!sign) {
+        return other;
+    }
+    else if(!other.sign) {
+        return *this;
+    }
+
+    /**
+     * https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+     */
+
+    intbig_t u = *this, v = other;
+    uint64_t coef2 = 0;
+
+    while(u != 0 && v != 0) {
+        const bool u_even = u % 2 == 0;
+        const bool v_even = v % 2 == 0;
+
+        if(u_even && v_even) {
+            coef2 += 1;
+
+            u >>= 1;
+            v >>= 1;
+        }
+        else if(u_even) {
+            u >>= 1;
+        }
+        else if(v_even) {
+            v >>= 1;
+        }
+        else {
+            if(u < v) {
+                v -= u;
+                v >>= 1;
+            }
+            else {
+                u -= v;
+                u >>= 1;
+            }
+        }
+    }
+
+    if(u != 0) {
+        return u << coef2;
+    }
+    else {
+        return v << coef2;
+    }
+}

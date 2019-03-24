@@ -210,6 +210,7 @@ public:
     intbig_t& square();
 
     int64_t gcd(int64_t) const;
+    intbig_t gcd(const intbig_t& other) const;
 };
 
 #endif //RSA_PREP_INTBIG_T_H
