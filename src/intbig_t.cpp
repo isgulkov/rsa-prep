@@ -1447,6 +1447,73 @@ intbig_t intbig_t::operator*(const intbig_t& other) const
     return intbig_t(sign * other.sign, std::move(new_limbs));
 }
 
+intbig_t intbig_t::divmod(const intbig_t& other)
+{
+    if(!sign) {
+        return intbig_t();
+    }
+
+    // TODO!: Handle negative signs and zeroes (esp. zero result right below)
+
+    ssize_t n_bits_q = num_bits() - other.num_bits();
+
+    intbig_t denom = other << n_bits_q;
+
+    std::vector<uint64_t> limbs_q = std::vector<uint64_t>(size_t(n_bits_q) / 64 + 1, 0);
+
+    for(ssize_t i = n_bits_q; i >= 0; i--) {
+        if(operator>=(denom)) {
+            sub2_unsigned(limbs, denom.limbs);
+
+            limbs_q[i / 64] |= 1ULL << (i % 64);
+        }
+
+        denom >>= 1;
+    }
+
+    if(!limbs_q.back()) {
+        limbs_q.pop_back();
+    }
+
+    /**
+     * TODO: Use correct sign for the resulting remainder
+     *
+     * While in principle remainder should always be non-negative, this may not apply to the one we get here.
+     */
+    const intbig_t rem = { limbs_q.empty() ? 0 : 1, std::move(limbs) };
+
+    // REVIEW: Eliminate back-and-forth assignments in operators
+    operator=({ sign * other.sign, std::move(limbs_q) });
+
+    return rem;
+}
+
+intbig_t& intbig_t::operator/=(const intbig_t& other)
+{
+    divmod(other);
+    return *this;
+}
+
+intbig_t& intbig_t::operator%=(const intbig_t& other)
+{
+    return operator=(divmod(other));
+}
+
+intbig_t intbig_t::operator/(const intbig_t& other) const
+{
+    intbig_t x = *this;
+    x.divmod(other);
+
+    return x;
+}
+
+intbig_t intbig_t::operator%(const intbig_t& other) const
+{
+    intbig_t x = *this;
+
+    return x.divmod(other);
+}
+
 intbig_t& intbig_t::square()
 {
     if(sign == 0) {
