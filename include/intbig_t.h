@@ -78,6 +78,10 @@ public:
     size_t size() const; // TODO: is this useful?
     size_t num_bits() const; // TODO: what is this for 2-comp. negatives?
 
+    // TODO: Find a way to test the random number constructors
+    static intbig_t random_bits(size_t n_bits);
+    static intbig_t random_lt(const intbig_t&);
+
     // TODO: PKCS#1 conversions
     static intbig_t from_bytes(std::string& bytes);
     static intbig_t from_bytes(std::istream& stream);

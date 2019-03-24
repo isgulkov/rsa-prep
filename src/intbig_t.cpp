@@ -3,7 +3,8 @@
 
 #include <stdexcept>
 #include <algorithm>
-#include <sstream>
+#include <sstream> // TODO!: remove?
+#include <random>
 
 /*
  * TODO: decide how much to reserve
@@ -205,6 +206,10 @@ size_t intbig_t::size() const
 
 size_t intbig_t::num_bits() const
 {
+    if(!sign) {
+        return 0;
+    }
+
     size_t num_bits_last = 0;
 
     for(uint64_t last = limbs.back(); last; last >>= 1) {
@@ -212,6 +217,44 @@ size_t intbig_t::num_bits() const
     }
 
     return 64 * limbs.size() + num_bits_last;
+}
+
+intbig_t intbig_t::random_bits(size_t n_bits)
+{
+    std::random_device rd;
+    std::uniform_int_distribution<uint64_t> dist;
+
+    std::vector<uint64_t> limbs;
+
+    for(; n_bits >= 64; n_bits -= 64) {
+        limbs.push_back(dist(rd));
+    }
+
+    if(n_bits--) {
+        uint64_t last_limb = dist(rd);
+
+        last_limb &= (1 << n_bits) - 1;
+        last_limb |= 1 << n_bits;
+
+        limbs.push_back(last_limb);
+    }
+
+    return { limbs.empty() ? 0 : 1, std::move(limbs) };
+}
+
+intbig_t intbig_t::random_lt(const intbig_t& x_max)
+{
+    if(x_max.sign < 1) {
+        throw std::logic_error("Can only produce non-negative numbers less than a positive");
+    }
+
+    intbig_t x;
+
+    do {
+        x = random_bits(x_max.num_bits());
+    } while(x_max <= x);
+
+    return x;
 }
 
 bool intbig_t::operator!=(const intbig_t& other) const
