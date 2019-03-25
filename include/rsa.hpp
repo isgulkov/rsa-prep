@@ -25,25 +25,25 @@ class key_pub
     key_pub(intbig_t e, intbig_t n) : e(std::move(e)), n(std::move(n)) { }
 
 public:
-    key_pub(std::string e, std::string n);
+    key_pub(const std::string& e_bytes, const std::string& n_bytes);
 
-    std::string encrypt(const std::string& msg);
-    bool verify(const std::string& msg, const std::string& sig, hash_sel_t hash = SHA256);
+    std::string encrypt(const std::string& msg) const;
+    bool verify(const std::string& msg, const std::string& sig, hash_sel_t hash = SHA256) const;
 
     friend std::pair<key_pub, key_priv> gen_keypair(size_t, const intbig_t&);
 };
 
 class key_priv
 {
-    intbig_t d;
+    intbig_t d, n;
 
-    key_priv(intbig_t d) : d(std::move(d)) { }
+    key_priv(intbig_t d, intbig_t n) : d(std::move(d)), n(std::move(n)) { }
 
 public:
-    key_priv(std::string d);
+    key_priv(const std::string& d_bytes, const std::string& n_bytes);
 
-    std::string decrypt(const std::string& msg);
-    std::string sign(const std::string& msg, hash_sel_t hash = SHA256);
+    std::string decrypt(const std::string& msg) const;
+    std::string sign(const std::string& msg, hash_sel_t hash = SHA256) const;
 
     friend std::pair<key_pub, key_priv> gen_keypair(size_t, const intbig_t&);
 };

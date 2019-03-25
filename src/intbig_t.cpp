@@ -1513,13 +1513,19 @@ intbig_t intbig_t::divmod(const intbig_t& other)
         denom >>= 1;
     }
 
+    if(limbs.empty()) {
+        sign = 0;
+    }
+
     /**
      * TODO: Use correct sign for the resulting remainder
      *  (while in principle remainder should always be non-negative, this may not apply to the one we get here)
      *
-     * TODO: Sort out the exception that arises in ~std::vector if std::move(limbs_q) is used below
+     * TODO: Sort out the exception that arises in ~std::vector if std::move(limbs_q) is used in this method (below
+     *  and at the top)
      */
-    intbig_t rem{ limbs_q.empty() ? 0 : (sign * other.sign), limbs_q };
+    intbig_t rem{ limbs_q.empty() ? 0 : sign_q, limbs_q };
+
     std::swap(rem, *this);
 
     return rem;
