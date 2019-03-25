@@ -1,6 +1,8 @@
 
 #include "rsa.hpp"
 
+#include <random>
+
 #include "primes.hpp"
 #include "sha256.h"
 
@@ -39,6 +41,26 @@ key_pub::key_pub(const std::string& e_bytes, const std::string& n_bytes)
     n = intbig_t::from(n_bytes, intbig_t::Base256);
 }
 
+std::string random_nz_pad(size_t l_bytes)
+{
+    std::random_device rd;
+    std::uniform_int_distribution<char> dist;
+
+    std::string s;
+
+    while(l_bytes--) {
+        char c;
+
+        do {
+            c = dist(rd);
+        } while(!c);
+
+        s += c;
+    }
+
+    return s;
+}
+
 std::string key_pub::encrypt(const std::string& msg) const
 {
     intbig_t x_msg = intbig_t::from(msg, intbig_t::Base256);
@@ -50,6 +72,22 @@ std::string key_pub::encrypt(const std::string& msg) const
     x_msg.to_power(e, n);
 
     return x_msg.to_string(intbig_t::Base256);
+}
+
+std::string key_pub::encrypt_pkcs(const std::string& msg) const
+{
+    const size_t n_len = n.num_bits() / 8;
+
+    if(msg.size() > n_len - 11) {
+        throw std::range_error(
+                "Message (" + std::to_string(msg.size()) + " bytes)" +
+                " doesn't fit the modulus (" + std::to_string(n_len) + " full bytes)"
+        );
+    }
+
+    const std::string enc_msg = std::string{ '\x00', '\x02' } + random_nz_pad(n_len - msg.size() - 3) + '\x00' + msg;
+
+    return encrypt(enc_msg);
 }
 
 bool key_pub::verify(const std::string& msg, const std::string& sig, hash_sel_t hash) const
@@ -77,6 +115,20 @@ std::string key_priv::decrypt(const std::string& msg) const
     x_msg.to_power(d, n);
 
     return x_msg.to_string(intbig_t::Base256);
+}
+
+std::string key_priv::decrypt_pkcs(const std::string& msg) const
+{
+    const std::string enc_msg = decrypt(msg);
+
+    const size_t i_start = enc_msg.find('\x00', 1);
+
+    if(i_start == std::string::npos) {
+        return "";
+    }
+    else {
+        return enc_msg.substr(i_start + 1);
+    }
 }
 
 std::string key_priv::sign(const std::string& msg, hash_sel_t hash) const
