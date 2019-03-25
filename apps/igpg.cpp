@@ -56,6 +56,7 @@ int main(int argc, char** argv)
 
     if(cmd == "gen-key") {
         std::string f_name = std::to_string(std::time(nullptr));
+        intbig_t e = intbig_t::of(65537);
         size_t n_bits = 1024;
 
         for(int i = 2; i < argc; i++) {
@@ -67,15 +68,18 @@ int main(int argc, char** argv)
             else if(arg == "-o") {
                 f_name = argv[++i];
             }
+            else if(arg == "-e") {
+                e = intbig_t::from(argv[++i]);
+            }
             else {
                 std::cerr << "Error: unexpected argument '" << arg << "'" << std::endl;
                 return 2;
             }
         }
 
-        std::cerr << "Will generate a \33[1m" << n_bits << "\33[0m-bit RSA key pair..." << std::endl;
+        std::cerr << "Will generate a \33[1m" << n_bits << "\33[0m-bit RSA key pair (e=\33[1m" << e << "\33[0m)..." << std::endl;
 
-        const auto keypair = rsa::gen_keypair(n_bits);
+        const auto keypair = rsa::gen_keypair(n_bits, e);
 
         {
             std::cerr << "Writing \33[1m" << f_name << ".pub" << "\33[0m..." << std::endl;
