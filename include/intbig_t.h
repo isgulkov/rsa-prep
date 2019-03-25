@@ -227,7 +227,7 @@ public:
     intbig_t& to_power(const intbig_t& pow, const intbig_t& m);
     intbig_t  at_power(const intbig_t& pow, const intbig_t& m) const;
 
-    intbig_t inverse_mod_p(const intbig_t& p) const;
+    intbig_t inverse_mod(const intbig_t& m) const;
 
     int64_t gcd(int64_t) const;
     intbig_t gcd(const intbig_t& other) const;

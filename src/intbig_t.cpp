@@ -1702,9 +1702,35 @@ intbig_t intbig_t::at_power(const intbig_t& pow, const intbig_t& m) const
     return result;
 }
 
-intbig_t intbig_t::inverse_mod_p(const intbig_t& p) const
+void euclid_ex(const intbig_t& a, const intbig_t& b, intbig_t& x, intbig_t& y)
 {
-    return at_power(p - 2, p);
+    if(a == 0) {
+        x = intbig_t::of(0);
+        y = intbig_t::of(1);
+        return;
+    }
+
+    intbig_t x_new, y_new;
+    euclid_ex(b % a, a, x_new, y_new);
+
+    x = y_new - (b / a) * x_new;
+    y = x_new;
+}
+
+intbig_t intbig_t::inverse_mod(const intbig_t& m) const
+{
+    intbig_t x, y;
+    euclid_ex(*this, m, x, y);
+
+    if(x < 0) {
+        // REVIEW: Is this enough to get it out of the negatives?
+        x += m;
+    }
+    else if(x >= m) {
+        x %= m;
+    }
+
+    return x;
 }
 
 namespace
