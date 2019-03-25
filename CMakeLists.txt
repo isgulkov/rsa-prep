@@ -89,7 +89,6 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_add_bin PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_add_bin test_intbig_t_add_bin)
 
   add_executable(test_intbig_t_add_bin1 test/test_intbig_t_add_bin1.cpp)
@@ -106,7 +105,6 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_add_un PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_add_un test_intbig_t_add_un)
 
   add_executable(test_intbig_t_shifts test/test_intbig_t_shifts.cpp)
@@ -115,7 +113,6 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_shifts PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_shifts test_intbig_t_shifts)
 
   add_executable(test_intbig_t_bitwise test/test_intbig_t_bitwise.cpp)
@@ -124,7 +121,6 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t
           )
-  target_include_directories(test_intbig_t_bitwise PRIVATE vendor/mini-gmp-6.1.2)
   add_test(test_intbig_t_bitwise test_intbig_t_bitwise)
 
   # - sha256
@@ -151,7 +147,6 @@ if (BUILD_TESTS)
           gtest gtest_main
           intbig_t sha256 base64
   )
-  target_include_directories(test_all PRIVATE vendor/mini-gmp-6.1.2)
 
   # TODO: https://stackoverflow.com/a/28305481:
   # TODO:   make sense of what the PRIVATE and PUBLIC do in `target_include_directories`
