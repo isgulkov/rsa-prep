@@ -31,15 +31,6 @@ bool prime_finder::test_prime_mr(const intbig_t& n)
     return false;
 }
 
-bool prime_finder::test_prime_lucas(const intbig_t& n)
-{
-    /**
-     * TODO: implement
-     */
-
-    return true;
-}
-
 intbig_t prime_finder::random_prime(const size_t n_bits)
 {
     // TODO: Parallelize into several threads?
@@ -77,10 +68,6 @@ intbig_t prime_finder::random_prime(const size_t n_bits)
             if(is_composite) {
                 continue;
             }
-        }
-
-        if(!test_prime_lucas(x)) {
-            continue;
         }
 
         if(print_feedback) {

@@ -45,7 +45,6 @@ public:
     }
 
     bool test_prime_mr(const intbig_t& n);
-    bool test_prime_lucas(const intbig_t& n);
 
     intbig_t random_prime(size_t n_bits);
 };
