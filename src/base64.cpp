@@ -64,7 +64,7 @@ uint8_t decode(char c)
 namespace base64
 {
 
-std::string b64encode(const std::string& s)
+std::string b64encode(const std::string& s, size_t n_cols)
 {
     std::string result;
 
@@ -85,8 +85,16 @@ std::string b64encode(const std::string& s)
         case 2:
             result.back() = '=';
         default:
-            return result;
+            break;
     }
+
+    if(n_cols) {
+        for(size_t i = n_cols; i < result.size(); i += n_cols + 1) {
+            result = result.substr(0, i) + '\n' + result.substr(i);
+        }
+    }
+
+    return result;
 }
 
 std::string b64decode(const std::string& s)

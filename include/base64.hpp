@@ -8,7 +8,7 @@
 namespace base64
 {
 
-std::string b64encode(const std::string&);
+std::string b64encode(const std::string&, size_t n_cols = 0);
 std::string b64decode(const std::string&);
 
 // TODO: implement stream interface?
