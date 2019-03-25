@@ -257,7 +257,7 @@ std::vector<uint64_t> random_bits_upto(size_t n_bits)
         limbs.push_back(last_limb);
     }
 
-    while(!limbs.back()) {
+    while(!limbs.empty() && !limbs.back()) {
         limbs.pop_back();
     }
 
@@ -1482,16 +1482,12 @@ intbig_t intbig_t::divmod(const intbig_t& other)
         denom >>= 1;
     }
 
-    if(!limbs_q.back()) {
-        limbs_q.pop_back();
-    }
-
     /**
      * TODO: Use correct sign for the resulting remainder
      *
      * While in principle remainder should always be non-negative, this may not apply to the one we get here.
      */
-    const intbig_t rem = { limbs_q.empty() ? 0 : 1, std::move(limbs) };
+    const intbig_t rem = { limbs.empty() ? 0 : 1, std::move(limbs) };
 
     // REVIEW: Eliminate back-and-forth assignments in operators
     operator=({ sign * other.sign, std::move(limbs_q) });
