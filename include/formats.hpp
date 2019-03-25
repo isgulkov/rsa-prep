@@ -18,6 +18,9 @@ void dump_privkey(std::ostream& os, const rsa::key_priv& priv);
 std::string load_enc_message(std::istream& is);
 void dump_enc_message(std::ostream& os, const std::string& msg);
 
+std::string load_detached_sig(std::istream& is);
+void dump_detached_sig(std::ostream& os, const std::string& sig);
+
 }
 }
 

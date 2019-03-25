@@ -75,5 +75,15 @@ void dump_enc_message(std::ostream& os, const std::string& msg)
     dump_armor(os, "RSA ENCRYPTED MESSAGE", msg);
 }
 
+std::string load_detached_sig(std::istream& is)
+{
+    return load_armor(is, "RSA DETACHED SIGNATURE");
+}
+
+void dump_detached_sig(std::ostream& os, const std::string& sig)
+{
+    dump_armor(os, "RSA DETACHED SIGNATURE", sig);
+}
+
 }
 }

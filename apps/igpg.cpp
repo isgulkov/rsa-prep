@@ -14,7 +14,7 @@ void print_usage()
               << "  \33[4migpg\33[0m \33[4mgen-key\33[0m [<n-bits>]" << '\n'
               << "  \33[4migpg\33[0m \33[4mencrypt\33[0m -k <pub-key> [-i <input-file>]" << '\n'
               << "  \33[4migpg\33[0m \33[4mdecrypt\33[0m -k <priv-key> [-i <input-file>]" << '\n'
-              << "  \33[4migpg\33[0m \33[4mclearsign\33[0m -k <priv-key>" << '\n'
+              << "  \33[4migpg\33[0m \33[4msign\33[0m -k <priv-key>" << '\n'
               << "  \33[4migpg\33[0m \33[4mverify\33[0m -k <pub-key>" << std::endl;
 }
 
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
         }
 
         if(path_privkey.empty()) {
-            std::cerr << "Error: path to public key unspecified" << std::endl;
+            std::cerr << "Error: path to private key unspecified" << std::endl;
             return 2;
         }
 
@@ -169,8 +169,49 @@ int main(int argc, char** argv)
 
         std::cout << priv.decrypt_pkcs(msg);
     }
-    else if(cmd == "clearsign") {
+    else if(cmd == "sign") {
+        std::string path_privkey, path_fin;
 
+        for(int i = 2; i < argc; i++) {
+            const std::string arg = argv[i];
+
+            if(arg == "-k") {
+                path_privkey = argv[++i];
+            }
+            else if(arg == "-i") {
+                path_fin = argv[++i];
+            }
+            else {
+                std::cerr << "Error: unexpected argument '" << arg << "'" << std::endl;
+                return 2;
+            }
+        }
+
+        if(path_privkey.empty()) {
+            std::cerr << "Error: path to private key unspecified" << std::endl;
+            return 2;
+        }
+
+        std::cerr << "Reading private key \33[1m" << path_privkey << "\33[0m..." << std::endl;
+
+        std::ifstream f_in_priv(path_privkey);
+        const rsa::key_priv priv = formats::load_privkey(f_in_priv);
+
+        std::string msg;
+
+        if(!path_fin.empty()) {
+            std::cerr << "Reading \33[1m" << path_fin << "\33[0m..." << std::endl;
+
+            std::ifstream f_in(path_fin);
+            msg = read_all(f_in);
+        }
+        else {
+            std::cerr << "Reading stdin..." << std::endl;
+
+            msg = read_all(std::cin);
+        }
+
+        formats::dump_detached_sig(std::cout, priv.sign_pkcs(msg));
     }
     else if(cmd == "verify") {
 
