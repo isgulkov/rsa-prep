@@ -22,9 +22,6 @@ include_directories(include)
 # - intbig_t: a multiple-precision integer implementation
 add_library(intbig_t src/intbig_t.cpp)
 
-add_executable(calc src/calc.cpp)
-target_link_libraries(calc intbig_t)
-
 # - primes: generation of large random primes
 add_library(primes src/primes.cpp)
 target_link_libraries(primes PUBLIC intbig_t)
