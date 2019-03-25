@@ -11,7 +11,7 @@ using namespace isg;
 void print_usage()
 {
     std::cerr << "Usage:" << '\n'
-              << "  \33[4migpg\33[0m \33[4mgen-key\33[0m [<n-bits>]" << '\n'
+              << "  \33[4migpg\33[0m \33[4mgen-key\33[0m [-l <n-bits>] [-o <filename>]" << '\n'
               << "  \33[4migpg\33[0m \33[4mencrypt\33[0m -k <pub-key> [-i <input-file>]" << '\n'
               << "  \33[4migpg\33[0m \33[4mdecrypt\33[0m -k <priv-key> [-i <input-file>]" << '\n'
               << "  \33[4migpg\33[0m \33[4msign\33[0m -k <priv-key> [-i <input-file>]" << '\n'
@@ -55,17 +55,27 @@ int main(int argc, char** argv)
     const std::string cmd = argv[1];
 
     if(cmd == "gen-key") {
+        std::string f_name = std::to_string(std::time(nullptr));
         size_t n_bits = 1024;
 
-        if(argc > 2) {
-            n_bits = std::stoull(argv[2]);
+        for(int i = 2; i < argc; i++) {
+            const std::string arg = argv[i];
+
+            if(arg == "-l") {
+                n_bits = std::stoull(argv[++i]);
+            }
+            else if(arg == "-o") {
+                f_name = argv[++i];
+            }
+            else {
+                std::cerr << "Error: unexpected argument '" << arg << "'" << std::endl;
+                return 2;
+            }
         }
 
         std::cerr << "Will generate a \33[1m" << n_bits << "\33[0m-bit RSA key pair..." << std::endl;
 
         const auto keypair = rsa::gen_keypair(n_bits);
-
-        const std::string f_name = std::to_string(std::time(nullptr));
 
         {
             std::cerr << "Writing \33[1m" << f_name << ".pub" << "\33[0m..." << std::endl;
