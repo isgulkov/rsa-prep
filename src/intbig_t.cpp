@@ -1679,6 +1679,11 @@ intbig_t intbig_t::at_power(const intbig_t& pow, const intbig_t& m) const
     return result;
 }
 
+intbig_t intbig_t::inverse_mod_p(const intbig_t& p) const
+{
+    return at_power(p - 2, p);
+}
+
 namespace
 {
     int64_t gcd1(int64_t a, int64_t b)
