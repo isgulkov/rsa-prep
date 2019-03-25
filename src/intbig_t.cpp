@@ -18,9 +18,14 @@
  */
 constexpr size_t INITIAL_RESERVATION = 20;
 
-intbig_t::intbig_t(int sign, std::vector<uint64_t>&& limbs) : sign(sign), limbs(std::move(limbs))
+intbig_t::intbig_t(int sign, std::vector<uint64_t>&& limbs) : sign(sign), limbs(limbs)
 {
-    limbs.reserve(INITIAL_RESERVATION);
+    this->limbs.reserve(INITIAL_RESERVATION);
+}
+
+intbig_t::intbig_t(int sign, const std::vector<uint64_t>& limbs) : sign(sign), limbs(limbs)
+{
+    this->limbs.reserve(INITIAL_RESERVATION);
 }
 
 namespace
@@ -1484,13 +1489,12 @@ intbig_t intbig_t::divmod(const intbig_t& other)
 
     /**
      * TODO: Use correct sign for the resulting remainder
+     *  (while in principle remainder should always be non-negative, this may not apply to the one we get here)
      *
-     * While in principle remainder should always be non-negative, this may not apply to the one we get here.
+     * TODO: Sort out the exception that arises in ~std::vector if std::move(limbs_q) is used below
      */
-    const intbig_t rem = { limbs.empty() ? 0 : 1, std::move(limbs) };
-
-    // REVIEW: Eliminate back-and-forth assignments in operators
-    operator=({ sign * other.sign, std::move(limbs_q) });
+    intbig_t rem{ limbs_q.empty() ? 0 : (sign * other.sign), limbs_q };
+    std::swap(rem, *this);
 
     return rem;
 }

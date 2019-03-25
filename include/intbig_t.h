@@ -49,6 +49,7 @@ public:
 
 private:
     intbig_t(int sign, std::vector<uint64_t>&& limbs);
+    intbig_t(int sign, const std::vector<uint64_t>& limbs);
 
 public:
     // REMOVE: replace this:
