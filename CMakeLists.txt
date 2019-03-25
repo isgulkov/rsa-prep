@@ -99,30 +99,6 @@ if (BUILD_TESTS)
           )
   add_test(test_intbig_t_add_bin1 test_intbig_t_add_bin1)
 
-  add_executable(test_intbig_t_add_un test/test_intbig_t_add_un.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_add_un.cpp")
-  target_link_libraries(test_intbig_t_add_un
-          gtest gtest_main
-          intbig_t
-          )
-  add_test(test_intbig_t_add_un test_intbig_t_add_un)
-
-  add_executable(test_intbig_t_shifts test/test_intbig_t_shifts.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_shifts.cpp")
-  target_link_libraries(test_intbig_t_shifts
-          gtest gtest_main
-          intbig_t
-          )
-  add_test(test_intbig_t_shifts test_intbig_t_shifts)
-
-  add_executable(test_intbig_t_bitwise test/test_intbig_t_bitwise.cpp)
-  set(TEST_SRCS "${TEST_SRCS};test/test_intbig_t_bitwise.cpp")
-  target_link_libraries(test_intbig_t_bitwise
-          gtest gtest_main
-          intbig_t
-          )
-  add_test(test_intbig_t_bitwise test_intbig_t_bitwise)
-
   # - sha256
   add_executable(test_sha256 test/test_sha256.cpp)
   set(TEST_SRCS "${TEST_SRCS};test/test_sha256.cpp")
