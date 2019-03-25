@@ -13,6 +13,12 @@ std::pair<key_pub, key_priv> gen_keypair(const size_t l_mod, const intbig_t& e)
 {
     prime_finder pf(true);
 
+    /**
+     * REVIEW: According to FIPS 186-4, B.3.1, criterion 2(d), it should be that |p - q| > 2^(n / 2 - 100). How likely
+     *  does this apply here?
+     *
+     * https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf#page=62
+     */
     const intbig_t p = pf.random_prime(l_mod / 2 - 3);
     const intbig_t q = pf.random_prime(l_mod / 2 + 3);
 
