@@ -31,6 +31,7 @@ public:
     std::string n_bytes() const;
 
     std::string to_packet() const;
+    static key_pub from_packet(const std::string& packet);
 
     std::string encrypt(const std::string& msg) const;
 
@@ -53,6 +54,7 @@ public:
     std::string n_bytes() const;
 
     std::string to_packet() const;
+    static key_priv from_packet(const std::string& packet);
 
     std::string decrypt(const std::string& msg) const;
 

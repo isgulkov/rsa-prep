@@ -76,6 +76,21 @@ std::string key_pub::to_packet() const
     return packet;
 }
 
+key_pub key_pub::from_packet(const std::string& packet)
+{
+    if(packet[0] != '\x01') {
+        throw std::logic_error("");
+    }
+
+    const size_t l_n = uint8_t(packet[1]) * 256 + uint8_t(packet[2]);
+    const std::string s_n = packet.substr(3, l_n);
+
+    const size_t l_e = uint8_t(packet[3 + l_n]) * 256 + uint8_t(packet[3 + l_n + 1]);
+    const std::string s_e = packet.substr(3 + l_n + 2, l_e);
+
+    return { s_e, s_n };
+}
+
 std::string random_nz_pad(size_t l_bytes)
 {
     std::random_device rd;
@@ -172,6 +187,21 @@ std::string key_priv::to_packet() const
     }
 
     return packet;
+}
+
+key_priv key_priv::from_packet(const std::string& packet)
+{
+    if(packet[0] != '\x02') {
+        throw std::logic_error("");
+    }
+
+    const size_t l_n = uint8_t(packet[1]) * 256 + uint8_t(packet[2]);
+    const std::string s_n = packet.substr(3, l_n);
+
+    const size_t l_d = uint8_t(packet[3 + l_n]) * 256 + uint8_t(packet[3 + l_n + 1]);
+    const std::string s_d = packet.substr(3 + l_n + 2, l_d);
+
+    return { s_d, s_n };
 }
 
 std::string key_priv::decrypt(const std::string& msg) const
