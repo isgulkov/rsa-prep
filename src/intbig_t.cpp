@@ -299,7 +299,8 @@ intbig_t intbig_t::random_bits(size_t n_bits)
     auto limbs = random_bits_upto(n_bits);
 
     if(n_bits) {
-        limbs.back() |= (1 << (n_bits % 64 - 1));
+        // REVIEW: Why doesn't this work with (n_bits % 64 - 1)?..
+        limbs.back() |= (1 << (n_bits % 64));
     }
 
     return { limbs.empty() ? 0 : 1, std::move(limbs) };
