@@ -36,7 +36,7 @@ public:
     std::string encrypt(const std::string& msg) const;
 
     std::string encrypt_pkcs(const std::string& msg) const;
-    bool verify(const std::string& msg, const std::string& sig, hash_sel_t hash = SHA256) const;
+    bool verify_pkcs(const std::string& msg, const std::string& sig, hash_sel_t hash = SHA256) const;
 
     friend std::pair<key_pub, key_priv> gen_keypair(size_t, const intbig_t&);
 };
@@ -59,7 +59,7 @@ public:
     std::string decrypt(const std::string& msg) const;
 
     std::string decrypt_pkcs(const std::string& msg) const;
-    std::string sign(const std::string& msg, hash_sel_t hash = SHA256) const;
+    std::string sign_pkcs(const std::string& msg, hash_sel_t hash = SHA256) const;
 
     friend std::pair<key_pub, key_priv> gen_keypair(size_t, const intbig_t&);
 };

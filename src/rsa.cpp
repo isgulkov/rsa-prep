@@ -140,12 +140,19 @@ std::string key_pub::encrypt_pkcs(const std::string& msg) const
     return encrypt(enc_msg);
 }
 
-bool key_pub::verify(const std::string& msg, const std::string& sig, hash_sel_t hash) const
+bool key_pub::verify_pkcs(const std::string& msg, const std::string& sig, hash_sel_t hash) const
 {
-    const std::string v_hash_msg = calculate_hash(msg, hash);
-    const std::string v_hash_sig = encrypt(sig);
+    const std::string pad_digest = encrypt(sig);
 
-    return v_hash_msg == v_hash_sig;
+    const size_t i_start = pad_digest.find('\x00', 1);
+
+    if(i_start == std::string::npos) {
+        return false;
+    }
+
+    const std::string digest = pad_digest.substr(i_start + 1);
+
+    return digest == calculate_hash(msg, hash);
 }
 
 key_priv::key_priv(const std::string& d_bytes, const std::string& n_bytes)
@@ -231,11 +238,15 @@ std::string key_priv::decrypt_pkcs(const std::string& msg) const
     }
 }
 
-std::string key_priv::sign(const std::string& msg, hash_sel_t hash) const
+std::string key_priv::sign_pkcs(const std::string& msg, hash_sel_t hash) const
 {
-    const std::string v_hash = calculate_hash(msg, hash);
+    const std::string digest = calculate_hash(msg, hash);
 
-    return decrypt(v_hash);
+    const size_t n_len = n.num_bits() / 8;
+
+    const std::string pad_digest = std::string{ '\x00', '\x01' } + std::string(n_len - digest.size() - 3, char('\xff')) + '\x00' + digest;
+
+    return decrypt(pad_digest);
 }
 
 }
