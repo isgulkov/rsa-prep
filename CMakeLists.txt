@@ -6,6 +6,8 @@ project(rsa_prep
 
 set(CMAKE_CXX_STANDARD 11)
 
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
+
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall -Wextra")
 #                          ^^^
 # This may or may not improve lldb's "Evaluate Expression" functionality in CLion
@@ -26,6 +28,10 @@ target_link_libraries(calc intbig_t)
 # - primes: generation of large random primes
 add_library(primes src/primes.cpp)
 target_link_libraries(primes PUBLIC intbig_t)
+
+# - rsa: RSA cryptosystem
+add_library(rsa src/rsa.cpp)
+target_link_libraries(rsa PRIVATE intbig_t primes)
 
 # - sha256: a SHA256 cryptograpihc hash implementation
 add_library(sha256 src/sha256.cpp)
