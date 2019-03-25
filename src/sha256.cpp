@@ -166,14 +166,32 @@ sha256_hash sha256_words(const std::string& msg)
     return hash;
 }
 
-std::string sha256_hex(const std::string& msg)
+std::string sha256_bytes(const std::string& msg)
 {
     sha256_hash hash = sha256_words(msg);
 
+    std::string bytes;
+
+    for(int i = 0; i < 8; i++) {
+        uint32_t word = hash[i];
+
+        for(int j = 0; j < 4; j++) {
+            bytes += char((word >> 24) & 0xFF);
+            word <<= 8;
+        }
+    }
+
+    return bytes;
+}
+
+std::string sha256_hex(const std::string& msg)
+{
+    std::string bytes = sha256_bytes(msg);
+
     char hex[65];
 
-    for(size_t i = 0; i < 8; i++) {
-        sprintf(hex + 8 * i, "%08x", hash[i]);
+    for(size_t i = 0; i < 32; i++) {
+        sprintf(hex + 2 * i, "%02x", (uint8_t)bytes[i]);
     }
 
     return std::string(hex);

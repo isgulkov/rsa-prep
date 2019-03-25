@@ -10,6 +10,7 @@ namespace SHA256 {
 typedef std::array<uint32_t, 8> sha256_hash;
 
 sha256_hash sha256_words(const std::string& msg);
+std::string sha256_bytes(const std::string& msg);
 std::string sha256_hex(const std::string& msg);
 
 }
