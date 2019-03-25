@@ -39,6 +39,10 @@ add_library(base64 src/base64.cpp)
 add_library(rsa src/rsa.cpp)
 target_link_libraries(rsa PRIVATE intbig_t primes sha256)
 
+# - formats: file formats resembling OpenPGP's ASCII-armored DER
+add_library(formats src/formats.cpp)
+target_link_libraries(formats rsa base64)
+
 # REMOVE: v
 ### some shit...
 add_executable(rsa_prep src/main.cpp)
@@ -62,7 +66,7 @@ target_link_libraries(prime primes)
 
 # - igpg: cryptography tool
 add_executable(igpg apps/igpg.cpp)
-target_link_libraries(igpg rsa base64)
+target_link_libraries(igpg rsa formats)
 
 ### Unit tests
 ### ----------

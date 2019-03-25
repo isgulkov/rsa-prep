@@ -3,7 +3,7 @@
 #include <fstream>
 #include <ctime>
 
-#include "base64.hpp"
+#include "formats.hpp"
 #include "rsa.hpp"
 
 using namespace isg;
@@ -31,46 +31,6 @@ void print_version()
               << "Compression: Uncompressed"
 //              << "Compression: Uncompressed, ZIP"
               << std::endl;
-}
-
-void dump_armor(const std::string& header, const std::string& content, std::ostream& os)
-{
-    os << "-----BEGIN " << header << "-----" << '\n';
-//       << "Version: isgPG v0.0.1" << '\n' << '\n';
-
-    os << base64::b64encode(content, 64) << '\n';
-
-    os << "-----END " << header << "-----" << std::endl;
-}
-
-std::string load_armor(const std::string& header, std::istream& is)
-{
-    std::string line;
-
-    bool found_start = false;
-
-    while(std::getline(is, line)) {
-        if(line.find("-----BEGIN " + header + "-----") != std::string::npos) {
-            found_start = true;
-            break;
-        }
-    }
-
-    if(!found_start) {
-        throw std::logic_error("...");
-    }
-
-    std::string content;
-
-    while(std::getline(is, line)) {
-        if(line.find("-----END " + header + "-----") != std::string::npos) {
-            return base64::b64decode(content);
-        }
-
-        content += line;
-    }
-
-    throw std::logic_error("....");
 }
 
 std::string read_all(std::istream& is)
@@ -101,23 +61,20 @@ int main(int argc, char** argv)
 
         const auto keypair = rsa::gen_keypair(n_bits);
 
-        const rsa::key_pub pub = keypair.first;
-        const rsa::key_priv priv = keypair.second;
-
         const std::string f_name = std::to_string(std::time(nullptr));
 
         {
             std::cerr << "Writing \33[1m" << f_name << ".pub" << "\33[0m..." << std::endl;
             std::ofstream f_out_pub(f_name + ".pub");
 
-            dump_armor("RSA PUBLIC KEY", pub.to_packet(), f_out_pub);
+            formats::dump_pubkey(f_out_pub, keypair.first);
         }
 
         {
             std::cerr << "Writing \33[1m" << f_name << ".priv" << "\33[0m..." << std::endl;
             std::ofstream f_out_priv(f_name + ".priv");
 
-            dump_armor("RSA PRIVATE KEY", priv.to_packet(), f_out_priv);
+            formats::dump_privkey(f_out_priv, keypair.second);
         }
     }
     else if(cmd == "encrypt") {
@@ -126,13 +83,13 @@ int main(int argc, char** argv)
 
         std::cerr << "Reading public key \33[1m" << path_pubkey << "\33[0m..." << std::endl;
 
-        const rsa::key_pub pub = rsa::key_pub::from_packet(load_armor("RSA PUBLIC KEY", f_in_pub));
+        const rsa::key_pub pub = formats::load_pubkey(f_in_pub);
 
         std::cerr << "Reading stdin..." << std::endl;
 
         const std::string msg = read_all(std::cin);
 
-        dump_armor("RSA ENCRYPTED MESSAGE", pub.encrypt_pkcs(msg), std::cout);
+        formats::dump_enc_message(std::cout, pub.encrypt_pkcs(msg));
     }
     else if(cmd == "decrypt") {
         const std::string path_privkey = argv[2];
@@ -140,11 +97,11 @@ int main(int argc, char** argv)
 
         std::cerr << "Reading private key \33[1m" << path_privkey << "\33[0m..." << std::endl;
 
-        const rsa::key_priv priv = rsa::key_priv::from_packet(load_armor("RSA PRIVATE KEY", f_in_priv));
+        const rsa::key_priv priv = formats::load_privkey(f_in_priv);
 
         std::cerr << "Reading stdin..." << std::endl;
 
-        const std::string msg = priv.decrypt_pkcs(load_armor("RSA ENCRYPTED MESSAGE", std::cin));
+        const std::string msg = priv.decrypt_pkcs(formats::load_enc_message(std::cin));
 
         std::cout << msg << std::endl;
     }
