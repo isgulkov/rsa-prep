@@ -257,6 +257,10 @@ std::vector<uint64_t> random_bits_upto(size_t n_bits)
         limbs.push_back(last_limb);
     }
 
+    while(!limbs.back()) {
+        limbs.pop_back();
+    }
+
     return limbs;
 }
 
