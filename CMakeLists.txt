@@ -40,12 +40,6 @@ target_link_libraries(rsa PRIVATE intbig_t primes sha256)
 add_library(formats src/formats.cpp)
 target_link_libraries(formats rsa base64)
 
-# REMOVE: v
-### some shit...
-add_executable(rsa_prep src/main.cpp)
-target_link_libraries(rsa_prep intbig_t)
-# REMOVE: ^
-
 ### CLI applications
 ### ----------------
 
