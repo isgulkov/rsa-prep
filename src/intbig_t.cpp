@@ -73,61 +73,84 @@ intbig_t& intbig_t::operator=(const int64_t x)
 
 intbig_t intbig_t::from(const std::string& s, const Base base)
 {
-    if(base != Base::Decimal) {
-        throw std::logic_error("bases other than Decimal aren't implemented"); // TODO
-    }
+    if(base == Decimal) {
+        auto it_c = s.begin();
 
-    auto it_c = s.begin();
+        const bool is_neg = *it_c == '-';
+        if(is_neg) ++it_c;
 
-    const bool is_neg = *it_c == '-';
-    if(is_neg) ++it_c;
+        intbig_t x;
 
-    intbig_t x;
+        for(; it_c != s.end(); it_c++) {
+            const auto dig = (uint8_t)(*it_c - '0');
 
-    for(; it_c != s.end(); it_c++) {
-        const auto dig = (uint8_t)(*it_c - '0');
+            if(dig > 9) {
+                throw std::invalid_argument(
+                        "Invalid digit '" + std::string(1, *it_c) + "'"
+                        + " at " + std::to_string(it_c - s.begin())
+                        + " in \"" + s + "\""
+                );
+            }
 
-        if(dig > 9) {
-            throw std::invalid_argument(
-                    "Invalid digit '" + std::string(1, *it_c) + "'"
-                    + " at " + std::to_string(it_c - s.begin())
-                    + " in \"" + s + "\""
-            );
+            x *= 10;
+            x += dig;
         }
 
-        x *= 10;
-        x += dig;
+        return is_neg ? x.negate() : x;
     }
+    else if(base == Base256) {
+        intbig_t x;
 
-    return is_neg ? x.negate() : x;
+        for(auto it_c = s.rbegin(); it_c != s.rend(); it_c++) {
+            x <<= 8;
+            x += uint8_t(*it_c);
+        }
+
+        return x;
+    }
+    else {
+        throw std::logic_error("Base " + std::to_string(base) + " is not implemented");
+    }
 }
 
 std::string intbig_t::to_string(const Base base) const
 {
-    if(base != Decimal) {
-        throw std::logic_error("Bases other than 10 aren't implemented yet");
+    if(base == Decimal) {
+        if(!sign) {
+            return "0";
+        }
+
+        // TODO: consider reducing the number of divisions by taking up to 18 digits at a time
+
+        intbig_t value = *this;
+        std::string s;
+
+        while(value != 0) {
+            s += (char)('0' + value.divmod(10));
+        }
+
+        if(sign < 0) {
+            s += '-';
+        }
+
+        std::reverse(s.begin(), s.end());
+
+        return s;
     }
+    else if(base == Base256) {
+        intbig_t x = *this;
+        std::string s;
 
-    if(!sign) {
-        return "0";
+        while(x != 0) {
+            s += char(x.limbs[0] % 256);
+            x >>= 8;
+        }
+
+        return s;
     }
-
-    // TODO: consider reducing the number of divisions by taking up to 18 digits at a time
-
-    intbig_t value = *this;
-    std::string s;
-
-    while(value != 0) {
-        s += (char)('0' + value.divmod(10));
+    else {
+        throw std::logic_error("Base " + std::to_string(base) + " is not implemented");
     }
-
-    if(sign < 0) {
-        s += '-';
-    }
-
-    std::reverse(s.begin(), s.end());
-
-    return s;
 }
 
 namespace
