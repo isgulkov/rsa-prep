@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <ctime>
 
 #include "base64.hpp"
 #include "rsa.hpp"
@@ -103,16 +104,18 @@ int main(int argc, char** argv)
         const rsa::key_pub pub = keypair.first;
         const rsa::key_priv priv = keypair.second;
 
+        const std::string f_name = std::to_string(std::time(nullptr));
+
         {
-            std::cerr << "Writing \33[1m" << "1337.pub" << "\33[0m..." << std::endl;
-            std::ofstream f_out_pub("1337.pub");
+            std::cerr << "Writing \33[1m" << f_name << ".pub" << "\33[0m..." << std::endl;
+            std::ofstream f_out_pub(f_name + ".pub");
 
             dump_armor("RSA PUBLIC KEY", pub.to_packet(), f_out_pub);
         }
 
         {
-            std::cerr << "Writing \33[1m" << "1337.priv" << "\33[0m..." << std::endl;
-            std::ofstream f_out_priv("1337.priv");
+            std::cerr << "Writing \33[1m" << f_name << ".priv" << "\33[0m..." << std::endl;
+            std::ofstream f_out_priv(f_name + ".priv");
 
             dump_armor("RSA PRIVATE KEY", priv.to_packet(), f_out_priv);
         }
