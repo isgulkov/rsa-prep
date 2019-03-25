@@ -101,9 +101,9 @@ intbig_t intbig_t::from(const std::string& s, const Base base)
     else if(base == Base256) {
         intbig_t x;
 
-        for(auto it_c = s.rbegin(); it_c != s.rend(); it_c++) {
+        for(char c : s) {
             x <<= 8;
-            x += uint8_t(*it_c);
+            x += uint8_t(c);
         }
 
         return x;
@@ -145,6 +145,8 @@ std::string intbig_t::to_string(const Base base) const
             s += char(x.limbs[0] % 256);
             x >>= 8;
         }
+
+        std::reverse(s.begin(), s.end());
 
         return s;
     }
