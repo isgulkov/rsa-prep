@@ -20,7 +20,7 @@ void print_usage()
 
 void print_version()
 {
-    std::cout << "igpg (isgPG) 0.0.1" << '\n'
+    std::cout << "igpg (isgPG) 0.1" << '\n'
               << "Copyright (C) 2019 Ilya Gulkov" << '\n'
               << '\n'
 //              << "Home: /Users/username/.igpg" << '\n'
