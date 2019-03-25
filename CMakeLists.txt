@@ -29,15 +29,15 @@ target_link_libraries(calc intbig_t)
 add_library(primes src/primes.cpp)
 target_link_libraries(primes PUBLIC intbig_t)
 
-# - rsa: RSA cryptosystem
-add_library(rsa src/rsa.cpp)
-target_link_libraries(rsa PRIVATE intbig_t primes)
-
 # - sha256: a SHA256 cryptograpihc hash implementation
 add_library(sha256 src/sha256.cpp)
 
 # - base64: a base64 codec as defined in RFC4880
 add_library(base64 src/base64.cpp)
+
+# - rsa: RSA cryptosystem
+add_library(rsa src/rsa.cpp)
+target_link_libraries(rsa PRIVATE intbig_t primes sha256)
 
 # REMOVE: v
 ### some shit...
