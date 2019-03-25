@@ -60,6 +60,10 @@ target_link_libraries(b64codec base64)
 add_executable(prime apps/prime.cpp)
 target_link_libraries(prime primes)
 
+# - igpg: cryptography tool
+add_executable(igpg apps/igpg.cpp)
+target_link_libraries(igpg rsa base64)
+
 ### Unit tests
 ### ----------
 option(BUILD_TESTS "Build all tests." OFF)
