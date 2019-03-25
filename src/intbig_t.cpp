@@ -698,7 +698,7 @@ namespace {
 #endif
 
         // REVIEW: can't this be done better (maintaining a variable through both loops doesn't seem like it)
-        while(acc.back() == 0) {
+        while(!acc.empty() && acc.back() == 0) {
             acc.pop_back();
         }
     }
@@ -746,7 +746,7 @@ namespace {
 #endif
 
         // REVIEW: see the other method
-        while(acc.back() == 0) {
+        while(!acc.empty() && acc.back() == 0) {
             acc.pop_back();
         }
     }
@@ -1489,11 +1489,15 @@ intbig_t intbig_t::divmod(const intbig_t& other)
     ssize_t n_bits_q = num_bits() - other.num_bits();
 
     if(n_bits_q < 0) {
-        const intbig_t rem = { sign * other.sign, std::move(limbs) };
-        operator=(of(0));
+        sign *= other.sign;
+
+        intbig_t rem;
+        std::swap(*this, rem);
 
         return rem;
     }
+
+    const int sign_q = sign * other.sign;
 
     intbig_t denom = other << n_bits_q;
 
@@ -1501,7 +1505,6 @@ intbig_t intbig_t::divmod(const intbig_t& other)
 
     for(ssize_t i = n_bits_q; i >= 0; i--) {
         if(operator>=(denom)) {
-            // TODO: Handle zero result in there
             sub2_unsigned(limbs, denom.limbs);
 
             limbs_q[i / 64] |= 1ULL << (i % 64);
