@@ -252,7 +252,7 @@ std::vector<uint64_t> random_bits_upto(size_t n_bits)
     if(n_bits) {
         uint64_t last_limb = dist(rd);
 
-        last_limb &= (1 << n_bits) - 1;
+        last_limb &= (1ULL << n_bits) - 1;
 
         limbs.push_back(last_limb);
     }
@@ -265,7 +265,7 @@ intbig_t intbig_t::random_bits(size_t n_bits)
     auto limbs = random_bits_upto(n_bits);
 
     if(n_bits) {
-        limbs.back() |= (1 << (n_bits - 1));
+        limbs.back() |= (1 << (n_bits % 64 - 1));
     }
 
     return { limbs.empty() ? 0 : 1, std::move(limbs) };
@@ -1469,6 +1469,7 @@ intbig_t intbig_t::divmod(const intbig_t& other)
 
     for(ssize_t i = n_bits_q; i >= 0; i--) {
         if(operator>=(denom)) {
+            // TODO: Handle zero result in there
             sub2_unsigned(limbs, denom.limbs);
 
             limbs_q[i / 64] |= 1ULL << (i % 64);
