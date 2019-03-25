@@ -14,8 +14,8 @@ void print_usage()
               << "  \33[4migpg\33[0m \33[4mgen-key\33[0m [<n-bits>]" << '\n'
               << "  \33[4migpg\33[0m \33[4mencrypt\33[0m -k <pub-key> [-i <input-file>]" << '\n'
               << "  \33[4migpg\33[0m \33[4mdecrypt\33[0m -k <priv-key> [-i <input-file>]" << '\n'
-              << "  \33[4migpg\33[0m \33[4msign\33[0m -k <priv-key>" << '\n'
-              << "  \33[4migpg\33[0m \33[4mverify\33[0m -k <pub-key>" << std::endl;
+              << "  \33[4migpg\33[0m \33[4msign\33[0m -k <priv-key> [-i <input-file>]" << '\n'
+              << "  \33[4migpg\33[0m \33[4mverify\33[0m -k <pub-key> -s <sig> [-i <input-file>]" << std::endl;
 }
 
 void print_version()
@@ -214,7 +214,70 @@ int main(int argc, char** argv)
         formats::dump_detached_sig(std::cout, priv.sign_pkcs(msg));
     }
     else if(cmd == "verify") {
+        std::string path_pubkey, path_sig, path_fin;
 
+        for(int i = 2; i < argc; i++) {
+            const std::string arg = argv[i];
+
+            if(arg == "-k") {
+                path_pubkey = argv[++i];
+            }
+            else if(arg == "-s") {
+                path_sig = argv[++i];
+            }
+            else if(arg == "-i") {
+                path_fin = argv[++i];
+            }
+            else {
+                std::cerr << "Error: unexpected argument '" << arg << "'" << std::endl;
+                return 2;
+            }
+        }
+
+        if(path_pubkey.empty()) {
+            std::cerr << "Error: path to public key unspecified" << std::endl;
+            return 2;
+        }
+
+        if(path_sig.empty()) {
+            std::cerr << "Error: path to signature unspecified" << std::endl;
+            return 2;
+        }
+
+        std::cerr << "Reading public key \33[1m" << path_pubkey << "\33[0m..." << std::endl;
+
+        std::ifstream f_in_pub(path_pubkey);
+        const rsa::key_pub pub = formats::load_pubkey(f_in_pub);
+
+        std::cerr << "Reading signature \33[1m" << path_pubkey << "\33[0m..." << std::endl;
+
+        std::ifstream f_in_sig(path_sig);
+        const std::string sig = formats::load_detached_sig(f_in_sig);
+
+        std::string msg;
+
+        if(!path_fin.empty()) {
+            std::cerr << "Reading \33[1m" << path_fin << "\33[0m..." << std::endl;
+
+            std::ifstream f_in(path_fin);
+            msg = read_all(f_in);
+        }
+        else {
+            std::cerr << "Reading stdin..." << std::endl;
+
+            msg = read_all(std::cin);
+        }
+
+        const bool result = pub.verify_pkcs(msg, sig);
+
+        if(result) {
+            std::cout << "\33[1;32mSignature matches\33[0m" << std::endl;
+            return 0;
+        }
+        else {
+            std::cout << "\33[1;31mSignature doesn't match\33[0m" << std::endl;
+            return 1;
+        }
     }
     else if(cmd == "--version" || cmd == "-v") {
         print_version();
