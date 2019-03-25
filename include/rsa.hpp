@@ -30,6 +30,8 @@ public:
     std::string e_bytes() const;
     std::string n_bytes() const;
 
+    std::string to_packet() const;
+
     std::string encrypt(const std::string& msg) const;
 
     std::string encrypt_pkcs(const std::string& msg) const;
@@ -49,6 +51,8 @@ public:
 
     std::string d_bytes() const;
     std::string n_bytes() const;
+
+    std::string to_packet() const;
 
     std::string decrypt(const std::string& msg) const;
 

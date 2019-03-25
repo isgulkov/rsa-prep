@@ -51,6 +51,31 @@ std::string key_pub::n_bytes() const
     return n.to_string(intbig_t::Base256);
 }
 
+std::string key_pub::to_packet() const
+{
+    std::string packet = "\x01";
+
+    {
+        const std::string s_n = n_bytes();
+
+        packet += char(s_n.size() / 256);
+        packet += char(s_n.size() % 256);
+
+        packet += s_n;
+    }
+
+    {
+        const std::string s_e = e_bytes();
+
+        packet += char(s_e.size() / 256);
+        packet += char(s_e.size() % 256);
+
+        packet += s_e;
+    }
+
+    return packet;
+}
+
 std::string random_nz_pad(size_t l_bytes)
 {
     std::random_device rd;
@@ -122,6 +147,31 @@ std::string key_priv::d_bytes() const
 std::string key_priv::n_bytes() const
 {
     return n.to_string(intbig_t::Base256);
+}
+
+std::string key_priv::to_packet() const
+{
+    std::string packet = "\x02";
+
+    {
+        const std::string s_n = n_bytes();
+
+        packet += char(s_n.size() / 256);
+        packet += char(s_n.size() % 256);
+
+        packet += s_n;
+    }
+
+    {
+        const std::string s_d = d_bytes();
+
+        packet += char(s_d.size() / 256);
+        packet += char(s_d.size() % 256);
+
+        packet += s_d;
+    }
+
+    return packet;
 }
 
 std::string key_priv::decrypt(const std::string& msg) const
