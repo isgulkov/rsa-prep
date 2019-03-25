@@ -27,6 +27,9 @@ class key_pub
 public:
     key_pub(const std::string& e_bytes, const std::string& n_bytes);
 
+    std::string e_bytes() const;
+    std::string n_bytes() const;
+
     std::string encrypt(const std::string& msg) const;
 
     std::string encrypt_pkcs(const std::string& msg) const;
@@ -43,6 +46,9 @@ class key_priv
 
 public:
     key_priv(const std::string& d_bytes, const std::string& n_bytes);
+
+    std::string d_bytes() const;
+    std::string n_bytes() const;
 
     std::string decrypt(const std::string& msg) const;
 

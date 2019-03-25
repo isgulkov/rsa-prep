@@ -41,6 +41,16 @@ key_pub::key_pub(const std::string& e_bytes, const std::string& n_bytes)
     n = intbig_t::from(n_bytes, intbig_t::Base256);
 }
 
+std::string key_pub::e_bytes() const
+{
+    return e.to_string(intbig_t::Base256);
+}
+
+std::string key_pub::n_bytes() const
+{
+    return n.to_string(intbig_t::Base256);
+}
+
 std::string random_nz_pad(size_t l_bytes)
 {
     std::random_device rd;
@@ -102,6 +112,16 @@ key_priv::key_priv(const std::string& d_bytes, const std::string& n_bytes)
 {
     d = intbig_t::from(d_bytes, intbig_t::Base256);
     n = intbig_t::from(n_bytes, intbig_t::Base256);
+}
+
+std::string key_priv::d_bytes() const
+{
+    return d.to_string(intbig_t::Base256);
+}
+
+std::string key_priv::n_bytes() const
+{
+    return n.to_string(intbig_t::Base256);
 }
 
 std::string key_priv::decrypt(const std::string& msg) const
