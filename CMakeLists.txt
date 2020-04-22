@@ -15,6 +15,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall -Wextra")
 #set(CMAKE_VERBOSE_MAKEFILE TRUE)
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -v")
 
+set(EXECUTABLE_OUTPUT_PATH ../apps)
+
 ### Libraries
 ### ---------
 include_directories(include)
