@@ -16,8 +16,8 @@ std::string read_cin()
 void print_usage()
 {
     std::cerr << "Usage:" << '\n';
-    std::cerr << "  b64codec --encode" << '\n';
-    std::cerr << "  b64codec --decode" << '\n';
+    std::cerr << "  b64codec -E|--encode" << '\n';
+    std::cerr << "  b64codec -D|--decode" << '\n';
 }
 
 /**
@@ -33,10 +33,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if(argv[1] == std::string("--encode")) {
+    if(argv[1] == std::string("-E") || argv[1] == std::string("--encode")) {
         std::cout << base64::b64encode(read_cin()) << std::flush;
     }
-    else if(argv[1] == std::string("--decode")) {
+    else if(argv[1] == std::string("-D") || argv[1] == std::string("--decode")) {
         std::cout << base64::b64decode(read_cin()) << std::flush;
     }
     else {
